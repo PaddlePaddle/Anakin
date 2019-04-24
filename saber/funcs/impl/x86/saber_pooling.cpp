@@ -1,5 +1,6 @@
 #include "saber/funcs/impl/x86/saber_pooling.h"
 #include "saber/funcs/impl/x86/kernel/jit_uni_pool_kernel_f32.h"
+#include "saber/funcs/impl/x86/kernel/jit_avx512_core_8bit_pooling_kernel.h"
 #include "debug.h"
 namespace anakin {
 namespace saber {
@@ -480,6 +481,65 @@ SaberStatus SaberPooling<X86, AK_INT8>::create(const std::vector<Tensor<X86>*>& 
         PoolingParam<X86>& param,
         Context<X86>& ctx) {
 
+    Shape src_shape(inputs[0]->shape());
+    Shape dst_shape(outputs[0]->shape());
+
+    if (!utils::one_of(param.pooling_type,
+                       Pooling_max,
+                       Pooling_average_include_padding,
+                       Pooling_average_exclude_padding)) {
+        return SaberUnImplError;
+    }
+
+    jit_pool_conf_t jpp;
+    const int simd_w = 16;
+    const int ndims = 4;
+    jpp.src_fmt = inputs[0]->get_layout();
+    jpp.ndims = ndims;
+    jpp.mb = src_shape[0];
+    jpp.c  = src_shape[3];
+    jpp.id = (ndims == 5) ? src_shape[2] : 1;
+    jpp.ih = src_shape[ndims - 3];
+    jpp.iw = src_shape[ndims - 2];
+    jpp.od = (ndims == 5) ? dst_shape[2] : 1;
+    jpp.oh = dst_shape[ndims - 3];
+    jpp.ow = dst_shape[ndims - 2];
+    jpp.stride_d = 1;
+    jpp.stride_h = param.stride_h;
+    jpp.stride_w = param.stride_w;
+    jpp.kd = 1;
+    jpp.kh = param.window_h;
+    jpp.kw = param.window_w;
+    jpp.f_pad = 0;
+    jpp.t_pad = param.pad_h;
+    jpp.l_pad = param.pad_w;
+    jpp.alg = param.pooling_type;
+
+    jpp.ind_dt = AK_UINT8;
+    jpp.src_dt = inputs[0]->get_dtype();
+    jpp.dst_dt = outputs[0]->get_dtype();
+
+    //fixme:only support uint8 now
+    if (jpp.src_dt == AK_FLOAT) {
+        jpp.src_dt = AK_UINT8;
+    }
+
+    if (_kernel != nullptr) {
+        delete _kernel;
+        _kernel = nullptr;
+    }
+
+    if (jit_avx512_core_8bit_pooling_kernel::init_conf(jpp) != SaberSuccess) {
+        LOG(FATAL) << "init_conf failed";
+        return SaberUnImplError;
+    }
+
+    kernel_nhwc_ = new jit_avx512_core_8bit_pooling_kernel(jpp);
+
+    if (inputs[0]->get_dtype() == AK_FLOAT) {
+        utils::try_expand_tensor(_input_scale, inputs[0]->valid_shape());
+    }
+
     return SaberSuccess;
 }
 
@@ -487,7 +547,14 @@ template <>
 SaberStatus SaberPooling<X86, AK_INT8>::init(const std::vector<Tensor<X86>*>& inputs,
         std::vector<Tensor<X86>*>& outputs,
         PoolingParam<X86>& param, Context<X86>& ctx) {
+    this->_ctx = &ctx;
 
+    if (inputs[0]->get_dtype() == AK_FLOAT) {
+        _input_scale.re_alloc(inputs[0]->valid_shape(), AK_UINT8);
+    }
+    CHECK(outputs[0]->get_layout()==Layout_NHWC);
+    //FIXME:intel kernel not support scale so we pass scale from input to output
+    outputs[0]->set_scale(inputs[0]->get_scale());
     return create(inputs, outputs, param, ctx);
 }
 
@@ -495,6 +562,66 @@ template <>
 SaberStatus SaberPooling<X86, AK_INT8>::dispatch(const std::vector<Tensor<X86>*>& inputs,
         std::vector<Tensor<X86>*>& outputs,
         PoolingParam<X86>& param) {
+    if (!mayiuse(avx512_common)) {
+        LOG(FATAL) << "only run in avx512";
+        return SaberUnImplError;
+    }
+
+    const auto& jpp = kernel_nhwc_->jpp;
+    unsigned char* src_i8 = (unsigned char*)(inputs[0]->data());
+
+    if (inputs[0]->get_dtype() == AK_FLOAT) {
+        utils::ScaleUtils::scale_fp32_uint8(_input_scale, *inputs[0]);
+        src_i8 = static_cast<unsigned char*>(_input_scale.mutable_data());
+    }
+
+    unsigned char* dst_i8 = (unsigned char*)(outputs[0]->mutable_data());
+    float* dst_f32 = (float*)(outputs[0]->mutable_data());
+    auto ker = [&](int ithr, int nthr) {
+        const int work_amount = jpp.mb * jpp.oh * jpp.ow;
+
+        int start{0}, end{0};
+        balance211(work_amount, nthr, ithr, start, end);
+
+        int n{0}, oh{0}, ow{0};
+        nd_iterator_init(start, n, jpp.mb, oh, jpp.oh, ow, jpp.ow);
+
+        auto p = jit_pool_call_nhwc_t();
+        memset(&p, 0, sizeof(jit_pool_call_nhwc_t));
+
+        for (int iwork = start; iwork < end; ++iwork) {
+            const int ih = utils::max(oh * jpp.stride_h - jpp.t_pad, 0);
+            const int iw = utils::max(ow * jpp.stride_w - jpp.l_pad, 0);
+            const int kh_start = utils::max(0, jpp.t_pad - oh * jpp.stride_h);
+            const int kh_end = utils::min(jpp.kh, jpp.ih + jpp.t_pad - oh * jpp.stride_h);
+            const int kw_start = utils::max(0, jpp.l_pad - ow * jpp.stride_w);
+            const int kw_end = utils::min(jpp.kw, jpp.iw + jpp.l_pad - ow * jpp.stride_w);
+            size_t src_blk_off = n * jpp.ih * jpp.iw * jpp.c + ih * jpp.iw * jpp.c + iw * jpp.c;
+            size_t dst_blk_off = n * jpp.oh * jpp.ow * jpp.c + oh * jpp.ow * jpp.c + ow * jpp.c;
+
+            p.src_i8 = &src_i8[src_blk_off];
+
+            if (jpp.dst_dt == AK_FLOAT) {
+                p.dst_i8 = reinterpret_cast<unsigned char*>(dst_f32 + dst_blk_off);
+            } else {
+                p.dst_i8 = &dst_i8[dst_blk_off];
+            }
+
+            p.kw_range = (size_t)(kw_end - kw_start);
+            p.kh_range = (size_t)(kh_end - kh_start);
+            p.idivider = 1.0f / ((jpp.alg == Pooling_average_exclude_padding) ?
+                                 p.kh_range* p.kw_range : jpp.kw * jpp.kh);
+
+            kernel_nhwc_->ker_(&p);
+
+            nd_iterator_step(n, jpp.mb, oh, jpp.oh, ow, jpp.ow);
+        }
+    };
+
+    #pragma omp parallel
+    {
+        ker(anakin_get_thread_num(), anakin_get_num_threads());
+    }
 
     return SaberSuccess;
 }

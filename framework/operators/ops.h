@@ -58,7 +58,6 @@
 #include "framework/operators/sequence_pool.h"
 #include "framework/operators/slice.h"
 #include "framework/operators/softmax.h"
-#include "framework/operators/spatial_pyramid_pooling.h"
 #include "framework/operators/split.h"
 #include "framework/operators/standard_rnn.h"
 

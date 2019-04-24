@@ -20,6 +20,7 @@
 #include "saber/funcs/impl/impl_concat.h"
 #include "saber/core/tensor.h"
 
+#include "saber/funcs/impl/x86/kernel/jit_avx512_core_8bit_concat_kernel.h"
 #include "saber/funcs/impl/x86/kernel/jit_call_conf.h"
 namespace anakin{
 
@@ -35,7 +36,7 @@ public:
     typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
 
     SaberConcat() : _num_concats(0), _concat_input_size(0),
-                    dst_data_(nullptr),
+                    kernel(nullptr), dst_data_(nullptr),
                     srcs_data_(nullptr), src_with_offset_(nullptr),
                     tail_(nullptr), ic_(nullptr),
                     nb_ic_(nullptr), scale_(nullptr),
@@ -43,7 +44,10 @@ public:
 
     };
     ~SaberConcat() {
-
+        if (kernel != nullptr) {
+            delete kernel;
+            kernel = nullptr;
+        }
         if (srcs_data_ != nullptr) {
             delete srcs_data_;
             srcs_data_ = nullptr;
@@ -103,6 +107,7 @@ private:
     unsigned char* dst_data_;
     const unsigned char** srcs_data_;
     const unsigned char** src_with_offset_;
+    jit::jit_avx512_core_8bit_concat_kernel* kernel;
     virtual SaberStatus init_conf(jit::jit_concat_conf_t &jpp,
                                   const std::vector<Tensor<X86>*> &inputs,
                                   std::vector<Tensor<X86>*> &outputs,

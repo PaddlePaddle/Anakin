@@ -117,8 +117,10 @@ ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, X86, Precision::FP
 
 #ifdef USE_ARM_PLACE
 INSTANCE_DECONV(ARM, Precision::FP32);
+INSTANCE_DECONV(ARM, Precision::INT8);
 template class DeconvolutionHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, ARM, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, ARM, Precision::INT8);
 #endif
 
 #if defined BUILD_LITE

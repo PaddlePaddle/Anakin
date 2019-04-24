@@ -34,8 +34,9 @@ Status EltwiseHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing Eltwise op parameter.";
     auto type = GET_PARAMETER(std::string, type);
     auto coeff = GET_PARAMETER(PTuple<float>, coeff);
+    auto axis = GET_PARAMETER_WITH_DEFAULT(int, axis, 0);
     EltwiseType elt_type;
-
+    ActivationParam<Ttype> activation_param = ActivationParam<Ttype>();
     if (type == "Add") {
         elt_type = Eltwise_sum;
     } else if (type == "Max") {
@@ -44,10 +45,12 @@ Status EltwiseHelper<Ttype, Ptype>::InitParam() {
         elt_type = Eltwise_prod;
     } else if (type == "Div") {
         elt_type = Eltwise_div;
+    } else if (type == "Mul") {
+        elt_type = Eltwise_mul;
     } else { 
         LOG(FATAL) << "eltwise type is not supported" << elt_type;
     }
-    saber::EltwiseParam<Ttype> eltwise_param(elt_type, coeff.vector());
+    saber::EltwiseParam<Ttype> eltwise_param(elt_type, coeff.vector(), activation_param, axis);
     _param_eltwise = eltwise_param;
     return Status::OK();
 }
@@ -76,6 +79,9 @@ ANAKIN_REGISTER_OP_HELPER(Eltwise, EltwiseHelper, NV, Precision::FP32);
 INSTANCE_ELTWISE(X86, Precision::FP32);
 template class EltwiseHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Eltwise, EltwiseHelper, X86, Precision::FP32);
+INSTANCE_ELTWISE(X86, Precision::INT8);
+template class EltwiseHelper<X86, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Eltwise, EltwiseHelper, X86, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -100,6 +106,7 @@ ANAKIN_REGISTER_OP(Eltwise)
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("eltwise")
+.__alias__<X86, Precision::INT8>("eltwise")
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("eltwise")
@@ -107,8 +114,8 @@ ANAKIN_REGISTER_OP(Eltwise)
 .num_in(1)
 .num_out(1)
 .Args<std::string>("type", " eltwise type( string )")
-.Args<PTuple<float>>("coeff", "coeff of eltwise");
-
+.Args<PTuple<float>>("coeff", "coeff of eltwise")
+.Args<int>("axis", "axis of eltwise");
 
 } /* namespace ops */
 

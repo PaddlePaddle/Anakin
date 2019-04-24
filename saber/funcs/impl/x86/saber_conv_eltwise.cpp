@@ -8,6 +8,8 @@
 #include "saber/funcs/impl/x86/kernel/jit_uni_dwconv.h"
 #include "saber/funcs/impl/x86/kernel/jit_avx512_conv1x1.h"
 #include "saber/funcs/impl/x86/kernel/jit_avx512_conv.h"
+#include "saber/funcs/impl/x86/kernel/jit_avx512_core_x8s8s32x_conv.h"
+#include "saber/funcs/impl/x86/kernel/jit_avx512_core_x8s8s32x_1x1_conv.h"
 #include "saber/funcs/impl/x86/gemm_x8s8s32x_conv.h"
 #include "saber/funcs/impl/x86/saber_conv_1x1.h"
 #include "saber/funcs/impl/x86/kernel/jit_uni_dwconv.h"
@@ -162,7 +164,37 @@ SaberStatus SaberConvEltwise<X86, AK_INT8>::\
 init(const std::vector<Tensor<X86> *>& inputs,
      std::vector<Tensor<X86> *>& outputs,
      ConvEltwiseParam<X86>& param, Context<X86>& ctx) {
+    this->_ctx = &ctx;
+    ConvParam<X86> *conv_param = &(param.conv_param);
+    EltwiseParam<X86> *elt_param = &param.eltwise_param;
+    int kernel_h = conv_param->weight()->height();
+    int kernel_w = conv_param->weight()->width();
+    Shape src_shape(inputs[0]->valid_shape());
+    Shape dst_shape(outputs[0]->valid_shape());
+    int ic = src_shape[3], oc = dst_shape[3];
 
+    LOG(INFO)<<"conv eltwise conv "<<param.conv_param.alpha<<","<<param.conv_param.beta<<","<<outputs[0]->get_scale()[0];
+//    exit(0);
+
+#if 0
+    static int write_cnt=0;
+    record_tensor_in_format(*conv_param->weight(),"weights","conv_eltwise",true,write_cnt);
+    if (conv_param->bias()!= nullptr&&conv_param->bias()->valid_size()>0) {
+        record_tensor_in_format(*conv_param->bias(), "bias", "conv_eltwise", true, write_cnt);
+    }
+    write_cnt++;
+#endif
+
+#if 0
+    this->_impl = new JitAvx512X8S8S32XConv();
+#else
+
+    if (kernel_h == 1 && kernel_w == 1 && conv_param->pad_h == 0 && conv_param->pad_w == 0 && conv_param->stride_h == 1 && conv_param->stride_w == 1 && conv_param->group == 1) {
+        this->_impl = new JitAvx512x8s8s32xConv1x1();
+    } else {
+        this->_impl = new JitAvx512X8S8S32XConv();
+    }
+#endif
     return this->_impl->init(inputs, outputs, param, ctx);
 }
 

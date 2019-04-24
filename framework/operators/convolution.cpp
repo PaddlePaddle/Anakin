@@ -162,11 +162,12 @@ Status ConvolutionHelper<Ttype, Ptype>::InferShape(const
 
 #ifdef USE_CUDA
 template class ConvolutionHelper<NV, Precision::FP32>;
-
+template class ConvolutionHelper<NV, Precision::FP16>;
+template class ConvolutionHelper<NV, Precision::INT8>;
 INSTANCE_CONVOLUTION(NV, Precision::FP32);
-
+INSTANCE_CONVOLUTION(NV, Precision::INT8);
 ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, Precision::FP32);
-
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, Precision::INT8);
 
 #endif
 
@@ -174,7 +175,9 @@ ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, Precision::FP32);
 INSTANCE_CONVOLUTION(X86, Precision::FP32);
 template class ConvolutionHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, X86, Precision::FP32);
-
+INSTANCE_CONVOLUTION(X86, Precision::INT8);
+template class ConvolutionHelper<X86, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, X86, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE
