@@ -32,7 +32,8 @@ Status load(graph::Graph<Ttype, Ptype>* graph, std::string& model_path) {
 
 Status parse_graph_proto(GraphProto& graph_proto, const char* buffer, size_t len) {
 #ifdef USE_NANOPB
-    bool success = graph_proto.parse_from_buffer(buffer, len);
+    auto istream = pb_istream_from_buffer(reinterpret_cast<const pb_byte_t *>(buffer), len);
+    bool success = graph_proto.ParseFromIstream(&istream);
 #else
     google::protobuf::io::ArrayInputStream raw_input(buffer, len);
     google::protobuf::io::CodedInputStream coded_input(&raw_input);
@@ -46,11 +47,43 @@ Status parse_graph_proto(GraphProto& graph_proto, const char* buffer, size_t len
     return Status::OK();
 }
 
+#ifndef USE_SGX
+static size_t fsize(FILE *file) {
+    size_t size = 0;
+    long int saved = ftell(file);
+    fseek(file, 0, SEEK_END);
+
+    long int end = ftell(file);
+    fseek(file, saved, SEEK_SET);
+
+    if (end > 0) {
+        size = (size_t)end;
+    }
+
+    return size;
+}
+#endif
+
 Status parse_graph_proto(GraphProto& graph_proto, const char* model_path) {
 #ifdef USE_NANOPB
     FILE *f = fopen(model_path, "rb");
-    graph_proto.parse_from_file(f);
+    size_t file_len = fsize(f);
+    auto callback = [](pb_istream_t *stream, pb_byte_t *buf, size_t count) {
+        FILE *f = static_cast<FILE *>(stream->state);
+        return (sizeof(pb_byte_t) * count) == fread(buf, sizeof(pb_byte_t), count, f);
+    };
+    pb_istream_t istream {
+        .callback = callback,
+        .state = f,
+        .bytes_left = file_len,
+        .errmsg = "nanopb reading from file failed",
+    };
+    bool success = graph_proto.ParseFromIstream(&istream);
     fclose(f);
+
+    if (!success) {
+        LOG(FATAL) << " Parsing GraphProto " << model_path << " ERROR";
+    }
     return Status::OK();
 #else
     int file_descriptor = open(model_path, O_RDONLY);
@@ -217,7 +250,6 @@ Status load(graph::Graph<Ttype, Ptype>* graph, const char* buffer, size_t len) {
     return generate_graph_with_graph_proto(graph, graph_proto);
 }
 
-#ifndef USE_NANOPB
 template<typename Ttype, Precision Ptype>
 Status save(graph::Graph<Ttype, Ptype>* graph, std::string& model_path) {
     return save(graph, model_path.c_str());
@@ -225,12 +257,33 @@ Status save(graph::Graph<Ttype, Ptype>* graph, std::string& model_path) {
 
 template<typename Ttype, Precision Ptype>
 Status save(graph::Graph<Ttype, Ptype>* graph, const char* model_path) {
+#ifdef USE_NANOPB
+    FILE *model_file = fopen(model_path, "wb");
+
+    if (!model_file) {
+        LOG(ERROR) << model_path << " : File not found. ";
+        return Status::ANAKINFAIL("File not found");
+    }
+
+    auto callback = [](pb_ostream_t *stream, const pb_byte_t *buf, size_t count) {
+        FILE *f = static_cast<FILE *>(stream->state);
+        return (sizeof(pb_byte_t) * count) == fwrite(buf, sizeof(pb_byte_t), count, f);
+    };
+    pb_ostream_t output {
+        .callback = callback,
+        .state = model_file,
+        .max_size = SIZE_MAX,
+        .bytes_written = 0,
+        .errmsg = "nanopb writing to file failed",
+    };
+#else
     std::fstream output(model_path, std::ios::out | std::ios::trunc | std::ios::binary);
 
     if (!output) {
         LOG(ERROR) << model_path << " : File not found. ";
         return Status::ANAKINFAIL("File not found");
     }
+#endif
 
     GraphProto graph_proto;
     // TODO...  fill the graph_proto with graph.
@@ -316,9 +369,12 @@ Status save(graph::Graph<Ttype, Ptype>* graph, const char* model_path) {
     //  save graph proto to disk
     graph_proto.SerializeToOstream(&output);
 
+#ifdef USE_NANOPB
+    fclose(model_file);
+#endif
+
     return Status::OK();
 }
-#endif
 
 #ifdef USE_CUDA
 template
@@ -364,14 +420,12 @@ Status load<X86, Precision::FP16>(graph::Graph<X86, Precision::FP16>* graph, con
 template
 Status load<X86, Precision::INT8>(graph::Graph<X86, Precision::INT8>* graph, const char* model_path);
 
-#ifndef USE_NANOPB
 template
 Status save<X86, Precision::FP32>(graph::Graph<X86, Precision::FP32>* graph, std::string& model_path);
 template
 Status save<X86, Precision::FP16>(graph::Graph<X86, Precision::FP16>* graph, std::string& model_path);
 template
 Status save<X86, Precision::INT8>(graph::Graph<X86, Precision::INT8>* graph, std::string& model_path);
-#endif
 
 template
 Status load<X86, Precision::FP32>(graph::Graph<X86, Precision::FP32>* graph, std::string& model_path);
@@ -380,14 +434,12 @@ Status load<X86, Precision::FP16>(graph::Graph<X86, Precision::FP16>* graph, std
 template
 Status load<X86, Precision::INT8>(graph::Graph<X86, Precision::INT8>* graph, std::string& model_path);
 
-#ifndef USE_NANOPB
 template
 Status save<X86, Precision::FP32>(graph::Graph<X86, Precision::FP32>* graph, const char* model_path);
 template
 Status save<X86, Precision::FP16>(graph::Graph<X86, Precision::FP16>* graph, const char* model_path);
 template
 Status save<X86, Precision::INT8>(graph::Graph<X86, Precision::INT8>* graph, const char* model_path);
-#endif
 
 template
 Status load<X86, Precision::FP32>(graph::Graph<X86, Precision::FP32>* graph, const char* buffer, size_t len);
@@ -404,12 +456,11 @@ template
 Status load<ARM, Precision::FP32>(graph::Graph<ARM, Precision::FP32>* graph, std::string& model_path);
 template
 Status load<ARM, Precision::FP32>(graph::Graph<ARM, Precision::FP32>* graph, const char* buffer, size_t len);
-#ifndef USE_NANOPB
+
 template
 Status save<ARM, Precision::FP32>(graph::Graph<ARM, Precision::FP32>* graph, std::string& model_path);
 template
 Status save<ARM, Precision::FP32>(graph::Graph<ARM, Precision::FP32>* graph, const char* model_path);
-#endif
 
 template
 Status load<ARM, Precision::FP16>(graph::Graph<ARM, Precision::FP16>* graph, const char* model_path);
@@ -418,12 +469,10 @@ Status load<ARM, Precision::FP16>(graph::Graph<ARM, Precision::FP16>* graph, std
 template
 Status load<ARM, Precision::FP16>(graph::Graph<ARM, Precision::FP16>* graph, const char* buffer, size_t len);
 
-#ifndef USES_NANOPB
 template
 Status save<ARM, Precision::FP16>(graph::Graph<ARM, Precision::FP16>* graph, std::string& model_path);
 template
 Status save<ARM, Precision::FP16>(graph::Graph<ARM, Precision::FP16>* graph, const char* model_path);
-#endif
 
 template
 Status load<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph, const char* model_path);
@@ -432,14 +481,86 @@ Status load<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph, std
 template
 Status load<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph, const char* buffer, size_t len);
 
-#ifndef USE_NANOPB
 template
 Status save<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph, const char* model_path);
 template
 Status save<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph, std::string& model_path);
-#endif
 #endif // ifdef USE_ARM_PLACE
 
+#ifdef USE_BM_PLACE
+template
+Status load<BM, Precision::FP32>(graph::Graph<BM, Precision::FP32>* graph, const char* model_path);
+template
+Status load<BM, Precision::FP16>(graph::Graph<BM, Precision::FP16>* graph, const char* model_path);
+template
+Status load<BM, Precision::INT8>(graph::Graph<BM, Precision::INT8>* graph, const char* model_path);
+
+template
+Status load<BM, Precision::FP32>(graph::Graph<BM, Precision::FP32>* graph, std::string& model_path);
+template
+Status load<BM, Precision::FP16>(graph::Graph<BM, Precision::FP16>* graph, std::string& model_path);
+template
+Status load<BM, Precision::INT8>(graph::Graph<BM, Precision::INT8>* graph, std::string& model_path);
+
+template
+Status load<BM, Precision::FP32>(graph::Graph<BM, Precision::FP32>* graph, const char* buffer, size_t len);
+template
+Status load<BM, Precision::FP16>(graph::Graph<BM, Precision::FP16>* graph, const char* buffer, size_t len);
+template
+Status load<BM, Precision::INT8>(graph::Graph<BM, Precision::INT8>* graph, const char* buffer, size_t len);
+
+template
+Status save<BM, Precision::FP32>(graph::Graph<BM, Precision::FP32>* graph, const char* model_path);
+template
+Status save<BM, Precision::FP16>(graph::Graph<BM, Precision::FP16>* graph, const char* model_path);
+template
+Status save<BM, Precision::INT8>(graph::Graph<BM, Precision::INT8>* graph, const char* model_path);
+
+template
+Status save<BM, Precision::FP32>(graph::Graph<BM, Precision::FP32>* graph, std::string& model_path);
+template
+Status save<BM, Precision::FP16>(graph::Graph<BM, Precision::FP16>* graph, std::string& model_path);
+template
+Status save<BM, Precision::INT8>(graph::Graph<BM, Precision::INT8>* graph, std::string& model_path);
+#endif
+
+
+#ifdef USE_MLU
+template
+Status load<MLU, Precision::FP32>(graph::Graph<MLU, Precision::FP32>* graph, const char* model_path);
+template
+Status load<MLU, Precision::FP16>(graph::Graph<MLU, Precision::FP16>* graph, const char* model_path);
+template
+Status load<MLU, Precision::INT8>(graph::Graph<MLU, Precision::INT8>* graph, const char* model_path);
+
+template
+Status load<MLU, Precision::FP32>(graph::Graph<MLU, Precision::FP32>* graph, std::string& model_path);
+template
+Status load<MLU, Precision::FP16>(graph::Graph<MLU, Precision::FP16>* graph, std::string& model_path);
+template
+Status load<MLU, Precision::INT8>(graph::Graph<MLU, Precision::INT8>* graph, std::string& model_path);
+
+template
+Status load<MLU, Precision::FP32>(graph::Graph<MLU, Precision::FP32>* graph, const char* buffer, size_t len);
+template
+Status load<MLU, Precision::FP16>(graph::Graph<MLU, Precision::FP16>* graph, const char* buffer, size_t len);
+template
+Status load<MLU, Precision::INT8>(graph::Graph<MLU, Precision::INT8>* graph, const char* buffer, size_t len);
+
+template
+Status save<MLU, Precision::FP32>(graph::Graph<MLU, Precision::FP32>* graph, const char* model_path);
+template
+Status save<MLU, Precision::FP16>(graph::Graph<MLU, Precision::FP16>* graph, const char* model_path);
+template
+Status save<MLU, Precision::INT8>(graph::Graph<MLU, Precision::INT8>* graph, const char* model_path);
+
+template
+Status save<MLU, Precision::FP32>(graph::Graph<MLU, Precision::FP32>* graph, std::string& model_path);
+template
+Status save<MLU, Precision::FP16>(graph::Graph<MLU, Precision::FP16>* graph, std::string& model_path);
+template
+Status save<MLU, Precision::INT8>(graph::Graph<MLU, Precision::INT8>* graph, std::string& model_path);
+#endif  // USE_MLU
 
 #ifdef AMD_GPU
 template
@@ -463,7 +584,6 @@ Status load<AMD, Precision::FP16>(graph::Graph<AMD, Precision::FP16>* graph, con
 template
 Status load<AMD, Precision::INT8>(graph::Graph<AMD, Precision::INT8>* graph, const char* buffer, size_t len);
 
-#ifndef USE_NANOPB
 template
 Status save<AMD, Precision::FP32>(graph::Graph<AMD, Precision::FP32>* graph, std::string& model_path);
 template
@@ -477,7 +597,6 @@ template
 Status save<AMD, Precision::FP16>(graph::Graph<AMD, Precision::FP16>* graph, const char* model_path);
 template
 Status save<AMD, Precision::INT8>(graph::Graph<AMD, Precision::INT8>* graph, const char* model_path);
-#endif
 #endif
 
 } /* parser */

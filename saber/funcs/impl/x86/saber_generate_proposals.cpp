@@ -53,8 +53,8 @@ static inline void box_coder(Tensor<X86>* proposals,
                              ) {
     proposals->reshape(Shape({index.size(), 4, 1, 1}, Layout_NCHW));
     int anchor_nums = index.size();
-    int len = anchors->shape()[3];
-    CHECK_EQ(len, 4) << "anchor length is 4";
+    int len = anchors->valid_shape()[3];
+    CHECK_EQ(len, 4) << "anchor length is 4 "<<anchors->shape()<<","<<anchors->valid_shape();
     auto anchor_data = (const Dtype*) anchors->data();
     auto bbox_deltas_data = (const Dtype*) bbox_deltas->data();
     auto proposals_data = (Dtype*) proposals->data();
@@ -425,10 +425,10 @@ SaberStatus SaberGenerateProposals<X86, OpDtype>::dispatch(
                                nms_thresh,
                                min_size,
                                eta);
-      AppendProposals<OpDataType>(rpn_rois, 5 * num_proposals, i,  &_proposals_sel);
-      AppendScores<OpDataType>(rpn_roi_probs, num_proposals, &_scores_sel);
-      num_proposals += _scores_sel.valid_size();;
-      proposals_offset.push_back(num_proposals);
+        AppendProposals<OpDataType>(rpn_rois, 5 * num_proposals, i,  &_proposals_sel);
+        AppendScores<OpDataType>(rpn_roi_probs, num_proposals, &_scores_sel);
+        num_proposals += _scores_sel.valid_size();;
+        proposals_offset.push_back(num_proposals);
     }
     rpn_roi_probs->reshape(Shape({num_proposals, 1, 1, 1}, Layout_NCHW));
     rpn_rois->reshape(Shape({num_proposals, 5, 1, 1}, Layout_NCHW));

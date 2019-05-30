@@ -151,8 +151,10 @@ void test_model() {
 
     //test example
     for (auto shape : {input_shape, input_shape2}) {
-#ifdef USE_ARM_PLACE
+#if defined(USE_ARM_PLACE)
     for (auto act : {Active_sigmoid,Active_relu, Active_tanh, Active_clipped_relu, Active_prelu}) {
+#elif defined(USE_MLU)
+    for (auto act : {Active_sigmoid,Active_relu, Active_tanh, Active_clipped_relu, Active_prelu, Active_elu, Active_stanh}) {
 #else
     for (auto act : {Active_sigmoid, Active_relu, Active_tanh, Active_clipped_relu, Active_prelu, Active_elu, Active_stanh, 
          Active_gelu, Active_swish}) {
@@ -173,7 +175,11 @@ void test_model() {
         ActivationParam<TargetType_D> param(act, neg_slope, coef, prelu, has);
         testbase.set_param(param);//set param
         testbase.set_input_shape(shape, SPECIAL);
-        testbase.run_test(activation_basic<float, TargetType_D, TargetType_H>);//run test
+        if (std::is_same<TargetType_D, MLU>::value) {
+            testbase.run_test(activation_basic<float, TargetType_D, TargetType_H>, 0.02, true);//run test
+        }else {
+            testbase.run_test(activation_basic<float, TargetType_D, TargetType_H>);//run test
+        }
         // LOG(INFO) << "NV run end";
     }
 
@@ -188,7 +194,11 @@ void test_model() {
     //LOG(INFO) << "neg_slope: " << neg_slope << ", coef: " << coef << ", has: " << has;
     testbase.set_param(param);//set param
     testbase.set_input_shape(shape, SPECIAL);
-    testbase.run_test(activation_basic<float, TargetType_D, TargetType_H>);//run test
+    if (std::is_same<TargetType_D, MLU>::value) {
+        testbase.run_test(activation_basic<float, TargetType_D, TargetType_H>, 0.02, true);//run test
+    }else {
+        testbase.run_test(activation_basic<float, TargetType_D, TargetType_H>);//run test
+    }
     // LOG(INFO) << "NV run end";
     }
     }
@@ -218,6 +228,11 @@ TEST(TestSaberFunc, test_func_activation) {
     //    Env<BM>::env_init();
     //    test_accuracy<BM, X86>(num, channel, height, width,VENDER_IMPL);
 #endif
+#ifdef USE_MLU
+    Env<MLUHX86>::env_init();
+    Env<MLU>::env_init();
+    test_model<AK_FLOAT, MLU, MLUHX86>();
+#endif  // USE_MLU
 }
 
 int main(int argc, const char** argv) {

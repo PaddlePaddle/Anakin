@@ -4,34 +4,16 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Lstmp<NV, Precision::FP32>::operator()(OpContext<NV>& ctx,
-        const std::vector<Tensor4dPtr<NV> >& ins,
-        std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl = static_cast<LstmpHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<LstmpHelper<NV, Precision::FP32>*>(this->_helper)->_param_lstm;
-    impl->_funcs_lstm(ins, outs, param, ctx);
+#define INSTANCE_LSTMP(Ttype, Ptype) \
+template<> \
+void Lstmp<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<LstmpHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<LstmpHelper<Ttype, Ptype>*> \
+                  (this->_helper)->_param_lstm; \
+    impl->_funcs_lstm(ins, outs, param, ctx); \
 }
-#endif
-#ifdef USE_X86_PLACE
-template<>
-void Lstmp<X86, Precision::FP32>::operator()(OpContext<X86>& ctx,
-        const std::vector<Tensor4dPtr<X86> >& ins,
-        std::vector<Tensor4dPtr<X86> >& outs) {
-    auto* impl = static_cast<LstmpHelper<X86, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<LstmpHelper<X86, Precision::FP32>*>(this->_helper)->_param_lstm;
-    impl->_funcs_lstm(ins, outs, param, ctx);
-}
-template<>
-void Lstmp<X86, Precision::INT8>::operator()(OpContext<X86>& ctx,
-                                             const std::vector<Tensor4dPtr<X86> >& ins,
-                                             std::vector<Tensor4dPtr<X86> >& outs) {
-    auto* impl = static_cast<LstmpHelper<X86, Precision::INT8>*>(this->_helper);
-    auto& param = static_cast<LstmpHelper<X86, Precision::INT8>*>(this->_helper)->_param_lstm;
-    impl->_funcs_lstm(ins, outs, param, ctx);
-}
-#endif
 
 /// TODO ... specialization other type of operator
 /// set helper
@@ -91,18 +73,22 @@ Status LstmpHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype
 }
 
 #ifdef USE_CUDA
+INSTANCE_LSTMP(NV, Precision::FP32);
 template class LstmpHelper<NV, Precision::FP32>;
 template class LstmpHelper<NV, Precision::FP16>;
 template class LstmpHelper<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+INSTANCE_LSTMP(ARM, Precision::FP32);
 template class LstmpHelper<ARM, Precision::FP32>;
 template class LstmpHelper<ARM, Precision::FP16>;
 template class LstmpHelper<ARM, Precision::INT8>;
 #endif
 
 #ifdef USE_X86_PLACE
+INSTANCE_LSTMP(X86, Precision::FP32);
+INSTANCE_LSTMP(X86, Precision::INT8);
 template class LstmpHelper<X86, Precision::FP32>;
 template class LstmpHelper<X86, Precision::FP16>;
 template class LstmpHelper<X86, Precision::INT8>;

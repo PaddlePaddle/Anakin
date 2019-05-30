@@ -33,6 +33,11 @@
 //todo
 #include "saber/funcs/impl/impl_mvn.h"
 #endif
+
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_mvn.h"
+#endif
+
 namespace anakin{
 
 namespace saber{

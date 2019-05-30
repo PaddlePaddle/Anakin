@@ -28,6 +28,7 @@ Arc<VertexNameType, WeightType>& Arc<VertexNameType, WeightType>::operator=(cons
     this->_vertex_1 = otherArc._vertex_1;
     this->_vertex_2 = otherArc._vertex_2;
     this->_weight = otherArc._weight;
+    return *this;
 }
 
 

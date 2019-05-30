@@ -185,10 +185,40 @@ Algorithm<VertexNameType, VertexType, WeightType, ArcType>& Algorithm<VertexName
 template<typename VertexNameType, 
          typename VertexType, 
          typename WeightType, 
+         typename ArcType,
+         typename functor,
+        typename ...ParamTypes>
+void dfs(VertexNameType vertex_name, std::vector<VertexNameType>& backup, functor& func, 
+    GraphBase<VertexNameType, VertexType, WeightType, ArcType>* graph, ParamTypes&& ...args){
+        VertexType& vertex =  (*(graph))[vertex_name];
+        func(vertex, std::forward<ParamTypes>(args)...);
+        backup.push_back(vertex_name);
+
+        auto arc_out_its = graph->get_out_arc_its(vertex_name);
+        for(auto& arc_it : arc_out_its) {
+            VertexNameType vertex_name = arc_it->top();
+            if(std::find(backup.begin(), backup.end(), vertex_name) == backup.end()) { // not find
+                dfs(vertex_name, backup, func, graph, std::forward<ParamTypes>(args)...);
+            }
+        }
+}
+
+template<typename VertexNameType, 
+         typename VertexType, 
+         typename WeightType, 
          typename ArcType>
 template<typename functor, typename ...ParamTypes>
 Algorithm<VertexNameType, VertexType, WeightType, ArcType>& Algorithm<VertexNameType, VertexType, WeightType, ArcType>::_DFS(Bool2Type<false>, functor& func, ParamTypes&& ...args) {
-    LOG(WARNING) << "Not impl yet , which isn't so important in inference analysis";
+    //LOG(WARNING) << "Not impl yet , which isn't so important in inference analysis";
+    std::vector<VertexNameType> backup;
+
+    auto ins = this->_graph->get_graph_ins();
+    CHECK_GT(ins.size(), 0) << " The graph don't have any inputs";
+    for(int i = 0; i < ins.size(); i++) {
+        VertexNameType vertex_name = ins[i];
+        dfs(vertex_name, backup, func, this->_graph, std::forward<ParamTypes>(args)...);   
+    }
+    
     return *this;
 }
 

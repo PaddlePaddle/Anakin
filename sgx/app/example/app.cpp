@@ -1,63 +1,14 @@
-#include <cstdio>
-#include <ctime>
+#include <iostream>
+#include <chrono>
 #include "enclave_u.h"
 #include "sgx_urts.h"
 
-/* Initialize the enclave:
- *   Step 1: try to retrieve the launch token saved by last transaction
- *   Step 2: call sgx_create_enclave to initialize an enclave instance
- *   Step 3: save the launch token if it is updated
- */
-int initialize_enclave(sgx_enclave_id_t* eid, const char *token_path, const char *enclave_name) {
-    sgx_launch_token_t token = {0};
-    sgx_status_t ret = SGX_ERROR_UNEXPECTED;
-    int updated = 0;
+#include <CLI11.hpp>
+#include <asio.hpp>
 
-    /* Step 1: try to retrieve the launch token saved by last transaction
-     *         if there is no token, then create a new one.
-     */
-    /* try to get the token saved in $HOME */
-    FILE* fp = fopen(token_path, "rb");
-    if (fp == nullptr && (fp = fopen(token_path, "wb+")) == NULL) {
-        printf("Warning: Failed to create/open the launch token file \"%s\".\n", token_path);
-    }
-
-    if (fp != nullptr) {
-        /* read the token from saved file */
-        size_t read_num = fread(token, 1, sizeof(sgx_launch_token_t), fp);
-        if (read_num != 0 && read_num != sizeof(sgx_launch_token_t)) {
-            /* if token is invalid, clear the buffer */
-            memset(&token, 0x0, sizeof(sgx_launch_token_t));
-            printf("Warning: Invalid launch token read from \"%s\".\n", token_path);
-        }
-    }
-
-    /* Step 2: call sgx_create_enclave to initialize an enclave instance */
-    ret = sgx_create_enclave(enclave_name, SGX_DEBUG_FLAG, &token, &updated, eid, nullptr);
-    if (ret != SGX_SUCCESS) {
-        if (fp != nullptr) fclose(fp);
-        return -1;
-    }
-
-    /* Step 3: save the launch token if it is updated */
-    if (updated == false || fp == nullptr) {
-        /* if the token is not updated, or file handler is invalid, do not perform saving */
-        if (fp != nullptr) fclose(fp);
-        return 0;
-    }
-
-    /* reopen the file with write capablity */
-    fp = freopen(token_path, "wb", fp);
-    if (fp == nullptr) return 0;
-    size_t write_num = fwrite(token, 1, sizeof(sgx_launch_token_t), fp);
-    if (write_num != sizeof(sgx_launch_token_t))
-        printf("Warning: Failed to save launch token to \"%s\".\n", token_path);
-    fclose(fp);
-    return 0;
-}
-
-/* Global EID shared by multiple threads */
 sgx_enclave_id_t global_eid = 0;
+
+extern "C" int initialize_enclave(sgx_enclave_id_t *eid, const char *token_path, const char *enclave_name);
 
 #define SGX_INPUT_MAX (1024U * 1024U * 1U)
 uint8_t sgx_input[SGX_INPUT_MAX];
@@ -65,46 +16,148 @@ uint8_t sgx_input[SGX_INPUT_MAX];
 #define SGX_OUTPUT_MAX (1024U * 1024U * 1U)
 uint8_t sgx_output[SGX_OUTPUT_MAX];
 
+size_t do_infer(size_t input_size, const void *input,
+                size_t output_max_size, void *output) {
+    int ecall_retcode = -1;
+    size_t result_size = 0;
+
+    auto begin = std::chrono::steady_clock::now();
+
+    int status = infer(global_eid, &ecall_retcode, input_size, input,
+                       output_max_size, output, &result_size);
+
+    if (status != SGX_SUCCESS) {
+        std::cerr << "error " << status
+                  << ": SGX ecall 'infer' failed" << std::endl;
+        exit(1);
+    } else if (ecall_retcode) {
+        std::cerr << "error " << ecall_retcode
+                  << ": invalid inference parameters" << std::endl;
+        exit(1);
+    }
+
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elasped_sec = end - begin;
+
+    std::cout << elasped_sec.count()
+              << " seconds elapsed during inference" << std::endl;
+
+    return result_size;
+}
+
+void do_test() {
+    do_infer(0, nullptr, sizeof(sgx_output), sgx_output);
+
+#if ENABLE_DEBUG
+    auto f = reinterpret_cast<float *>(sgx_output);
+    auto n = result_size / sizeof(float);
+    for (int i = 0; i < n; ++i) {
+        std::cout << f[i] << std::endl;
+    }
+#endif
+}
+
+void do_local(const std::string &input_path, const std::string &output_path) {
+    FILE *input_file = fopen(input_path.c_str(), "rb");
+
+    if (!input_file) {
+        std::cerr << "error: cannot open input file " << input_path << std::endl;
+        exit(1);
+    }
+
+    fseek(input_file, 0, SEEK_END);
+    long int fend = ftell(input_file);
+    fseek(input_file, 0, SEEK_SET);
+
+    if (fend > sizeof(sgx_input)) {
+        std::cerr << "error: oversized input" << std::endl;
+        exit(1);
+    }
+
+    if (fend <= 0) {
+        std::cerr << "error: cannot read input file" << std::endl;
+        exit(1);
+    }
+
+    size_t input_size = fend;
+    if (input_size != fread(sgx_input, 1, input_size, input_file)) {
+        std::cerr << "error: cannot read input file" << std::endl;
+        exit(1);
+    }
+
+    fclose(input_file);
+
+    do_infer(input_size, sgx_input, sizeof(sgx_output), sgx_output);
+}
+
+void do_net(const std::string &outgoing_ip, int port) {
+    using asio::ip::tcp;
+
+    asio::io_service io_service;
+    asio::streambuf input_buf;
+    asio::error_code error;
+
+    while (true) {
+        input_buf.consume(input_buf.size());
+
+        try {
+            tcp::acceptor acceptor(io_service,
+                                   tcp::endpoint(tcp::v4(), port));
+
+            tcp::socket socket(io_service);
+            acceptor.accept(socket);
+
+            asio::read(socket, input_buf, error);
+        } catch (std::exception &e) {
+            std::cerr << e.what() << std::endl;
+            exit(1);
+        }
+
+        size_t result_size =
+            do_infer(input_buf.size(),
+                     asio::buffer_cast<const char *>(input_buf.data()),
+                     sizeof(sgx_output), sgx_output);
+
+        tcp::resolver resolver(io_service);
+        tcp::resolver::query query(outgoing_ip, std::to_string(port));
+        tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+
+        try {
+            tcp::socket socket(io_service);
+            asio::connect(socket, endpoint_iterator);
+            socket.write_some(asio::buffer(sgx_output, result_size));
+        } catch (std::exception &e) {
+            std::cerr << e.what() << std::endl;
+            exit(1);
+        }
+    }
+}
+
 int main(int argc, char const *argv[]) {
-    if (argc != 2 && argc != 3) {
-        fprintf(stderr, "usage: %s model_name [input_file]\n", argv[0]);
-        return 1;
-    }
+    CLI::App app{"Anakin inference interface for SGX"};
 
-    size_t input_size = 0;
-    if (argc == 3) {
-        FILE *input_file = fopen(argv[2], "rb");
+    std::string arg_model_path;
+    app.add_option("model", arg_model_path)->required();
+    app.require_subcommand(1);
 
-        if (!input_file) {
-            fprintf(stderr, "error: cannot open input file %s\n", argv[2]);
-            return 1;
-        }
+    CLI::App *subcmd_test = app.add_subcommand("test");
 
-        fseek(input_file, 0, SEEK_END);
-        long int fend = ftell(input_file);
-        fseek(input_file, 0, SEEK_SET);
+    std::string arg_ifile;
+    std::string arg_ofile;
+    CLI::App *subcmd_local = app.add_subcommand("local");
+    subcmd_local->add_option("input_file", arg_ifile)->required();
+    subcmd_local->add_option("output_file", arg_ofile)->required();
 
-        if (fend > sizeof(sgx_input)) {
-            fprintf(stderr, "error: oversized input\n");
-            return 1;
-        }
+    std::string arg_oip;
+    int arg_port = 8091;
+    CLI::App *subcmd_net = app.add_subcommand("net");
+    subcmd_net->add_option("outgoing_ip", arg_oip)->required();
+    subcmd_net->add_option("port", arg_port);
 
-        if (fend <= 0) {
-            fprintf(stderr, "error: cannot read input file\n");
-            return 1;
-        }
-
-        input_size = fend;
-        if (input_size != fread(sgx_input, 1, input_size, input_file)) {
-            fprintf(stderr, "error: cannot read input file\n");
-            return 1;
-        }
-
-        fclose(input_file);
-    }
+    CLI11_PARSE(app, argc, argv);
 
     if (initialize_enclave(&global_eid, "anakin_enclave.token", "anakin_enclave.signed") < 0) {
-        printf("Fail to initialize enclave.\n");
+        std::cerr << "error: fail to initialize enclave." << std::endl;
         return 1;
     }
 
@@ -112,38 +165,25 @@ int main(int argc, char const *argv[]) {
     sgx_status_t status = setup_model(global_eid, &ecall_retcode, argv[1]);
 
     if (status != SGX_SUCCESS) {
-        fprintf(stderr, "error: SGX ecall 'setup_model' failed.\n");
+        std::cerr << "error: SGX ecall 'setup_model' failed." << std::endl;
         return 1;
     }
 
     if (ecall_retcode) {
-        fprintf(stderr, "error: invalid anakin model.\n");
+        std::cerr << "error: invalid anakin model." << std::endl;
         return 1;
     }
 
-    clock_t begin = clock();
+    std::cout << "model ready" << std::endl;
 
-    size_t result_size = 0;
-    ecall_retcode = -1;
-
-    status = infer(global_eid, &ecall_retcode, input_size, sgx_input,
-                   sizeof(sgx_output), sgx_output, &result_size);
-
-    if (status != SGX_SUCCESS) {
-        fprintf(stderr, "error: SGX ecall 'infer' failed.\n");
-        return 1;
-    } else if (ecall_retcode) {
-        fprintf(stderr, "error: invalid inference parameters.\n");
-    }
-
-    clock_t end = clock();
-
-    fprintf(stderr, "%lf seconds elapsed during inference\n", (double)(end - begin) / CLOCKS_PER_SEC);
-
-    auto f = reinterpret_cast<float *>(sgx_output);
-    auto n = result_size / sizeof(float);
-    for (int i = 0; i < n; ++i) {
-        printf("%f\n", f[i]);
+    if (app.got_subcommand(subcmd_test)) {
+        do_test();
+    } else if (app.got_subcommand(subcmd_local)) {
+        do_local(arg_ifile, arg_ofile);
+    } else if (app.got_subcommand(subcmd_net)) {
+        do_net(arg_oip, arg_port);
+    } else {
+        abort();
     }
 
     return 0;

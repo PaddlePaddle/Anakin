@@ -29,9 +29,9 @@
 #include "anakin_config.h"
 #include "saber/saber_types.h"
 
-namespace anakin{
+namespace anakin {
 
-namespace saber{
+namespace saber {
 
 #define SABER_CHECK(condition) \
     do { \
@@ -39,28 +39,28 @@ namespace saber{
     CHECK_EQ(error, SaberSuccess) << " " << saber_get_error_string(error); \
 } while (0)
 
-inline const char* saber_get_error_string(SaberStatus error_code){
+inline const char* saber_get_error_string(SaberStatus error_code) {
     switch (error_code) {
-        case SaberSuccess:
-            return "ANAKIN_SABER_STATUS_SUCCESS";
-        case SaberNotInitialized:
-            return "ANAKIN_SABER_STATUS_NOT_INITIALIZED";
-        case SaberInvalidValue:
-            return "ANAKIN_SABER_STATUS_INVALID_VALUE";
-        case SaberMemAllocFailed:
-            return "ANAKIN_SABER_STATUS_MEMALLOC_FAILED";
-        case SaberUnKownError:
-            return "ANAKIN_SABER_STATUS_UNKNOWN_ERROR";
-        case SaberOutOfAuthority:
-            return "ANAKIN_SABER_STATUS_OUT_OF_AUTHORITH";
-        case SaberOutOfMem:
-            return "ANAKIN_SABER_STATUS_OUT_OF_MEMORY";
-        case SaberUnImplError:
-            return "ANAKIN_SABER_STATUS_UNIMPL_ERROR";
-        case SaberWrongDevice:
-            return "ANAKIN_SABER_STATUS_WRONG_DEVICE";
-        default:
-            return "ANAKIN SABER UNKOWN ERRORS";
+    case SaberSuccess:
+        return "ANAKIN_SABER_STATUS_SUCCESS";
+    case SaberNotInitialized:
+        return "ANAKIN_SABER_STATUS_NOT_INITIALIZED";
+    case SaberInvalidValue:
+        return "ANAKIN_SABER_STATUS_INVALID_VALUE";
+    case SaberMemAllocFailed:
+        return "ANAKIN_SABER_STATUS_MEMALLOC_FAILED";
+    case SaberUnKownError:
+        return "ANAKIN_SABER_STATUS_UNKNOWN_ERROR";
+    case SaberOutOfAuthority:
+        return "ANAKIN_SABER_STATUS_OUT_OF_AUTHORITH";
+    case SaberOutOfMem:
+        return "ANAKIN_SABER_STATUS_OUT_OF_MEMORY";
+    case SaberUnImplError:
+        return "ANAKIN_SABER_STATUS_UNIMPL_ERROR";
+    case SaberWrongDevice:
+        return "ANAKIN_SABER_STATUS_WRONG_DEVICE";
+    default:
+        return "ANAKIN SABER UNKOWN ERRORS";
     }
 }
 
@@ -179,31 +179,52 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
 #ifdef USE_ARM_PLACE
 #include <arm_neon.h>
 #include <sstream>
-namespace std{
-  template <typename T>
-  std::string to_string(T value)
-  {
-      std::ostringstream os ;
-      os << value ;
-      return os.str() ;
-  }
+namespace std {
+template <typename T>
+std::string to_string(T value)
+{
+    std::ostringstream os;
+    os << value;
+    return os.str();
+}
 }
 #endif //ARM
 
 #ifdef USE_BM_PLACE
 
 #include "bmlib_runtime.h"
-#include "bmdnn_api.h"
-#include "bmdnn_ext_api.h"
-#include "bmlib_utils.h"
 
-#define BMDNN_CHECK(condition) \
+#define BM_CHECK(condition) \
   do { \
-    bm_status_t error = condition; \
+    int error = condition; \
+    CHECK_EQ(error, 0) << " Failed with error code:" << error; \
+  } while (0)
+
+#define BM_CHECK_PTR(condition) \
+  do { \
+    CHECK_NE(condition, NULL) << " Failed with null ptr"; \
+  } while (0)
+
+#define BM_CHECK_STATUS(condition) \
+  do { \
+     bm_status_t error = condition; \
     CHECK_EQ(error, BM_SUCCESS) << " Failed with error code:" << error; \
   } while (0)
 
 #endif // USE_BM_PLACE
 
-#endif //ANAKIN_SABER_CORE_COMMON_H
+#ifdef USE_MLU
+#include <cnml.h>
+#include <cnrt.h>
 
+#define MLU_CHECK(condition) \
+  do { \
+    cnmlStatus_t status = condition; \
+    CHECK_EQ(status, CNML_STATUS_SUCCESS) << cnml_get_errorstring(status); \
+  } while (0)
+
+const char* cnml_get_errorstring(cnmlStatus_t status);
+const char* cnrt_get_errorstring(cnrtRet_t status);
+
+#endif  // USE_MLU
+#endif //ANAKIN_SABER_CORE_COMMON_H

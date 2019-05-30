@@ -89,14 +89,26 @@ SaberStatus get_cpu_info_from_name(DeviceInfo<ARM>& cpu_info, std::string hardwa
 
     /* Snapdragon */
 
-    if (hardware_name.find("SDM845") != std::string::npos){ //845
+    if (hardware_name.find("SM8150") != std::string::npos){ //855
+        cpu_info._compute_core_num = 8;
+        cpu_info._core_ids = {0, 1, 2, 3, 4, 5, 6, 7};
+        cpu_info._big_core_ids = {4, 5, 6, 7};
+        cpu_info._little_core_ids = {0, 1, 2, 3};
+        cpu_info._cluster_ids = {1, 1, 1, 1, 0, 0, 0, 0};
+        set_arch_info(cpu_info, 2, A76, A55);
+        set_cache_info(cpu_info, 0, 2, 64 * 1024, 32 * 1024);
+        set_cache_info(cpu_info, 1, 2, 256 * 1024, 128 * 1024);
+        set_cache_info(cpu_info, 2, 1, 2048 * 1024);
+        return SaberSuccess;
+
+    } else if (hardware_name.find("SDM845") != std::string::npos){ //845
         cpu_info._compute_core_num = 8;
         cpu_info._core_ids = {0, 1, 2, 3, 4, 5, 6, 7};
         cpu_info._big_core_ids = {4, 5, 6, 7};
         cpu_info._little_core_ids = {0, 1, 2, 3};
         cpu_info._cluster_ids = {1, 1, 1, 1, 0, 0, 0, 0};
         set_arch_info(cpu_info, 2, A75, A55);
-        set_cache_info(cpu_info, 0, 1, 32 * 1024);
+        set_cache_info(cpu_info, 0, 2, 64 * 1024, 32 * 1024);
         set_cache_info(cpu_info, 1, 2, 256 * 1024, 128 * 1024);
         set_cache_info(cpu_info, 2, 1, 2048 * 1024);
         return SaberSuccess;
@@ -108,6 +120,9 @@ SaberStatus get_cpu_info_from_name(DeviceInfo<ARM>& cpu_info, std::string hardwa
         cpu_info._little_core_ids = {0, 1, 2, 3, 4, 5};
         cpu_info._cluster_ids = {1, 1, 1, 1, 1, 1, 0, 0};
         set_arch_info(cpu_info, 2, A75, A55);
+        set_cache_info(cpu_info, 0, 2, 64 * 1024, 32 * 1024);
+        set_cache_info(cpu_info, 1, 2, 256 * 1024, 128 * 1024);
+        set_cache_info(cpu_info, 2, 1, 1024 * 1024);
         return SaberSuccess;
 
     } else if (hardware_name.find("MSM8998") != std::string::npos){ //835
@@ -117,7 +132,7 @@ SaberStatus get_cpu_info_from_name(DeviceInfo<ARM>& cpu_info, std::string hardwa
         cpu_info._little_core_ids = {0, 1, 2, 3};
         cpu_info._cluster_ids = {1, 1, 1, 1, 0, 0, 0, 0};
         set_arch_info(cpu_info, 2, A73, A53);
-        set_cache_info(cpu_info, 0, 2, 64 * 1024);
+        set_cache_info(cpu_info, 0, 2, 64 * 1024, 32 * 1024);
         set_cache_info(cpu_info, 1, 2, 1024 * 1024,
                 /*real cache size is 2M, while that will get bad performace on conv3x3s1 or gemm, set to 1M or 512K*/
                        1024 * 1024);
@@ -141,7 +156,7 @@ SaberStatus get_cpu_info_from_name(DeviceInfo<ARM>& cpu_info, std::string hardwa
         cpu_info._big_core_ids = {4, 5, 6, 7};
         cpu_info._little_core_ids = {0, 1, 2, 3};
         cpu_info._cluster_ids = {1, 1, 1, 1, 0, 0, 0, 0};
-        set_arch_info(cpu_info, 1, A73);
+        set_arch_info(cpu_info, 2, A73, A53);
         set_cache_info(cpu_info, 0, 2, 64 * 1024, 32 * 1024);
         set_cache_info(cpu_info, 1, 1, 1024 * 1024);
         return SaberSuccess;
@@ -249,6 +264,19 @@ SaberStatus get_cpu_info_from_name(DeviceInfo<ARM>& cpu_info, std::string hardwa
         cpu_info._little_core_ids = {};
         cpu_info._cluster_ids = {0, 0, 0, 0};
         set_arch_info(cpu_info, 1, A53);
+        return SaberSuccess;
+
+        /* Kirin */
+    } else if (hardware_name.find("KIRIN980") != std::string::npos){ // Kirin 980
+        cpu_info._compute_core_num = 8;
+        cpu_info._core_ids = {0, 1, 2, 3, 4, 5, 6, 7};
+        cpu_info._big_core_ids = {4, 5, 6, 7};
+        cpu_info._little_core_ids = {0, 1, 2, 3};
+        cpu_info._cluster_ids = {1, 1, 1, 1, 0, 0, 0, 0};
+        set_arch_info(cpu_info, 2, A76, A55);
+        set_cache_info(cpu_info, 0, 2, 64 * 1024, 32 * 1024);
+        set_cache_info(cpu_info, 1, 2, 512 * 1024, 128 * 1024);
+        set_cache_info(cpu_info, 2, 1, 4096 * 1024);
         return SaberSuccess;
     }
 

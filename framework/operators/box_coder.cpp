@@ -13,7 +13,7 @@
    limitations under the License.
 */
 #include "framework/operators/box_coder.h"
-
+#include "saber/funcs/saber_util.h"
 namespace anakin {
 
 namespace ops {
@@ -40,13 +40,26 @@ Status BoxCoderHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing BoxCoder op parameter.";
     auto axis = GET_PARAMETER(int, axis);
     auto box_normalized = GET_PARAMETER(bool, box_normalized);
+    auto box_clip = GET_PARAMETER_WITH_DEFAULT(float, box_clip, -1.f);
     Tensor<Ttype>* variance = nullptr;
 
     if (FIND_PARAMETER(variance)) {
-        variance = &((GET_PARAMETER(PBlock<Ttype>, variance)).d_tensor());
+        auto var_list = GET_PARAMETER(PTuple<float>, variance);
+        Shape val_shape({1, 1, 1, var_list.size()}, Layout_NCHW);
+        _tensor_var.reshape(val_shape);
+        typedef typename DefaultHostType<Ttype>::Host_type HostType;
+        Tensor<HostType> tensor_var_host(val_shape);
+        float* var_data = static_cast<float*>(tensor_var_host.mutable_data());
+
+        for (int i = 0; i < var_list.size(); i++) {
+            var_data[i] = var_list[i];
+        }
+
+        _tensor_var.copy_from(tensor_var_host);
+        variance = &_tensor_var;
     }
 
-    saber::BoxCoderParam<Ttype> box_coder_param(variance, box_normalized, axis);
+    saber::BoxCoderParam<Ttype> box_coder_param(variance, box_normalized, axis, box_clip);
     _param_box_coder = box_coder_param;
     return Status::OK();
 }

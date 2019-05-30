@@ -160,6 +160,15 @@ struct target_host<saber::NV> {
     typedef saber::NVHX86 type;
 };
 
+template<>
+struct target_host<saber::BM> {
+    typedef saber::BMX86 type;
+};
+
+template<>
+struct target_host<saber::MLU> {
+    typedef saber::MLUHX86 type;
+};
 template<ServiceRunPattern P>
 struct ServiceRunPatternToType{};
 
@@ -179,7 +188,10 @@ TARGET_NAME_SET(saber::NVHX86, saber_NVHX86)
 TARGET_NAME_SET(saber::X86, saber_X86)
 TARGET_NAME_SET(saber::ARM, saber_ARM)
 TARGET_NAME_SET(saber::BM, saber_BM)
+TARGET_NAME_SET(saber::BMX86, saber_BMX86)
 TARGET_NAME_SET(saber::AMD, saber_AMD)
+TARGET_NAME_SET(saber::MLU, saber_MLU)
+TARGET_NAME_SET(saber::MLUHX86, saber_MLUHX86)
 
 /*template<typename Ttype>
 struct target_name {

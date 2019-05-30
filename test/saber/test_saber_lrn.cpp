@@ -179,6 +179,27 @@ TEST(TestSaberFunc, test_op_lrn) {
     }
 #endif
 
+#ifdef USE_MLU
+    TestSaberBase<MLU, MLUHX86, AK_FLOAT, Lrn, LrnParam> testbase;
+    Env<MLUHX86>::env_init();
+    Env<MLU>::env_init();
+
+    for (int w_in : {8, 8, 16}) {
+        for (int h_in : {2, 8, 32}) {
+            for (int ch_in : {2, 3, 8, 64}) {
+                for (int num_in : {1, 21, 32}) {
+                    Shape shape({num_in, ch_in, h_in, w_in});
+                    LrnParam<MLU> param(local_size, alpha, beta, k, norm_region);
+                    testbase.set_param(param);
+                    testbase.set_rand_limit(-5.0, 5.0);
+                    testbase.set_input_shape(shape);
+                    testbase.run_test(lrn_cpu_base<float, MLU, MLUHX86>, 0.02, true);
+                }
+            }
+        }
+    }
+#endif
+
 }
 
 int main(int argc, const char** argv) {

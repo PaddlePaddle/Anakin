@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+/* Copyright (c) 2019 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -25,21 +25,27 @@ namespace saber {
 typedef TargetWrapper<AMD> AMD_API;
 typedef TargetWrapper<AMDHX86> AMDHX86_API;
 
-size_t split(const std::string& txt, std::vector<std::string>& strs, char ch) {
-    size_t pos = txt.find(ch);
-    size_t initialPos = 0;
+size_t inline split(char* txt, std::vector<std::string>& strs, char d) {
     strs.clear();
 
-    // Decompose statement
-    while (pos != std::string::npos) {
-        strs.push_back(txt.substr(initialPos, pos - initialPos));
-        initialPos = pos + 1;
-
-        pos = txt.find(ch, initialPos);
+    if (txt == NULL || strlen(txt) == 0) {
+        return 0;
     }
 
-    // Add the last one
-    strs.push_back(txt.substr(initialPos, std::min(pos, txt.size()) - initialPos + 1));
+    char* pos_f = strchr(txt, d);
+    char* pos_c = txt;
+
+    while (pos_f != NULL) {
+        strs.push_back(std::string(pos_c, pos_f - pos_c));
+        pos_c = pos_f + 1;
+        pos_f = strchr(pos_c, d);
+    }
+
+    if (pos_f == NULL) {
+        pos_f = txt + strlen(txt) - 1;
+    }
+
+    strs.push_back(std::string(pos_c, pos_f - pos_c + 1));
     return strs.size();
 }
 
@@ -54,16 +60,14 @@ static void get_param(cl_device_id dev, cl_device_info param_name, T** param_val
 
 
 Device<AMD>::Device(int max_stream) : _max_stream(max_stream) {
-    if (!Env<AMD>::is_init()) {
-        return;
-    }
 
     //get cl device id;
     int nums = 0;
     AMD_API::get_device_count(nums);
     cl_device_id* device_ids = new cl_device_id[nums];
     cl_uint device_nums;
-    clGetDeviceIDs(Env<AMD>::get_platform_id(), CL_DEVICE_TYPE_GPU, (cl_uint)nums, device_ids,
+    cl_platform_id platform_id = TargetWrapper<AMD>::get_platform_id();
+    clGetDeviceIDs(platform_id,  CL_DEVICE_TYPE_GPU, (cl_uint)nums, device_ids,
                    &device_nums);
     id = device_ids[AMD_API::get_device_id()];
     delete []device_ids;
@@ -71,12 +75,11 @@ Device<AMD>::Device(int max_stream) : _max_stream(max_stream) {
 
     //init context, one by one mapping to device.
     cl_int errNum;
-    const cl_context_properties prop[] = {CL_CONTEXT_PLATFORM, (cl_context_properties)Env<AMD>::get_platform_id(), 0};
+    const cl_context_properties prop[] = {CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0};
     context = clCreateContext(prop, 1, &id, NULL, NULL, &errNum);
     CHECK(errNum == CL_SUCCESS);
 
     get_info();
-    create_stream();
 }
 
 void Device<AMD>::create_stream() {
@@ -87,8 +90,13 @@ void Device<AMD>::create_stream() {
         typename AMD_API::stream_t stream_data;
         typename AMD_API::stream_t stream_compute;
 
+#ifdef ENABLE_AMD_PROFILING
         API::_create_stream_with_flag(&stream_data, context, id, CL_QUEUE_PROFILING_ENABLE);
         API::_create_stream_with_flag(&stream_compute, context, id, CL_QUEUE_PROFILING_ENABLE);
+#else
+        API::_create_stream_with_flag(&stream_data, context, id, 0);
+        API::_create_stream_with_flag(&stream_compute, context, id, 0);
+#endif
         _data_stream.push_back(stream_data);
         _compute_stream.push_back(stream_compute);
     }
@@ -114,10 +122,10 @@ void Device<AMD>::get_info() {
     free(num);
 
     get_param(id, CL_DEVICE_VERSION, &name);
-    std::string version = std::string(name);
     std::vector<std::string> strs;
-    split(version, strs, ' ');
+    split(name, strs, ' ');
     _info._generate_arch = (int)(stof(strs[1]) * 10);
+    strs.clear();
     free(name);
 
     cl_ulong* size;

@@ -89,6 +89,16 @@ template class PowerHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Power, PowerHelper, AMD, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_POWER(MLU, Precision::FP32)
+INSTANCE_POWER(MLU, Precision::FP16)
+template class PowerHelper<MLU, Precision::FP32>;
+template class PowerHelper<MLU, Precision::FP16>;
+template class PowerHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Power, PowerHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Power, PowerHelper, MLU, Precision::FP16);
+#endif
+
 // register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Power, PowerHelper, NV, Precision::FP32);
@@ -113,6 +123,9 @@ ANAKIN_REGISTER_OP(Power)
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("power")
+#endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("power")
 #endif
 .num_in(1)
 .num_out(1)

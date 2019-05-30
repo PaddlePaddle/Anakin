@@ -1,6 +1,8 @@
 #include "saber/funcs/impl/x86/saber_conv_1x1.h"
 #include "mkl_cblas.h"
-#include "saber/funcs/timer.h"
+#ifdef USE_SGX
+extern "C" void mkl_free_buffers();
+#endif
 
 namespace anakin {
 namespace saber {
@@ -17,6 +19,9 @@ static inline void gemm(const bool trans_a, const bool transb, int m, int n, int
         (!transb/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
     //    LOG(INFO)<<"m "<<m<<","<<n<<","<<k<<","<<beta;
     cblas_sgemm(CblasRowMajor, cblas_transa, cblas_transb, m, n, k, alpha, a, k, b, n, beta, c, n);
+#ifdef USE_SGX
+    mkl_free_buffers();
+#endif
 };
 
 template <>
@@ -85,22 +90,11 @@ SaberStatus SaberConv1X1<AK_FLOAT>::dispatch(const std::vector<Tensor<X86> *>& i
     const float* in_data = static_cast<const float*>(inputs[0]->data());
     float* out_data = static_cast<float*>(outputs[0]->mutable_data());
 
-
-    //    SaberTimer<X86> timer;
-    //    timer.start(*this->_ctx);
     for (int batch_id = 0; batch_id < inputs[0]->num(); batch_id++) {
         gemm(false, false, _out_c, _in_inner_size, _in_c, 1.f, weights_data,
              &in_data[0 + batch_id * _in_c * _in_inner_size], _add_output,
              &out_data[0 + batch_id * _out_c * _in_inner_size]);
     }
-
-    //    timer.end(*this->_ctx);
-    //    double use_ms=timer.get_average_ms();
-    //    double work_load=(double)_out_c*_in_inner_size*_in_c*2;
-    //    double speed=work_load/use_ms/1000.0/1000.0;
-    //    LOG(INFO)<<"speed "<<speed<<",time  = "<<use_ms;
-
-    //        LOG(INFO)<<"it is me";
 
     if (_flag_bias) {
         _bias = static_cast<const float*>(conv_param->bias()->data());

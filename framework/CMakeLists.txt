@@ -27,7 +27,7 @@ if(USE_NANOPB)
   add_definitions(-DPB_FIELD_16BIT)
 
   add_custom_command(
-    OUTPUT  "${PROTOBUF_PROTOC_EXECUTABLE}" "${NANOPB_DIR}/pb_decode.c" "${NANOPB_DIR}/pb_common.c"
+    OUTPUT  "${PROTOBUF_PROTOC_EXECUTABLE}" "${NANOPB_DIR}/pb_decode.c" "${NANOPB_DIR}/pb_encode.c" "${NANOPB_DIR}/pb_common.c"
     COMMAND ${CMAKE_COMMAND} -E make_directory ${NANOPB_DIR}
     COMMAND bash ARGS -c "wget -qO- ${NANOPB_DOWNLOAD_URL} | tar xz -C ${NANOPB_DIR} --strip 1"
     COMMENT "Downlaoding prebuilt nanopb-${NANOPB_VERSION}..."
@@ -35,7 +35,7 @@ if(USE_NANOPB)
 
   set(PROTOC_OUT_ARGS "--nanopb_out=-I${ANAKIN_MODEL_PARSER}/proto:")
 
-  list(APPEND ANAKIN_SRC "${NANOPB_DIR}/pb_decode.c" "${NANOPB_DIR}/pb_common.c")
+  list(APPEND ANAKIN_SRC "${NANOPB_DIR}/pb_decode.c" "${NANOPB_DIR}/pb_encode.c" "${NANOPB_DIR}/pb_common.c")
 else()
   set(PROTOC_OUT_ARGS "--cpp_out=")
 endif()

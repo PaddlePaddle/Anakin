@@ -29,7 +29,7 @@
 #endif
 
 #ifdef AMD_GPU
-#include "saber/funcs/impl/amd/saber_attention_padding_mask.h"
+// #include "saber/funcs/impl/amd/saber_attention_padding_mask.h"
 #endif
 
 #ifdef USE_ARM_PLACE

@@ -12,10 +12,15 @@ SaberStatus SaberPooling<X86, AK_FLOAT>::create(const std::vector<Tensor<X86>*>&
         std::vector<Tensor<X86>*>& outputs,
         PoolingParam<X86>& param,
         Context<X86>& ctx) {
-
-    Shape src_shape(inputs[0]->shape());
-    Shape dst_shape(outputs[0]->shape());
     LayoutType in_laytype = inputs[0]->get_layout();
+
+    if (in_laytype == Layout_NCHW) {
+        return SaberSuccess;
+    }
+
+    auto src_shape = inputs[0]->shape();
+    auto dst_shape = outputs[0]->shape();
+
     bool layout_c16 = (in_laytype == Layout_NCHW_C16R || in_laytype == Layout_NCHW_C16);
 
     bool layout_c8 = (in_laytype == Layout_NCHW_C8R || in_laytype == Layout_NCHW_C8);
@@ -54,7 +59,12 @@ SaberStatus SaberPooling<X86, AK_FLOAT>::create(const std::vector<Tensor<X86>*>&
     jpp.f_pad = 0;
     jpp.t_pad = param.pad_h;
     jpp.l_pad = param.pad_w;
-    jpp.alg = param.pooling_type;
+    auto pooling_type = param.pooling_type;
+    //for jit always div ksize in including padding mode
+    if (pooling_type == Pooling_average_include_padding && !param.pooling_padded()){
+        pooling_type = Pooling_average_exclude_padding;
+    }
+    jpp.alg = pooling_type;
     jpp.ind_dt = AK_FLOAT;
 
     if (_kernel != nullptr) {
@@ -71,6 +81,11 @@ SaberStatus SaberPooling<X86, AK_FLOAT>::create(const std::vector<Tensor<X86>*>&
         _kernel = new jit_pool_kernel_f32<avx2>(jpp);
     }
 
+    if (inputs[0]->get_dtype() != AK_FLOAT || inputs[0]->get_layout() != Layout_NCHW) {
+        _input_scale.reshape(Shape({inputs[0]->num(), inputs[0]->channel(), inputs[0]->height(), inputs[0]->width()}));
+        _input_scale.set_scale(inputs[0]->get_scale());
+    }
+
     return SaberSuccess;
 }
 
@@ -81,6 +96,11 @@ SaberStatus SaberPooling<X86, AK_FLOAT>::init(
     PoolingParam<X86>& param, Context<X86>& ctx) {
 
     this->_ctx = &ctx;
+
+    if (inputs[0]->get_dtype() != AK_FLOAT || inputs[0]->get_layout() != Layout_NCHW) {
+        _input_scale.re_alloc(Shape({inputs[0]->num(), inputs[0]->channel(), inputs[0]->height(), inputs[0]->width()}),
+                              AK_FLOAT);
+    }
 
     return create(inputs, outputs, param, ctx);
 }
@@ -376,9 +396,14 @@ SaberStatus SaberPooling<X86, AK_FLOAT>
             pooling_avx2_nchwc8_nchw(src, dst, in_n, in_c, in_h, in_w, out_h, out_w,
                                      param.stride_h, param.stride_w, param.window_h, param.window_w, param.pad_h, param.pad_w,
                                      param.pooling_type, real_c);
-            DLOG(INFO) << "pooling nchw_c8 to nchw_c8r";
+            DLOG(INFO)<<"fp32 pooling choose pooling_avx2_nchwc8_nchw";
         }
     } else {
+        if (inputs[0]->get_dtype() != AK_FLOAT || inputs[0]->get_layout() != Layout_NCHW) {
+            reorder_nhwc_nchw(*inputs[0], _input_scale);
+            src = static_cast<const float*>(_input_scale.data());
+        }
+
         //x86 common code
         int in_n = inputs[0]->num();
         int in_c = inputs[0]->channel();
@@ -520,9 +545,10 @@ SaberStatus SaberPooling<X86, AK_INT8>::create(const std::vector<Tensor<X86>*>& 
     jpp.dst_dt = outputs[0]->get_dtype();
 
     //fixme:only support uint8 now
-    if (jpp.src_dt == AK_FLOAT) {
-        jpp.src_dt = AK_UINT8;
-    }
+//    if (jpp.src_dt == AK_FLOAT) {
+//        jpp.src_dt = AK_UINT8;
+//    }
+    CHECK_NE(jpp.src_dt , AK_FLOAT);
 
     if (_kernel != nullptr) {
         delete _kernel;
@@ -552,7 +578,8 @@ SaberStatus SaberPooling<X86, AK_INT8>::init(const std::vector<Tensor<X86>*>& in
     if (inputs[0]->get_dtype() == AK_FLOAT) {
         _input_scale.re_alloc(inputs[0]->valid_shape(), AK_UINT8);
     }
-    CHECK(outputs[0]->get_layout()==Layout_NHWC);
+
+    CHECK(outputs[0]->get_layout() == Layout_NHWC);
     //FIXME:intel kernel not support scale so we pass scale from input to output
     outputs[0]->set_scale(inputs[0]->get_scale());
     return create(inputs, outputs, param, ctx);

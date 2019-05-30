@@ -5,7 +5,6 @@ namespace anakin {
 namespace graph {
 
 /// in straight order
-
 REGISTER_GRAPH_FUSION_PATTERN(DeconvRelu)
 .Type(IN_ORDER)
 .AddOpNode("conv_0",  "Deconvolution")
@@ -98,7 +97,7 @@ REGISTER_GRAPH_FUSION_PATTERN(ConvBatchnormScale)
 .AddOpNode("scale_0", "Scale")
 .AddConnect("conv_0", "batchnorm_0")
 .AddConnect("batchnorm_0", "scale_0")
-.CreatePattern([](VGraph* graph) {}); 
+.CreatePattern([](VGraph* graph) {});
 
 REGISTER_GRAPH_FUSION_PATTERN(ConvScale)
 .Type(IN_ORDER)
@@ -161,6 +160,18 @@ REGISTER_GRAPH_FUSION_PATTERN(SeqConcatSeqPoolSoftSign)
 .AddOpNode("soft_sign_0", "SoftSign")
 .AddConnect("seq_concat_0", "seq_pool_0")
 .AddConnect("seq_pool_0", "soft_sign_0")
+.CreatePattern([](VGraph* graph) {});
+
+REGISTER_GRAPH_FUSION_PATTERN(ConvFusion)
+.Type(IN_PARELLEL)
+.AddOpNode("conv_0",  "ConvBatchnormScaleRelu")
+.CreatePattern([](VGraph* graph) {});
+
+REGISTER_GRAPH_FUSION_PATTERN(DenseDense)
+.Type(IN_ORDER)
+.AddOpNode("dense_0",  "Dense")
+.AddOpNode("dense_1", "Dense")
+.AddConnect("dense_0", "dense_1")
 .CreatePattern([](VGraph* graph) {});
 
 } /* namespace graph */

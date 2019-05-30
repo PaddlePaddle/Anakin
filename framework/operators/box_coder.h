@@ -93,6 +93,7 @@ public:
 private:
     ///< _dims stand for axpy size
     PTuple<int> _dims;
+    Tensor<Ttype> _tensor_var;
 };
 
 

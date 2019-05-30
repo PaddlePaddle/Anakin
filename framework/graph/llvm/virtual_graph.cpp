@@ -49,6 +49,7 @@ void VGraph::Match(VGraph* vgraph_pattern) {
         break;
 
         case IN_PARELLEL: {
+            FusionSniffer[IN_PARELLEL](this, pattern);
         } break;
 
         case GRAPH: {

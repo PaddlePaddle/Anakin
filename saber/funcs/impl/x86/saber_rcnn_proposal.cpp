@@ -59,7 +59,7 @@ SaberStatus SaberRCNNProposal<X86, AK_FLOAT>::dispatch(
     float min_size_h_cur = this->min_size_h_;
 
     if (has_img_info_) {
-        if (inputs.back()->count(1, inputs.back()->dims()) == 6) {
+        if (inputs.back()->count_valid(1, inputs.back()->dims()) == 6) {
             // copy gpu data to cpu.
             _img_info_data_host_tensor->copy_from(*inputs.back());
 //            _img_info_data_host_tensor->async_copy_from(*inputs.back(), cuda_stream);

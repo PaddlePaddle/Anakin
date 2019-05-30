@@ -1,5 +1,6 @@
 #include "saber/funcs/impl/x86/gemm_x8s8s32x_conv.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
+#include "saber/core/tensor_op.h"
 #include "mkl_cblas.h"
 #include "anakin_thread.h"
 #include "debug.h"
@@ -393,7 +394,7 @@ SaberStatus GemmX8S8S32XConv::init_conf(jit_conv_conf_t& jcp,
                         jcp.signed_input == false);
 
     auto mb_ngroup = jcp.mb * jcp.ngroups;
-    auto omp_max_threads = omp_get_max_threads();
+    auto omp_max_threads = anakin_get_max_threads();
     auto omp_mb_ngroup_threads = mb_ngroup < omp_max_threads ?
                                  mb_ngroup :
                                  omp_max_threads;

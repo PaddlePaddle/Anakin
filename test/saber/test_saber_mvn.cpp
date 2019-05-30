@@ -67,48 +67,48 @@ void mvn_cpu_base(const std::vector<Tensor<TargetType_H>* > &input, std::vector<
     }
 }
 
-TEST(TestSaberFunc, test_op_mvn) {
-    
+template <DataType datatype, typename TargetType_D, typename TargetType_H>
+void test_model() {
+    using dtype = typename DataTrait<TargetType_H, datatype>::Dtype;
+
     bool normalize_variance{true};
     bool across_channels{false};
     float eps{1e-9};
-    
-#ifdef USE_CUDA
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Mvn, MvnParam> testbase;
+
+    TestSaberBase<TargetType_D, TargetType_H, datatype, Mvn, MvnParam> testbase;
     for(int w_in : {8, 8, 16}) {
         for(int h_in : {2, 8, 32}){
             for(int ch_in : {2, 3, 8, 64}){
                 for(int num_in:{1, 21, 32}){
                     Shape shape({num_in, ch_in, h_in, w_in});
-                    MvnParam<NV> param(normalize_variance, across_channels, eps);
+                    MvnParam<TargetType_D> param(normalize_variance, across_channels, eps);
                     testbase.set_param(param);
                     testbase.set_rand_limit(-5.0, 5.0);
                     testbase.set_input_shape(shape);
-                    testbase.run_test(mvn_cpu_base<float, NV, NVHX86>);
+                    if (std::is_same<TargetType_D, MLU>::value) {
+                        testbase.run_test(mvn_cpu_base<dtype, TargetType_D, TargetType_H>,
+                                          0.02, true);
+                    } else {
+                        testbase.run_test(mvn_cpu_base<dtype, TargetType_D, TargetType_H>);
+                    }
                 }
             }
         }
     }
-#endif
+}
 
+TEST(TestSaberFunc, test_op_mvn) {
+#ifdef USE_CUDA
+    test_model<AK_FLOAT, NV, NVHX86>();
+#endif
+    
 #ifdef USE_X86_PLACE
-    TestSaberBase<X86, X86, AK_FLOAT, Mvn, MvnParam> testbase_x86;
-    for(int w_in : {8, 8, 16}) {
-        for(int h_in : {2, 8, 32}){
-            for(int ch_in : {2, 3, 8, 64}){
-                for(int num_in:{1, 21, 32}){
-                    Shape shape_x86({num_in, ch_in, h_in, w_in});
-                    MvnParam<X86> param_x86(normalize_variance, across_channels, eps);
-                    testbase_x86.set_param(param_x86);
-                    testbase_x86.set_rand_limit(-5.0, 5.0);
-                    testbase_x86.set_input_shape(shape_x86);
-                    testbase_x86.run_test(mvn_cpu_base<float, X86, X86>);
-                }
-            }
-        }
-    }
+    test_model<AK_FLOAT, X86, X86>();
 #endif
 
+#ifdef USE_MLU
+//    test_model<AK_FLOAT, MLU, MLUHX86>();
+#endif
 }
 
 int main(int argc, const char** argv) {

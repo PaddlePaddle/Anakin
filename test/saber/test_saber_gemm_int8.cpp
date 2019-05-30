@@ -595,7 +595,7 @@ void test_gemm_result_intrin_me(int m, int n, int k, bool trans_a, bool trans_b,
 //        tensor_cmp_host((const CType*) c_check.data(), (const CType*) c_host.data(),
 //                        c_check.valid_size(), max_ratio, max_diff);
 
-        tensor_cmp_host_mlu((const CType*) c_check.data(), (const CType*) c_host.data(),
+        tensor_cmp_host((const CType*) c_check.data(), (const CType*) c_host.data(),
                         c_check.valid_size(), mlu_diff);
 //        LOG(INFO)<<"mludiff = "<<mlu_diff;
 

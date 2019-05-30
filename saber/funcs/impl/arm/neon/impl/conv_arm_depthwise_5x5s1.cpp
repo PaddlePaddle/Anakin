@@ -3215,13 +3215,6 @@ void conv_depthwise_5x5s1_impl(const float* din, float* dout, \
                     compute_one_out_without_extract(din_ptr0, din_ptr1, din_ptr2, din_ptr3, din_ptr4, \
                                                      din_ptr5, din_ptr6, din_ptr7, dout_ptr0, dout_ptr1, \
                                                      dout_ptr2, dout_ptr3, w0, w1, w2, w3, w4, w5, w6, vbias);
-                    // printf("doutptr0: %f\n", *dout_ptr0);
-                    // printf("doutptr1: %f\n", *dout_ptr1);
-                    // printf("doutptr2: %f\n", *dout_ptr2);
-                    // printf("doutptr3: %f\n", *dout_ptr3);
-                    // printf("doutptr1 - doutbatch: %d\n", int(dout_ptr1) - int(dout_batch));
-                    // printf("doutbatch[18]: %f\n", dout_batch[18]);
-                    // printf("doutbatch[19]: %f\n\n", dout_batch[19]);
                     din_ptr0++;
                     din_ptr1++;
                     din_ptr2++;
@@ -3777,7 +3770,6 @@ void conv_depthwise_5x5s1_relu_impl(const float* din, float* dout, \
                 }
                 //! deal with mid remain
                 for (int i = 0; i < mid_remain; ++i){
-                    //printf("mid_remain: %d\n", mid_remain);
                     compute_one_out_without_extract_relu(din_ptr0, din_ptr1, din_ptr2, din_ptr3, din_ptr4, \
                                              din_ptr5, din_ptr6, din_ptr7, dout_ptr0, dout_ptr1, \
                                              dout_ptr2, dout_ptr3, w0, w1, w2, w3, w4, w5, w6, vbias);

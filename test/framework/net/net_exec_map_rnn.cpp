@@ -13,6 +13,12 @@
 #include <fstream>
 #include <thread>
 
+#if defined(AMD_GPU)
+int main() {
+    return 0;
+}
+#else
+
 
 #if  defined(NVIDIA_GPU)
 using Target = NV;
@@ -26,8 +32,13 @@ using Target_H = X86;
 #elif defined(USE_ARM_PLACE)
 using Target = ARM;
 using Target_H = ARM;
+#elif defined(USE_MLU)
+using Target = MLU;
+using Target_H = MLUHX86;
+#elif defined(USE_BM_PLACE)
+using Target = BM;
+using Target_H = BMX86;
 #endif
-
 
 
 std::string FLAGS_data_file;
@@ -275,7 +286,7 @@ void one_thread_run(std::string path, int thread_id) {
         h_tensor_in_1->reshape(Shape({week_fea.size(), 10, 1, 1}));
         h_tensor_in_2->reshape(Shape({time_fea.size(), 10, 1, 1}));
         h_tensor_in_0->set_seq_offset({seq_offset});
-#ifdef USE_CUDA
+#if defined(USE_CUDA) || defined(USE_MLU)
         Tensor4d<Target_H> h_tensor_0;
         Tensor4d<Target_H> h_tensor_1;
         Tensor4d<Target_H> h_tensor_2;
@@ -393,7 +404,6 @@ TEST(NetTest, net_execute_base_test) {
 }
 
 int main(int argc, const char** argv) {
-
     Env<Target>::env_init();
 
     // initial logger
@@ -437,4 +447,4 @@ int main(int argc, const char** argv) {
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }
-
+#endif // if defined(AMD_GPU)

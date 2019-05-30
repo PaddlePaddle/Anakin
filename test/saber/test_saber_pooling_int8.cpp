@@ -150,8 +150,75 @@ void test_pooling() {
                                                 LOG(INFO) << "n:" << in_n << ",in_h:" << in_h << ",in_w:" << in_w << ",in_c:" << in_c;
                                                 testbase.set_param(param);//set param
                                                 testbase.set_input_datatype(Dtype_IN);
+                                                testbase.set_input_shape(Shape({in_n, in_h, in_w, in_c}, Layout_NHWC), {1.f}, {1.f}, RANDOM, 1, Layout_NHWC);//add some input shape
+                                                testbase.set_output_datatype(Dtype_OUT);
+                                                testbase.run_test(pooling_cpu_func<Dtype_IN, Dtype_OUT, TargetType_D, TargetType_H>);//run test
+
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+template <typename TargetType_D, typename TargetType_H, DataType Dtype_IN, DataType Dtype_OUT>
+void test_pooling_test() {
+    typedef typename DataTrait<TargetType_D, Dtype_IN> :: Dtype dtype_in;
+    typedef typename DataTrait<TargetType_D, Dtype_OUT> :: Dtype dtype_out;
+    TestSaberBase<TargetType_D, TargetType_H, AK_INT8, Pooling, PoolingParam> testbase;
+
+    for (int window_h : {
+            2
+    }) {
+        for (int window_w : {
+                2
+        }) {
+            for (int pad_h : {
+                    1
+            }) {
+                for (int pad_w : {
+                        1
+                }) {
+                    for (PoolingType pooling_type : {
+                            Pooling_average_include_padding
+                    }) {
+                        for (int stride_h : {
+                                 2
+                        }) {
+                            for (int stride_w : {
+                                    2
+                            }) {
+                                PoolingParam<TargetType_D> param(window_h, window_w, pad_h, pad_w, stride_h, stride_w,
+                                                                 pooling_type);
+                                        LOG(INFO) << "win_h:" << window_h << "win_w:" << window_w \
+                                          << "pad_h:" << pad_h << "pad_w:" << pad_w \
+                                          << "stride_h:" << stride_h << "stride_w:" << stride_w \
+                                          << "pooling_type:" << pooling_type;
+
+                                for (int in_n : {
+                                        1
+                                }) {
+                                    for (int in_c : {
+                                            1
+                                    }) {
+                                        for (int in_h : {
+                                                4
+                                        }) {
+                                            for (int in_w : {
+                                                    4
+                                            }) {
+                                                        LOG(INFO) << "n:" << in_n << ",in_h:" << in_h << ",in_w:" << in_w << ",in_c:" << in_c;
+                                                testbase.set_param(param);//set param
+                                                testbase.set_input_datatype(Dtype_IN);
                                                 testbase.set_input_shape(Shape({in_n, in_h, in_w, in_c}, Layout_NHWC),{1.f},{1.f});//add some input shape
-                                                testbase.set_ouput_datatype(Dtype_OUT);
+                                                testbase.set_output_datatype(Dtype_OUT);
                                                 testbase.run_test(pooling_cpu_func<Dtype_IN, Dtype_OUT, TargetType_D, TargetType_H>);//run test
 
                                             }
@@ -176,6 +243,7 @@ TEST(TestSaberFunc, test_func_pool) {
     if (jit::mayiuse(jit::avx512_core)) {
         test_pooling<X86, X86, AK_UINT8, AK_UINT8>();
 //        test_pooling<X86, X86, AK_INT8, AK_INT8>();
+        test_pooling<X86, X86, AK_INT8, AK_INT8>();
     }
 
 #endif

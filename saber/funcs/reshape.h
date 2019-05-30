@@ -19,6 +19,12 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/saber_funcs_param.h"
+#include "saber/funcs/impl/impl_reshape.h"
+
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_reshape.h"
+#endif  // USE_MLU
+
 
 namespace anakin {
 
@@ -49,6 +55,10 @@ public:
 
         Shape output_shape;
         output_shape.resize(param.shape_params.size());
+        if (std::is_same<TargetType, MLU>::value) {
+          Shape temp({1, 1, 1, 1});
+          output_shape = temp;
+        }
         output_shape.set_layout(param.layout);
 
         CHECK_EQ(input[0] -> is_continue_mem(), true) << "input tensor must not have roi";
@@ -80,17 +90,40 @@ public:
     }
     //Reshape ops do nothing
     virtual SaberStatus init_impl(ImplEnum implenum) override {
+        if (std::is_same<TargetType, MLU>::value) {
+            switch (implenum) {
+                case VENDER_IMPL:
+                    this->_impl.push_back(new VenderReshape <TargetType, OpDtype>);
+                    return SaberSuccess;
+
+                case SABER_IMPL:
+                    this->_impl.push_back(new SaberReshape <TargetType, OpDtype>);
+                    return SaberSuccess;
+
+                default:
+                    return SaberUnImplError;
+            }
+        }
+ 
         return SaberSuccess;
     }
 
     //Reshape ops do nothing
     virtual SaberStatus init(const Input_v& input, Output_v& output, Param_t& param,
             SaberImplStrategy strategy, ImplEnum implenum, Context<TargetType > &ctx) {
+        if (std::is_same<TargetType, MLU>::value) {
+            return BaseFunc<TargetType, OpDtype, ImplBase, ReshapeParam>::init(
+                input, output, param, strategy, implenum, ctx);
+        }
         return SaberSuccess;
     }
     //Reshape ops do nothing
     virtual SaberStatus operator()(const Input_v& input, Output_v& output, Param_t& param, \
         Context<TargetType> &ctx) {
+        if (std::is_same<TargetType, MLU>::value) {
+            return BaseFunc<TargetType, OpDtype, ImplBase, ReshapeParam>::operator()(
+                input, output, param, ctx);
+        }
         return SaberSuccess;
     }
 private:

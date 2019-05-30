@@ -53,7 +53,7 @@
 
 #cmakedefine USE_GFLAGS
 
-
+#cmakedefine USE_MIOPENGEMM
 
 // plantform to use
 #cmakedefine USE_GPU_PLACE
@@ -70,6 +70,7 @@
 #cmakedefine USE_SGX
 
 #cmakedefine TARGET_ANDROID
+#cmakedefine USE_ANDROID_LOG
 
 #cmakedefine TARGET_IOS
 
@@ -88,6 +89,13 @@
 // build arm lite
 #cmakedefine BUILD_LITE
 #cmakedefine LINUX_ARM_OS
+
+// for AMD profiling computing performance
+#cmakedefine ENABLE_AMD_PROFILING
+#cmakedefine ENABLE_AMD_DEBUG
+#cmakedefine ENABLE_AMD_DO_SEARCH
+#cmakedefine ENABLE_AMD_EXPAND_ALL_SEARCH
+#cmakedefine AMD_RADIX_SORT_KERNEL_PATH "@AMD_RADIX_SORT_KERNEL_PATH@"
 
 #if defined(ANDROID) || defined(__ANDROID__) || defined(LINUX_ARM_OS)
     #define PLATFORM_ANDROID

@@ -45,7 +45,7 @@ cd $BUILD_ROOT
 cmake .. \
     -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
     -DANDROID_NDK=$ANDROID_NDK \
-    -DANDROID_NATIVE_API_LEVEL=17 \
+    -DANDROID_NATIVE_API_LEVEL=21 \
     -DANDROID_ABI="armeabi-v7a with NEON" \
     -DANDROID_TOOLCHAIN=gcc \
     -DCMAKE_BUILD_TYPE=Release \
@@ -55,10 +55,9 @@ cmake .. \
     -Dprotobuf_BUILD_STATIC_LIBS=ON \
     -Dprotobuf_BUILD_SHARED_LIBS=OFF \
     -DCMAKE_INSTALL_PREFIX=$BUILD_ROOT \
-    -DANDROID_STL=c++_shared \
     -DANDROID_LINKER_FLAGS="-landroid -llog" \
     -DANDROID_CPP_FEATURES="rtti exceptions" \
-    
+
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then

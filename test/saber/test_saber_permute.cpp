@@ -42,29 +42,42 @@ template <typename TargetType_D, typename TargetType_H, DataType OpDtype>
 void test_permute(){
     typedef typename DataTrait<TargetType_H, OpDtype> :: Dtype dtype;
     TestSaberBase<TargetType_D, TargetType_H, OpDtype, Permute, PermuteParam> testbase;
-    for (int s0 : {0, 1, 2, 3}){
-        for (int s1 : {0, 1, 2, 3}){
-            for (int s2: {0, 1, 2, 3}){
-                for (int s3: {0, 1, 2, 3}){
-                    if (s0 != s1 && s0 != s2 && s0 != s3 && s1 != s2 && s1 != s3 && s2 != s3){
-                        LOG(INFO)<<"("<<s0<<","<<s1<<","<<s2<<","<<s3<<")";
-                        PermuteParam<TargetType_D> param({s0, s1, s2, s3});
-                        for (int n : {1, 2}){
-                            for (int c : {1, 3}){
-                                for (int h : {32, 64}){
-                                    for (int w: {32, 64}){
-                                        testbase.set_param(param);
-                                        testbase.set_input_shape(Shape({n, c, h, w}));
-                                        testbase.run_test(permute_cpu_func<dtype, TargetType_D, TargetType_H>);
-                                    }
-                                }
-                            }
-                        }
-                    }
+    for (int s0: {0, 1, 2, 3}) {
+    for (int s1: {0, 1, 2, 3}) {
+    for (int s2: {0, 1, 2, 3}) {
+    for (int s3: {0, 1, 2, 3}) {
+        if (s0 != s1 && s0 != s2 && s0 != s3 && s1 != s2 && s1 != s3 && s2 != s3){
+            LOG(INFO)<<"("<<s0<<","<<s1<<","<<s2<<","<<s3<<")";
+            PermuteParam<TargetType_D> param({s0, s1, s2, s3});
+            
+            std::vector<int> v_n = {1, 2};    std::vector<int> v_c = {1, 3};
+            std::vector<int> v_h = {32, 64};  std::vector<int> v_w = {32, 64};
+            // mlu permute so so slow for now
+            if (std::is_same<TargetType_D, MLU>::value) {
+                v_n = {2};  v_c = {3};
+                v_h = {32}; v_w = {64};
+            }
+            for (int n : v_n) {
+            for (int c : v_c) {
+            for (int h : v_h) {
+            for (int w : v_w) {
+                testbase.set_param(param);
+                testbase.set_input_shape(Shape({n, c, h, w}));
+                if (std::is_same<TargetType_D, MLU>::value) {
+                    testbase.run_test(permute_cpu_func<dtype, TargetType_D, TargetType_H>,
+                                      0.02, true);
+                } else {
+                    testbase.run_test(permute_cpu_func<dtype, TargetType_D, TargetType_H>);
                 }
             }
+            }
+            }
+            } // end for nchw
         }
     }
+    }
+    }
+    } // end for permute
 }
 
 TEST(TestSaberFunc, test_func_permute)
@@ -77,6 +90,9 @@ TEST(TestSaberFunc, test_func_permute)
 #endif
 #ifdef USE_ARM_PLACE
     test_permute<ARM, ARM, AK_FLOAT>();
+#endif
+#ifdef USE_MLU
+    test_permute<MLU, MLUHX86, AK_FLOAT>();
 #endif
 }
 

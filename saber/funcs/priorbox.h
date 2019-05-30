@@ -17,7 +17,9 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_priorbox.h"
+#endif  // USE_MLU
 namespace anakin {
 
 namespace saber {
@@ -56,10 +58,20 @@ public:
         int hin1 = input[0]->height();
         int wout = win1 * hin1 * param.prior_num * 4;
         Shape shape_out({1, 2, wout}, Layout_NHW);
+        if (std::is_same<TargetType, MLU>::value) {
+            //! MLU priorbox layout NCHW
+            //! N = 1, C = 2
+            //! H = 4 * feature_map_width * feature_map_height * num_of_priors
+            Shape temp({1, 2, wout, 1}, Layout_NCHW);
+            shape_out = temp;
+        }
         return output[0]->set_shape(shape_out);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
+    #ifdef USE_MLU 
+        this->_impl.push_back(new SaberPriorBox<TargetType, OpDtype>);
+    #endif
         return SaberSuccess;
     }
 
@@ -436,6 +448,9 @@ public:
     //PriorBox do computation in init
     virtual SaberStatus init(const Input_v& input, Output_v& output, Param_t& param,
                              SaberImplStrategy strategy, ImplEnum implenum, Context<TargetType > &ctx) {
+        if (std::is_same<TargetType, MLU>::value) {
+          return BaseFunc<TargetType, OpDtype, ImplBase, PriorBoxParam>::init(input, output, param, strategy, implenum, ctx); 
+        }
 
         this->_last_input_shape.clear();
         for (int i = 0; i < input.size(); ++i) {
@@ -452,6 +467,10 @@ public:
     //copy data to output
     virtual SaberStatus operator() (const Input_v& input, Output_v& output, Param_t& param, \
         Context<TargetType> &ctx) {
+        if (std::is_same<TargetType, MLU>::value) {
+          return BaseFunc<TargetType, OpDtype, ImplBase, PriorBoxParam>::operator()(input, output, param, ctx);
+        }
+
         typename Tensor<TargetType>::API::stream_t stream = ctx.get_compute_stream();
         bool flag = (this->_param == param);
         for (int i = 0; i < input.size(); ++i) {
@@ -476,11 +495,17 @@ private:
 
     virtual void pick_best_static() override {
         // do nothing
+        if (std::is_same<TargetType, MLU>::value) {
+            this->_best_impl = this->_impl[0];
+        }
         return;
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {
         //do nothing
+        if (std::is_same<TargetType, MLU>::value) {
+            this->_best_impl = this->_impl[0];
+        }        
         return;
     }
 

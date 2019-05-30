@@ -36,6 +36,10 @@
 #include "saber/funcs/impl/arm/saber_conv.h"
 #endif
 
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_conv.h"
+#endif  // USE_MLU
+
 #ifdef USE_BM_PLACE
 //#include "saber/funcs/impl/bm/vender_conv.h"
 #endif

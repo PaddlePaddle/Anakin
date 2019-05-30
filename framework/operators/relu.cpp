@@ -62,6 +62,15 @@ template class ReLUHelper<X86, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, X86, Precision::INT8);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_RELU(MLU, Precision::FP32);
+INSTANCE_RELU(MLU, Precision::FP16);
+template class ReLUHelper<MLU, Precision::FP16>;
+template class ReLUHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 #ifdef USE_ARM_PLACE
 INSTANCE_RELU(ARM, Precision::FP32);
 template class ReLUHelper<ARM, Precision::FP32>;
@@ -80,6 +89,10 @@ ANAKIN_REGISTER_OP(ReLU)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("Relu")
 #endif
+
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("Relu")
+#endif  // USE_MLU
 
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("Relu")

@@ -18,9 +18,10 @@
 
 #include "saber/core/device.h"
 
-namespace anakin{
 
-namespace saber{
+namespace anakin {
+
+namespace saber {
 
 template <typename TargetType>
 class Env {
@@ -31,9 +32,9 @@ public:
         static Devs* _g_env = new Devs();
         return *_g_env;
     }
-    static void env_init(int max_stream = 4){
+    static void env_init(int max_stream = 4) {
         Devs& devs = cur_env();
-        if (devs.size() > 0){
+        if (devs.size() > 0) {
             return;
         }
         int count = 0;
@@ -52,58 +53,21 @@ public:
         devs[cur_id].create_stream();
         LOG(INFO) << "dev size = " << devs.size() << ", current device id: " << cur_id;
     }
+    static void env_exit() {};
 private:
-    Env(){}
+    Env() {}
 };
+
+#ifdef USE_MLU
+template<>
+void Env<MLU>::env_init(int max_stream);
+template<>
+void Env<MLU>::env_exit();
+#endif  // USE_MLU
 
 #ifdef AMD_GPU
-typedef std::list<cl_event> cl_event_list;
-
-template <>
-class Env<AMD> {
-public:
-    typedef TargetWrapper<AMD> AMD_API;
-    typedef std::vector<Device<AMD>> Devs;
-    static Devs& cur_env() {
-        static Devs* _g_env = new Devs();
-        return *_g_env;
-    }
-
-    static void env_init(int max_stream = 4);
-    static bool is_init();
-    static cl_platform_id get_platform_id();
-
-    static void add_event(const char *tag, cl_event_list event);
-    static void add_event(cl_event_list event) {
-        add_event(mTag.c_str(), event);
-    }
-
-    static void pop();
-    static void set_tag(const char *tag){
-        mTag = std::string(tag);
-    }
-
-    static const std::string& get_tag(){
-        return mTag;
-    }
-
-    static void start_record(){
-        record = true;
-    }
-    static void stop_record(){
-        record = false;
-    }
-private:
-    Env(){}
-
-    static cl_platform_id platform_id;
-    static std::map<std::string, std::list<cl_event_list>> eMap;
-    static std::list<std::string> tList;
-    static bool record;
-    static std::string  mTag;
-
-};
-#endif
+#define AMD_NUM_THREADS 256
+#endif // ifdef AMD_GPU
 
 } //namespace saber
 

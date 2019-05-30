@@ -120,6 +120,8 @@ ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, X86, Precision::FP32);
 #ifdef USE_X86_PLACE
 INSTANCE_ELTWISERELU(X86, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, X86, Precision::FP32);
+INSTANCE_ELTWISERELU(X86, Precision::INT8);
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, X86, Precision::INT8);
 #endif
 
 #ifdef AMD_GPU
@@ -134,23 +136,27 @@ ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, AMD, Precision::FP32);
 ANAKIN_REGISTER_OP(EltwiseRelu)
 .Doc("EltwiseRelu operator")
 #ifdef USE_CUDA
-.__alias__<NV, Precision::FP32>("eltwise")
-.__alias__<NV, Precision::INT8>("eltwise")
+.__alias__<NV, Precision::FP32>("eltwise_relu")
+.__alias__<NV, Precision::INT8>("eltwise_relu")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, Precision::FP32>("eltwise")
+.__alias__<ARM, Precision::FP32>("eltwise_relu")
 #endif
 #ifdef BUILD_LITE
-.__alias__<X86, Precision::FP32>("eltwise")
+.__alias__<X86, Precision::FP32>("eltwise_relu")
 #endif
 #ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("eltwise")
+.__alias__<AMD, Precision::FP32>("eltwise_relu")
+#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, Precision::FP32>("eltwise_relu")
+.__alias__<X86, Precision::INT8>("eltwise_relu")
 #endif
 .num_in(1)
 .num_out(1)
-.Args<std::string>("type", " eltwise type( string )")
+.Args<std::string>("type", " eltwise_relu type( string )")
 .Args<float>("relu_0_alpha", " alpha for relu")
-.Args<PTuple<float>>("coeff", "coeff of eltwise");
+.Args<PTuple<float>>("coeff", "coeff of eltwise_relu");
 
 } /* namespace ops */
 

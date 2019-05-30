@@ -146,7 +146,10 @@ void model_test() {
 
     //reshape shape batch-size
     // set batch
-    graph->ResetBatchSize("input_0", max_batch_size);
+    const std::string& input_name = graph->get_ins().at(0);
+    for (auto& in : graph->get_ins()) {
+        graph->ResetBatchSize(in, max_batch_size);
+    }
     LOG(INFO) << "set max_batch_size : " << max_batch_size;
 
     //anakin graph optimization
@@ -158,7 +161,7 @@ void model_test() {
     Net<TargetType, Precision::FP32> net_executer(true);
     net_executer.init(*graph);
     // get in
-    auto d_tensor_in_p = net_executer.get_in("input_0");
+    auto d_tensor_in_p = net_executer.get_in(input_name);
     d_tensor_in_p->set_num(batch_size);
     LOG(INFO) << "set batch_size : " << batch_size;
     if ( ! GLB_graph_reset_bs ) {
@@ -277,7 +280,7 @@ void model_test() {
     LOG(INFO) << " top1: " << top1 << " top5: " << top5;
 #ifndef ENABLE_DEBUG
     {
-        auto d_tensor_in_p = net_executer.get_in("input_0");
+        auto d_tensor_in_p = net_executer.get_in(input_name);
         //Shape new_shape({1, 14, 800, 1408});
         //d_tensor_in_p->reshape(new_shape);
         // performance check

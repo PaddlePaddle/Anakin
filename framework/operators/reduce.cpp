@@ -5,36 +5,18 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Reduce<NV, Precision::FP32>::operator()(
-        OpContext<NV>& ctx,
-        const std::vector<Tensor4dPtr<NV> >& ins,
-        std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl = static_cast<ReduceHelper<NV, Precision::FP32>*>(
-            this->_helper);
-    auto& param = static_cast<ReduceHelper<NV, Precision::FP32>*>(
-            this->_helper)->_param_reduce;
-    impl->_funcs_reduce(ins, outs, param, ctx);
+#define INSTANCE_REDUCE(Ttype, Ptype) \
+template<> \
+void Reduce<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<ReduceHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<ReduceHelper<Ttype, Ptype>*> \
+                  (this->_helper)->_param_reduce; \
+    impl->_funcs_reduce(ins, outs, param, ctx); \
 }
-#endif
-
-#ifdef USE_X86_PLACE
-template<>
-void Reduce<X86, Precision::FP32>::operator()(
-        OpContext<X86>& ctx,
-        const std::vector<Tensor4dPtr<X86> >& ins,
-        std::vector<Tensor4dPtr<X86> >& outs) {
-    auto* impl = static_cast<ReduceHelper<X86, Precision::FP32>*>(
-            this->_helper);
-    auto& param = static_cast<ReduceHelper<X86, Precision::FP32>*>(
-            this->_helper)->_param_reduce;
-    impl->_funcs_reduce(ins, outs, param, ctx);
-}
-#endif
 
 /// TODO ... specialization other type of operator
-
 /// set helper
 template<typename Ttype, Precision Ptype>
 ReduceHelper<Ttype, Ptype>::~ReduceHelper() {
@@ -88,20 +70,26 @@ Status ReduceHelper<Ttype, Ptype>::InferShape(
 }
 
 #ifdef USE_CUDA
+INSTANCE_REDUCE(NV, Precision::FP32);
 template class ReduceHelper<NV, Precision::FP32>;
 template class ReduceHelper<NV, Precision::FP16>;
 template class ReduceHelper<NV, Precision::INT8>;
 #endif
+
 #ifdef USE_ARM_PLACE
-// template class ReduceHelper<ARM, Precision::FP32>;
-// template class ReduceHelper<ARM, Precision::FP16>;
-// template class ReduceHelper<ARM, Precision::INT8>;
+INSTANCE_REDUCE(ARM, Precision::FP32);
+template class ReduceHelper<ARM, Precision::FP32>;
+template class ReduceHelper<ARM, Precision::FP16>;
+template class ReduceHelper<ARM, Precision::INT8>;
 #endif
+
 #ifdef USE_X86_PLACE
+INSTANCE_REDUCE(X86, Precision::FP32);
 template class ReduceHelper<X86, Precision::FP32>;
 template class ReduceHelper<X86, Precision::FP16>;
 template class ReduceHelper<X86, Precision::INT8>;
 #endif
+
 // register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Reduce, ReduceHelper, NV, Precision::FP32);

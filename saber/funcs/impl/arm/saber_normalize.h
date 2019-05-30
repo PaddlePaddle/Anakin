@@ -47,11 +47,11 @@ public:
                             std::vector<Tensor<ARM> *>& outputs,
                             NormalizeParam<ARM>& param, Context<ARM> &ctx) {
         //outputs[0]->share_from(*inputs[0]);
-	    int in_c = inputs[0]->channel();
-	    int in_n = inputs[0]->num();
-	    Shape sh({1, 1, 1, in_c * in_n});
-	    // this->_mean.re_alloc(sh);
-	    // this->_variance.re_alloc(sh);
+  	    int in_c = inputs[0]->channel();
+  	    int in_n = inputs[0]->num();
+  	    Shape sh({1, 1, 1, in_c * in_n});
+  	    this->_mean.re_alloc(sh);
+  	    this->_variance.re_alloc(sh);
         return SaberSuccess;
     }
 

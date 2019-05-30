@@ -20,7 +20,7 @@ namespace anakin {
 
 namespace saber {
 
-DEFINE_OP_CLASS(BoxClip, EmptyParam);
+DEFINE_OP_CLASS(BoxClip, BoxClipParam);
 
 }
 }

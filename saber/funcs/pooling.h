@@ -33,7 +33,10 @@
 
 #ifdef AMD_GPU
 #include "saber/funcs/impl/amd/include/saber_pooling.h"
-#include "saber/funcs/impl/amd/include/vender_pooling.h"
+#endif
+
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_pooling.h"
 #endif
 
 namespace anakin {

@@ -31,23 +31,30 @@ void test_power(){
     //Init the test_base
     TestSaberBase<TargetType_D, TargetType_H, OpDtype, Power, PowerParam> testbase;
     for (float p : {0, 1, 2}){
-        for (float scale : {0.5, 1.0, 2.0}){
-            for (float shift : {0, 1, 2}){
-                PowerParam<TargetType_D> param(p, scale, shift);
+    for (float scale : {0.5, 1.0, 2.0}){
+    for (float shift : {0, 1, 2}){
+        PowerParam<TargetType_D> param(p, scale, shift);
 
-                for (int n : {1, 2}){
-                    for (int c : {1, 3}){
-                        for (int h: {32, 64}){
-                            for (int w : {32, 64}){
-                                testbase.set_param(param);
-                                testbase.set_input_shape(Shape({n, c, h, w}), SPECIAL);
-                                testbase.run_test(power_cpu_func<dtype, TargetType_D, TargetType_H>);
-                            }
+        for (int n : {1, 2}){
+            for (int c : {1, 3}){
+                for (int h: {32, 64}){
+                    for (int w : {32, 64}){
+                        testbase.set_param(param);
+                        if (std::is_same<TargetType_D, MLU>::value) {
+                            testbase.set_input_shape(Shape({n, c, h, w}));
+                            testbase.set_rand_limit(1.0, 2.0);
+                            testbase.run_test(power_cpu_func<dtype, TargetType_D, TargetType_H>,
+                                              0.02, true);
+                        } else {
+                            testbase.set_input_shape(Shape({n, c, h, w}), SPECIAL);
+                            testbase.run_test(power_cpu_func<dtype, TargetType_D, TargetType_H>);
                         }
                     }
                 }
             }
         }
+    }
+    }
     }
 }
 
@@ -61,9 +68,10 @@ TEST(TestSaberFunc, test_func_power) {
 #ifdef USE_ARM_PLACE
     test_power<ARM, ARM, AK_FLOAT>();
 #endif
+#ifdef USE_MLU
+    test_power<MLU, MLUHX86, AK_FLOAT>();
+#endif
 }
-
-
 
 int main(int argc, const char** argv) {
     // initial logger

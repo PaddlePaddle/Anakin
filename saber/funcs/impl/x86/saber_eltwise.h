@@ -63,6 +63,9 @@ private:
                     std::vector<DataTensor_out*>& outputs,
                     EltwiseParam<X86> &param, bool with_relu);
 
+    void simple_mul(const std::vector<DataTensor_in*>& inputs,
+                    std::vector<DataTensor_out*>& outputs,
+                    EltwiseParam<X86> &param, bool with_relu);
     bool _with_relu;
     bool _other_activation;
 };

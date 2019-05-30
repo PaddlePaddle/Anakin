@@ -23,7 +23,9 @@
 #endif
 
 #ifdef USE_X86_PLACE
+//#ifndef USE_SGX
 #include "saber/funcs/impl/x86/vender_fc.h"
+//#endif
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -33,6 +35,10 @@
 #ifdef AMD_GPU
 #include "saber/funcs/impl/amd/include/vender_fc.h"
 #endif
+
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_fc.h"
+#endif  // USE_MLU
 
 namespace anakin{
 
@@ -82,10 +88,11 @@ public:
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
+//#ifndef USE_SGX
         case VENDER_IMPL:
             this->_impl.push_back(new VenderFc<TargetType, OpDtype>);
             return SaberSuccess;
-
+//#endif
         case SABER_IMPL:
             this->_impl.push_back(new SaberFc<TargetType, OpDtype>);
             return SaberSuccess;

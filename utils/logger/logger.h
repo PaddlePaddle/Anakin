@@ -233,7 +233,7 @@ namespace logger {
 #define LOG                   NOPLOG
 #define VLOG                  NOPLOG
 #define DLOG                  NOPLOG
-#define CHECK(X)              (((X) == true ? void(nullptr) : abort()), logger::__NOP)
+#define CHECK(X)              (((X) == true ? void(nullptr) : assert(false)), logger::__NOP)
 #define CHECK_NOTNULL(X)      CHECK((X) != nullptr)
 #define CHECK_EQ(X, Y)        CHECK(((X) == (Y)))
 #define CHECK_NE(X, Y)        CHECK(((X) != (Y)))

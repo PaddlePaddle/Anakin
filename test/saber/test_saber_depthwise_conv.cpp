@@ -103,7 +103,7 @@ TEST(TestSaberFunc, test_saber_depthwise_conv_results) {
             testbase_x86.set_param(param_x86);//set param
             testbase_x86.set_input_shape(Shape({input_num, in_channels, height, width},
                                                Layout_NCHW));//add some input shape
-            testbase_x86.run_test(conv_cpu_func<float, X86, X86>, 1e-4, true);//run test
+            testbase_x86.run_test(conv_cpu_func<float, X86, X86>, 1e-3, true);//run test
 #endif
         }
      }

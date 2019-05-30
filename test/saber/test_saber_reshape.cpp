@@ -20,6 +20,7 @@ void reshape_cpu_func(const std::vector<Tensor<TargetType_H>*>& input, std::vect
     Shape in_shape = input[0] -> valid_shape();
     std::vector<int> param_shape = param.shape_params;
     Shape out_shape;
+    Shape temp({1, 1, 1, 1});
     out_shape.resize(param_shape.size());
     out_shape.set_layout(param.layout);
     int infer_axis = -1;
@@ -42,8 +43,24 @@ void reshape_cpu_func(const std::vector<Tensor<TargetType_H>*>& input, std::vect
     if (infer_axis >= 0){
         out_shape[infer_axis] = input[0] -> valid_size() / num_axis;
     }
+    if (std::is_same<TargetType_D, MLU>::value) {
+        if (out_shape.dims() != 4) {
+			for (int i = 0; i < out_shape.size(); i++) {
+                temp[i] = out_shape[i];
+			}
+			out_shape = temp;
+		}
+        
+		const dtype* src_ptr = static_cast<const dtype*>(input[0] -> data());
+        dtype* dst_ptr = static_cast<dtype*>(output[0] -> mutable_data());
+        int out_size = output[0]->valid_size();
+        for (int i = 0; i < out_size; ++i) {
+            dst_ptr[i] = src_ptr[i];
+        }
+	}
     output[0] -> set_shape(out_shape);
     LOG(INFO) << "reshape_cpu_func: out_shape.layout: " << out_shape.get_layout();
+    LOG(INFO) << "reshape_cpu_func: out_shape.valud_shape: " << out_shape;
 }
 
 template <typename TargetType_D, typename TargetType_H, DataType OpDtype>
@@ -85,7 +102,12 @@ void test_reshape(){
                                         if (param_check(new_shape, in_shape)){
                                             testbase.set_param(param);
                                             testbase.set_input_shape(in_shape);
-                                            testbase.run_test(reshape_cpu_func<dtype, TargetType_D, TargetType_H>);
+//                                            testbase.run_test(reshape_cpu_func<dtype, TargetType_D, TargetType_H>);
+        if (std::is_same<TargetType_D, MLU>::value) {
+            testbase.run_test(reshape_cpu_func<dtype, TargetType_D, TargetType_H>, 0.02, true);
+        } else {
+            testbase.run_test(reshape_cpu_func<dtype, TargetType_D, TargetType_H>);
+        }
                                         }
                                     }
                                 }
@@ -112,7 +134,11 @@ void test_reshape(){
         ReshapeParam<TargetType_D> param(new_shapes[i], new_shapes[i].get_layout());
         testbase.set_param(param);
         testbase.set_input_shape(in_shapes[i]);
-        testbase.run_test(reshape_cpu_func<dtype, TargetType_D, TargetType_H>);
+        if (std::is_same<TargetType_D, MLU>::value) {
+            testbase.run_test(reshape_cpu_func<dtype, TargetType_D, TargetType_H>, 0.02, true);
+        } else {
+            testbase.run_test(reshape_cpu_func<dtype, TargetType_D, TargetType_H>);
+        }
     }
 }
  
@@ -123,7 +149,11 @@ TEST(TestSaberFunc, test_func_reshape) {
 #ifdef USE_X86_PLACE
     test_reshape<X86, X86, AK_FLOAT>();
 #endif
-        
+#ifdef USE_MLU
+    Env<MLUHX86>::env_init();
+    Env<MLU>::env_init();
+    test_reshape<MLU, MLUHX86, AK_FLOAT>();
+#endif  // USE_MLU        
 }
 
 

@@ -266,7 +266,30 @@ TEST(TestSaberFunc, test_func_resize) {
     test_resize<ARM, ARM, AK_FLOAT>();
 
 #endif
-
+#ifdef USE_MLU
+    LOG(INFO) << "mlu test......";
+    //Init the test_base
+	Env<MLUHX86>::env_init();                                                                       
+	Env<MLU>::env_init();
+	TestSaberBase<MLU, MLUHX86, AK_FLOAT, Resize, ResizeParam> testbase2;
+	for (int num_in : {1}) {
+		for (int c_in : {1, 3}) {
+			for (int h_in : {8, 16}) {
+				for (int w_in : {8, 16}) {
+					for (float scale_w : {1.0f, 0.5f, 0.3f}) {
+						for (float scale_h : {1.0f, 0.5f, 0.4f}) {
+							LOG(INFO) << scale_w << "   " << scale_h;
+							ResizeParam<MLU> param(2, scale_w, scale_h);
+							testbase2.set_param(param);
+							testbase2.set_input_shape(Shape({num_in, c_in, h_in, w_in}), SPECIAL);
+							testbase2.run_test(resize_bilinear_custom_cpu<float, MLU, MLUHX86>, 0.02, true);
+						}
+					}
+				}
+			}
+		}
+	}
+#endif
 }
 int main(int argc, const char** argv) {
     // initial logger

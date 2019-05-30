@@ -118,7 +118,7 @@ ANAKIN_REGISTER_OP(Lstm)
     .__alias__<NV, Precision::FP32>("LSTM")
 #endif
 #ifdef USE_ARM_PLACE
-    // .__alias__<ARM, Precision::FP32>("Lstm")
+     .__alias__<ARM, Precision::FP32>("Lstm")
 #endif
 #ifdef USE_X86_PLACE
     .__alias__<X86, Precision::FP32>("Lstm")

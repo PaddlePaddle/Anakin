@@ -1,7 +1,7 @@
 #ifndef NANOPB_CPP_GRAPH_PROTO_HPP
 #define NANOPB_CPP_GRAPH_PROTO_HPP
 
-#include <pb_cpp_common.h>
+#include <pb_common.hpp>
 
 #include "node.pb.hpp"
 #include "tensor.pb.hpp"
@@ -21,6 +21,8 @@
 #define CacheDate Nanopb_CacheDate
 #define TensorProto Nanopb_TensorProto
 #define TensorShape_Dim Nanopb_TensorShape_Dim
+#define LayoutProto Nanopb_LayoutProto
+#define DateTypeProto Nanopb_DateTypeProto
 #include "graph.pb.h"
 #undef Version
 #undef Info
@@ -37,6 +39,8 @@
 #undef CacheDate
 #undef TensorProto
 #undef TensorShape_Dim
+#undef LayoutProto
+#undef DateTypeProto
 
 namespace nanopb_cpp {
 
@@ -61,72 +65,128 @@ enum LayoutProto {
 };
 
 class Version {
-    PROTO_FIELD(int32_t, major);
-    PROTO_FIELD(int32_t, minor);
-    PROTO_FIELD(int32_t, patch);
-    PROTO_FIELD(int64_t, version);
 
-    PARSING_MEMBERS(Version);
+    PROTO_SINGULAR_NUMERIC_FIELD(int32_t, major);
+
+    PROTO_SINGULAR_NUMERIC_FIELD(int32_t, minor);
+
+    PROTO_SINGULAR_NUMERIC_FIELD(int32_t, patch);
+
+    PROTO_SINGULAR_NUMERIC_FIELD(int64_t, version);
+
+    PROTO_MESSAGE_MEMBERS(Version, Version);
 }; // end class Version;
 
 class Info {
-    PROTO_FIELD(int32_t, temp_mem_used);
-    PROTO_FIELD(int32_t, original_temp_mem_used);
-    PROTO_FIELD(int32_t, system_mem_used);
-    PROTO_FIELD(int32_t, model_mem_used);
-    PROTO_FIELD(bool, is_optimized);
 
-    PARSING_MEMBERS(Info);
+    PROTO_SINGULAR_NUMERIC_FIELD(int32_t, temp_mem_used);
+
+    PROTO_SINGULAR_NUMERIC_FIELD(int32_t, original_temp_mem_used);
+
+    PROTO_SINGULAR_NUMERIC_FIELD(int32_t, system_mem_used);
+
+    PROTO_SINGULAR_NUMERIC_FIELD(int32_t, model_mem_used);
+
+    PROTO_SINGULAR_NUMERIC_FIELD(bool, is_optimized);
+
+    PROTO_MESSAGE_MEMBERS(Info, Info);
 }; // end class Info;
 
 class TargetProto {
-    PROTO_FIELD(std::string, node);
-    REPEATED_PROTO_FIELD(float, scale);
-    PROTO_FIELD(nanopb_cpp::LayoutProto, layout);
 
-    PARSING_MEMBERS(TargetProto);
+    PROTO_SINGULAR_STRING_FIELD(node);
+
+    PROTO_REPEATED_NUMERIC_FIELD(float, scale);
+
+    PROTO_SINGULAR_ENUM_FIELD(nanopb_cpp::LayoutProto, layout);
+
+    PROTO_MESSAGE_MEMBERS(TargetProto, TargetProto);
 }; // end class TargetProto;
 
 class List {
-    REPEATED_PROTO_FIELD(std::string, val);
-    REPEATED_PROTO_FIELD(nanopb_cpp::TargetProto, target);
 
-    PARSING_MEMBERS(List);
+    PROTO_REPEATED_STRING_FIELD(val);
+
+    PROTO_REPEATED_EMBEDDED_MESSAGE_FIELD(nanopb_cpp::TargetProto, target);
+
+    PROTO_MESSAGE_MEMBERS(List, List);
 }; // end class List;
 
 class GraphProto {
-    class EdgesInEntry {
-        PROTO_MAP_ENTRY_KEY_FIELD(std::string);
-        PROTO_MAP_ENTRY_VALUE_FIELD(nanopb_cpp::List);
 
-        PROTO_MAP_ENTRY_MEMBERS(GraphProto_EdgesInEntry);
+    class EdgesInEntry {
+
+        PROTO_SINGULAR_STRING_FIELD(key);
+
+        PROTO_SINGULAR_EMBEDDED_MESSAGE_FIELD(nanopb_cpp::List, value);
+
+    public:
+        using KeyType = GET_MEM_TYPE(_key);
+        using ValueType = GET_MEM_TYPE(_value);
+
+        EdgesInEntry(const KeyType &key, const ValueType &value) {
+            field_copy(_key, key);
+            field_copy(_value, value);
+        }
+
+        PROTO_MESSAGE_MEMBERS(EdgesInEntry, GraphProto_EdgesInEntry);
     }; // end class EdgesInEntry;
 
     class EdgesOutEntry {
-        PROTO_MAP_ENTRY_KEY_FIELD(std::string);
-        PROTO_MAP_ENTRY_VALUE_FIELD(nanopb_cpp::List);
 
-        PROTO_MAP_ENTRY_MEMBERS(GraphProto_EdgesOutEntry);
+        PROTO_SINGULAR_STRING_FIELD(key);
+
+        PROTO_SINGULAR_EMBEDDED_MESSAGE_FIELD(nanopb_cpp::List, value);
+
+    public:
+        using KeyType = GET_MEM_TYPE(_key);
+        using ValueType = GET_MEM_TYPE(_value);
+
+        EdgesOutEntry(const KeyType &key, const ValueType &value) {
+            field_copy(_key, key);
+            field_copy(_value, value);
+        }
+
+        PROTO_MESSAGE_MEMBERS(EdgesOutEntry, GraphProto_EdgesOutEntry);
     }; // end class EdgesOutEntry;
 
     class EdgesInfoEntry {
-        PROTO_MAP_ENTRY_KEY_FIELD(std::string);
-        PROTO_MAP_ENTRY_VALUE_FIELD(nanopb_cpp::TensorProto);
 
-        PROTO_MAP_ENTRY_MEMBERS(GraphProto_EdgesInfoEntry);
+        PROTO_SINGULAR_STRING_FIELD(key);
+
+        PROTO_SINGULAR_EMBEDDED_MESSAGE_FIELD(nanopb_cpp::TensorProto, value);
+
+    public:
+        using KeyType = GET_MEM_TYPE(_key);
+        using ValueType = GET_MEM_TYPE(_value);
+
+        EdgesInfoEntry(const KeyType &key, const ValueType &value) {
+            field_copy(_key, key);
+            field_copy(_value, value);
+        }
+
+        PROTO_MESSAGE_MEMBERS(EdgesInfoEntry, GraphProto_EdgesInfoEntry);
     }; // end class EdgesInfoEntry;
 
-    PROTO_FIELD(std::string, name);
-    REPEATED_PROTO_FIELD(nanopb_cpp::NodeProto, nodes);
-    PROTO_FIELD((std::map<std::string, nanopb_cpp::List>), edges_in);
-    PROTO_FIELD((std::map<std::string, nanopb_cpp::List>), edges_out);
-    PROTO_FIELD((std::map<std::string, nanopb_cpp::TensorProto>), edges_info);
-    REPEATED_PROTO_FIELD(std::string, ins);
-    REPEATED_PROTO_FIELD(std::string, outs);
-    PROTO_FIELD(nanopb_cpp::Version, version);
-    PROTO_FIELD(nanopb_cpp::Info, summary);
+    PROTO_SINGULAR_STRING_FIELD(name);
 
-    PARSING_MEMBERS(GraphProto);
+    PROTO_REPEATED_EMBEDDED_MESSAGE_FIELD(nanopb_cpp::NodeProto, nodes);
+
+    PROTO_MAP_FIELD(std::string, nanopb_cpp::List, edges_in);
+
+    PROTO_MAP_FIELD(std::string, nanopb_cpp::List, edges_out);
+
+    PROTO_MAP_FIELD(std::string, nanopb_cpp::TensorProto, edges_info);
+
+    PROTO_REPEATED_STRING_FIELD(ins);
+
+    PROTO_REPEATED_STRING_FIELD(outs);
+
+    PROTO_SINGULAR_EMBEDDED_MESSAGE_FIELD(nanopb_cpp::Version, version);
+
+    PROTO_SINGULAR_EMBEDDED_MESSAGE_FIELD(nanopb_cpp::Info, summary);
+
+    PROTO_MESSAGE_MEMBERS(GraphProto, GraphProto);
 }; // end class GraphProto;
 
 } // namespace nanopb_cpp
@@ -137,6 +197,7 @@ using nanopb_cpp::TargetProto;
 using nanopb_cpp::List;
 using nanopb_cpp::GraphProto;
 
+using nanopb_cpp::LayoutProto;
 using nanopb_cpp::Invalid;
 using nanopb_cpp::LP_W;
 using nanopb_cpp::LP_HW;

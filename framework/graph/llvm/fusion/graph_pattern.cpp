@@ -340,7 +340,6 @@ std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> Fu
                 std::string merge_op_name = param_pattern->begin()->second.opName;
                 std::string merge_name = param_pattern->begin()->first;
                 
-                
                 std::string node_name = param_node.name;
                 std::string node_op_name = param_node.opName;
                 std::vector<node> merge_node_list;
@@ -358,9 +357,7 @@ std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> Fu
                     node node_merge = merge_node_list[0];
                     node_merge.mergeNodes.clear();
                     std::vector<std::string> pattern_node_name_saves;//{node_merge.name};
-                    //LOG(INFO)<<"======find pattern can fusion of "<<node_merge.name;
                     for (int i=1; i< merge_node_list.size(); ++i){
-                       LOG(INFO)<<"list:"<<merge_node_list[i].name;
                         node_merge += merge_node_list[i];
                         pattern_node_name_saves.push_back(merge_name+"_"+(char)(i+0x30));
                     }
@@ -446,7 +443,6 @@ std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> Fu
                     
                     //add arcs
                     for (auto name : top_node_names){
-                        //LOG(INFO)<<"add out name:"<<name;
                         Arc<std::string, io> arc(node_merge.name, name);
                         auto& io_tmp = arc.weight();
                         io_tmp.name = arc.name();
@@ -454,7 +450,6 @@ std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> Fu
                         
                     }
                     for (auto name : in_node_names){
-                        //LOG(INFO)<<"add in name"<<name;
                         Arc<std::string, io> arc(name, node_merge.name);
                         auto& io_tmp = arc.weight();
                         io_tmp.name = arc.name();
@@ -468,8 +463,7 @@ std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> Fu
                         node_merge.mergeNodeNames.push_back(pattern_node_name_saves[i]);
                     }
                      */
-                       node_merge.mergeNodeNames = pattern_node_name_saves;
-                    //LOG(INFO)<<node_merge.opName;
+                    node_merge.mergeNodeNames = pattern_node_name_saves;
                     
                     
                     (*vgraph)[node_merge.name] = node_merge;
@@ -479,7 +473,6 @@ std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> Fu
                     return 0;
                 }
             };
-            
             vgraph->Scanner->DFS(search_vgraph_from_onenode, pattern);
             //vgraph->Scanner->DFS(search_vgraph, pattern);
             

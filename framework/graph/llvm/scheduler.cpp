@@ -1,4 +1,23 @@
+/* Copyright (c) 2019 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+   
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License. 
+*/
+
 #include "framework/graph/llvm/scheduler.h"
+
+#include <algorithm>
+#include <set>
+#include <map>
 
 namespace anakin {
 
@@ -66,7 +85,8 @@ void Scheduler::launch(node& node_arg) {
 }
 
 void Scheduler::Run() {
-    while (!(this->_wait_que.empty())) {
+    for (std::size_t wait_que_size = this->_wait_que.size()
+            ; !(this->_wait_que.empty()); ) {
         // lanuch the acessible op and remove it from wait que.
         for (auto op_it = this->_wait_que.begin(); op_it != this->_wait_que.end();) {
             if (callable(*op_it)) {
@@ -76,6 +96,80 @@ void Scheduler::Run() {
                 ++op_it;
             }
         }
+
+        // if _wait_que.size not change, Scheduler::Run won't stop
+        // check and fatal out
+        if (wait_que_size == _wait_que.size()) {
+            // check loop
+            std::map<std::string, std::set<std::string>> op_inputs;
+            std::map<std::string, std::set<std::string>> op_outputs;
+
+            // get op io
+            for (const auto& op : this->_wait_que) {
+                for (auto& arc_in : _vgraph->get_in_arc_its(op.name)) {
+                    io& in = arc_in->weight();
+                    if (this->check_access(in)) {
+                        continue;
+                    }
+
+                    op_inputs[op.name].insert(in.name);
+                }
+                for (auto& arc_out : _vgraph->get_out_arc_its(op.name)) {
+                    io& out = arc_out->weight();
+                    if (this->check_access(out)) {
+                        continue;
+                    }
+
+                    op_outputs[op.name].insert(out.name);
+                }
+            }
+
+            // debug info
+            for (const auto& op : this->_wait_que) {
+                std::ostringstream oss;
+                LOG(INFO) << "op.name=" << op.name;
+                int i = 0;
+                for (const auto& in : op_inputs[op.name]) {
+                    LOG(INFO) << "input[" << i++ << "]=" << in;
+                }
+                i = 0;
+                for (const auto& out : op_outputs[op.name]) {
+                    LOG(INFO) << "output[" << i++ << "]=" << out;
+                }
+            }
+
+            // check if some op nerver get feed
+            for (const auto& op : op_inputs) {
+                const auto& op_name = op.first;
+                const auto& inputs = op.second;
+
+                std::set<std::string> others_output;
+                for (const auto& p : op_outputs) {
+                    if (op_name == p.first) {
+                        continue;
+                    }
+                    for (auto& x : p.second) {
+                        others_output.insert(x);
+                    }
+                }
+
+                std::set<std::string> lack_of;
+                std::set_difference(
+                    inputs.begin(), inputs.end()
+                    , others_output.begin(), others_output.end()
+                    ,  std::inserter(lack_of, lack_of.begin()));
+                if (lack_of.size() != 0) {
+                    LOG(INFO) << "lack of:";
+                    for (auto x : lack_of) {
+                        LOG(INFO) << x;
+                    }
+                    LOG(FATAL) << "Failed with lack of data provision";
+                }
+            }
+
+            LOG(FATAL) << "unkown topo problem";
+        }
+        wait_que_size = _wait_que.size();
     }
     auto exec_node_order = this->get_exec_node_in_order();
     _vgraph->set_exec_order(exec_node_order);

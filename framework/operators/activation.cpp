@@ -87,6 +87,14 @@ ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, Precision::FP32);
 INSTANCE_ACTIVATION(NV, Precision::INT8);
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, Precision::INT8);
 #endif
+#ifdef USE_MLU
+INSTANCE_ACTIVATION(MLU, Precision::FP32);
+INSTANCE_ACTIVATION(MLU, Precision::FP16);
+INSTANCE_ACTIVATION(MLU, Precision::INT8);
+ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_ACTIVATION(X86, Precision::FP32);
@@ -94,6 +102,8 @@ INSTANCE_ACTIVATION(X86, Precision::FP16);
 INSTANCE_ACTIVATION(X86, Precision::INT8);
 template class ActivationHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, X86, Precision::FP32);
+template class ActivationHelper<X86, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, X86, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -116,11 +126,15 @@ ANAKIN_REGISTER_OP(Activation)
 .__alias__<NV, Precision::FP32>("activation")
 .__alias__<NV, Precision::INT8>("activation")
 #endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("activation")
+#endif  // USE_MLU
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("activation")
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("activation")
+.__alias__<X86, Precision::INT8>("activation")
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("activation")

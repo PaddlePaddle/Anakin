@@ -181,7 +181,6 @@ Status ConvEltwiseHelper<Ttype, Ptype>::InitParam() {
     }
     if ((std::is_same<Ttype, NV>::value || std::is_same<Ttype, X86>::value)&& Ptype == Precision::INT8) {
         auto scale_0 = GET_PARAMETER(float, scale_0);
-        auto scale_3 = GET_PARAMETER(float, scale_3);
         auto be_eltwise_dtype = GET_PARAMETER(DataType, be_eltwise_dtype);
         float beta = scale_0;
         _param_conv_eltwise.conv_param.beta = beta;

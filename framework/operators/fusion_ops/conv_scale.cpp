@@ -48,8 +48,14 @@ Status ConvScaleHelper<Ttype, Ptype>::InitParam() {
     auto scale_axis = GET_PARAMETER(int, scale_0_axis);
     auto scale_weight_1 = GET_PARAMETER(pblock_type, scale_0_weight_1);
     auto scale_weight_1_vector = scale_weight_1.vector();
-    auto scale_weight_2 = GET_PARAMETER(pblock_type, scale_0_weight_2);
-    auto  scale_weight_2_vector = scale_weight_2.vector();
+    std::vector<float> scale_weight_2_vector;
+    if (CHECK_PARAMETER(scale_0_weight_2)) {
+        auto scale_weight_2 = GET_PARAMETER(pblock_type, scale_0_weight_2);
+        scale_weight_2_vector = scale_weight_2.vector();
+    } else {
+        // no scale bias, set zero scale_weight_2_vector
+        scale_weight_2_vector = std::vector<float>(0.0, scale_weight_1_vector.size());
+    }
 
     // check if batchnorm parameters have been optimized 
     auto is_param_updated = CHECK_PARAMETER(is_param_updated);

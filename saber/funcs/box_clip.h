@@ -23,21 +23,21 @@ class BoxClip : public BaseFunc <
     TargetType,
     OpDtype,
     ImplBase,
-    EmptyParam
+    BoxClipParam
     > {
 public:
     using BaseFunc <
     TargetType,
     OpDtype,
     ImplBase,
-    EmptyParam >::BaseFunc;
+    BoxClipParam >::BaseFunc;
 
     BoxClip() = default;
 
     typedef Tensor<TargetType> InDataTensor;
     typedef Tensor<TargetType> OutDataTensor;
     typedef Tensor<TargetType> OpTensor;
-    typedef EmptyParam<TargetType> Param_t;
+    typedef BoxClipParam<TargetType> Param_t;
     typedef std::vector<InDataTensor*> Input_v;
     typedef std::vector<OutDataTensor*> Output_v;
     typedef std::vector<Shape> Shape_v;

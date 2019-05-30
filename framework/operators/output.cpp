@@ -48,6 +48,15 @@ INSTANCE_OUTPUT(NV, Precision::FP32);
 template class OutputHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, Precision::FP32);
 #endif
+#ifdef USE_MLU
+INSTANCE_OUTPUT(MLU, Precision::FP32);
+INSTANCE_OUTPUT(MLU, Precision::FP16);
+template class OutputHelper<MLU, Precision::FP32>;
+template class OutputHelper<MLU, Precision::FP16>;
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_OUTPUT(X86, Precision::FP32);
@@ -81,6 +90,9 @@ ANAKIN_REGISTER_OP(Output)
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("output")
 #endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("output")
+#endif  // USE_MLU
 .Doc("Output operator [ only a input data holder and reshape ] ");
 
 } /* namespace ops */

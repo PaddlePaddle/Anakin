@@ -729,6 +729,15 @@ TEST(TestSaberFunc, test_tensor_reshape_realloc) {
     tensor_reshape_realloc<NV, NVHX86, AK_INT8>();
 #endif //USE_CUDA
 
+#ifdef USE_MLU
+    Env<MLU>::env_init();
+    Env<MLUHX86>::env_init();
+    LOG(INFO) << "test MLU FP32 tensor reshape realloc";
+    tensor_reshape_realloc<MLU, MLUHX86, AK_FLOAT>();
+    LOG(INFO) << "test MLU INT8 tensor reshape realloc";
+    tensor_reshape_realloc<MLU, MLUHX86, AK_INT8>();
+#endif //USE_MLU
+
 #ifdef USE_X86_PLACE
     Env<X86>::env_init();
     LOG(INFO) << "test X86 FP32 tensor reshape realloc";
@@ -810,6 +819,15 @@ TEST(TestSaberFunc, test_tensor_ops) {
     test_tensor_op<NV, NVHX86, AK_INT8>();
 #endif //USE_CUDA
 
+#ifdef USE_MLU
+    Env<MLU>::env_init();
+    Env<MLUHX86>::env_init();
+    LOG(INFO) << "test MLU FP32 tensor op";
+    test_tensor_op<MLU, MLUHX86, AK_FLOAT>();
+    LOG(INFO) << "test MLU INT8 tensor op";
+    test_tensor_op<MLU, MLUHX86, AK_INT8>();
+#endif //USE_MLU
+
 #ifdef USE_X86_PLACE
     Env<X86>::env_init();
     LOG(INFO) << "test X86 FP32 tensor op";
@@ -866,6 +884,13 @@ TEST(TestSaberFunc, test_tensor_share_diff_dtype) {
     LOG(INFO) << "test CUDA tensor share different data type";
     tensor_share_diff_dtype<NV, NVHX86>();
 #endif //USE_CUDA
+
+#ifdef USE_MLU
+    Env<MLU>::env_init();
+    Env<MLUHX86>::env_init();
+    LOG(INFO) << "test MLU tensor share different data type";
+    tensor_share_diff_dtype<MLU, MLUHX86>();
+#endif //USE_MLU
 
 #ifdef USE_X86_PLACE
     Env<X86>::env_init();

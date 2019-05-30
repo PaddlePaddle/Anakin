@@ -104,7 +104,7 @@ template <typename Dtype >
 void tensor_cmp_host(const Dtype* src1, const Dtype* src2, int size, double& max_ratio, double& max_diff);
 
 template <typename Dtype>
-void tensor_cmp_host_mlu(const Dtype* correct, const Dtype* sample, \
+void tensor_cmp_host(const Dtype* correct, const Dtype* sample, \
      int size, double& diff);
 #ifdef USE_CUDA
 

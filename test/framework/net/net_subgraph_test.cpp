@@ -16,6 +16,12 @@ using Target_H = ARM;
 #elif defined(AMD_GPU)
 using Target = AMD;
 using Target_H = X86;
+#elif defined(USE_MLU)
+using Target = MLU;
+using Target_H = MLUHX86;
+#elif defined(USE_BM_PLACE)
+using Target = BM;
+using Target_H = BMX86;
 #endif
 
 
@@ -82,7 +88,7 @@ TEST(NetTest, net_execute_subgraph_0) {
 
     auto tensor_out = net_executer_p->get_out("y");
     LOG(INFO) << "get output tensor:";
-	test_print(tensor_out);
+//	test_print(tensor_out);
 }
 
 TEST(NetTest, net_execute_subgraph_three_fc_with_split) {
@@ -165,10 +171,10 @@ TEST(NetTest, net_execute_subgraph_three_fc_with_split) {
 
     auto tensor_out_2 = net_executer_p->get_out("op2_out");
     LOG(INFO) << "get output tensor 2:";
-	test_print(tensor_out_2);
+//	test_print(tensor_out_2);
     auto tensor_out_3 = net_executer_p->get_out("op3_out");
     LOG(INFO) << "get output tensor 3:";
-	test_print(tensor_out_3);
+//	test_print(tensor_out_3);
 
 
 }
@@ -356,7 +362,7 @@ TEST(NetTest, net_execute_subgraph_concat) {
 
     auto tensor_out = net_executer_p->get_out("out");
     LOG(INFO) << "get output tensor";
-	test_print(tensor_out);
+//	test_print(tensor_out);
 }
 
 TEST(NetTest, net_execute_subgraph_eltwise) {
@@ -441,7 +447,7 @@ TEST(NetTest, net_execute_subgraph_eltwise) {
 
     auto tensor_out = net_executer_p->get_out("out");
     LOG(INFO) << "get output tensor";
-	test_print(tensor_out);
+//	test_print(tensor_out);
 }
 
 TEST(NetTest, net_execute_subgraph_resnet_base_arch) {
@@ -555,7 +561,7 @@ TEST(NetTest, net_execute_subgraph_resnet_base_arch) {
 
     auto tensor_out = net_executer_p->get_out("out");
     LOG(INFO) << "get output tensor";
-	test_print(tensor_out);
+//	test_print(tensor_out);
 }
 
 TEST(NetTest, net_execute_subgraph_test_share_from) {
@@ -599,7 +605,7 @@ TEST(NetTest, net_execute_subgraph_test_share_from) {
     }
     // print all value
     auto p = &shallow_d_tensor;
-    test_print(p);
+//    test_print(p);
 }
 
 

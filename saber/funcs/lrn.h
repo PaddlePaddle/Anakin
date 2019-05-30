@@ -34,6 +34,11 @@
 #ifdef AMD_GPU
 #include "saber/funcs/impl/amd/include/saber_lrn.h"
 #endif
+
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_lrn.h"
+#endif  // USE_MLU
+
 namespace anakin {
 namespace saber {
 

@@ -60,15 +60,10 @@ public:
         auto prior_box_tensor = input[0];
         auto loc_tensor = input[1];
         output[0]->set_seq_offset(loc_tensor->get_seq_offset());
-
-        if (param.axis == 0) {
-            CHECK_EQ(prior_box_tensor->num(), loc_tensor->channel());
-        } else if (param.axis == 1) {
-            CHECK_EQ(prior_box_tensor->num(), loc_tensor->num());
-        } else {
-            LOG(FATAL) << "invalid axis " << param.axis;
-        }
-        CHECK_EQ(prior_box_tensor->channel(), loc_tensor->width() + 1);
+        LOG(INFO)<<prior_box_tensor->valid_shape();
+        LOG(INFO)<<loc_tensor->valid_shape();
+        CHECK_EQ(prior_box_tensor->num(), loc_tensor->num());
+//        CHECK_EQ(prior_box_tensor->channel(), loc_tensor->width() + 1);
         output[0]->set_seq_offset(input[0]->get_seq_offset());
         return output[0]->set_shape(loc_tensor->valid_shape());
 

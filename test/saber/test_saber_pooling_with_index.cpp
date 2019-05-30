@@ -122,6 +122,11 @@ TEST(TestSaberFunc, test_func_power) {
     test_pooling_with_index<X86, X86, AK_FLOAT>();
 #endif
 
+#ifdef USE_MLU
+	Env<MLUHX86>::env_init();
+	Env<MLU>::env_init();
+    //test_pooling_with_index<MLU, MLUHX86, AK_FLOAT>();
+#endif
 }
 
 

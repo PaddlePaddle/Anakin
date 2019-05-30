@@ -46,9 +46,17 @@ void AutoLayoutConfigHelper<Ttype, Ptype>::init() {
     _node_layout_hint["ConvEltwise"]["nchw"] = {"nchw"};
     _node_layout_hint["Eltwise"]["nchw_c8r"] = {"nchw_c8r"};
     _node_layout_hint["Eltwise"]["nchw"] = {"nchw"};
+    _node_layout_hint["EltwiseRelu"]["nchw_c8r"] = {"nchw_c8r"};
+    _node_layout_hint["EltwiseRelu"]["nchw"] = {"nchw"};
     _node_layout_hint["Concat"]["nchw_c8r"] = {"nchw_c8r"};
     _node_layout_hint["Concat"]["nchw"] = {"nchw"};
+    _node_layout_hint["Pad"]["nchw_c8r"] = {"nchw_c8r"};
+    _node_layout_hint["Pad"]["nchw"] = {"nchw"};
+    _node_layout_hint["Scale"]["nchw_c8r"] = {"nchw_c8r"};
+    _node_layout_hint["Scale"]["nchw"] = {"nchw"};
 
+    _node_layout_hint["Resize"]["nchw"] = {"nchw"};
+    _node_layout_hint["Slice"]["nchw"] = {"nchw"};
     _node_layout_hint["Reshape"]["nchw"] = {"nchw"};
     _node_layout_hint["PriorBox"]["nchw"] = {"nchw"};
     _node_layout_hint["DetectionOutput"]["nchw"] = {"nchw"};

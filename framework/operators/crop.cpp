@@ -65,7 +65,7 @@ template class CropHelper<ARM, Precision::FP16>;
 template class CropHelper<ARM, Precision::INT8>;
 #endif
 
-#if defined USE_X86_PLACE || defined(BUILD_LITE)
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 template class CropHelper<X86, Precision::FP32>;
 template class CropHelper<X86, Precision::FP16>;
 template class CropHelper<X86, Precision::INT8>;
@@ -82,7 +82,7 @@ INSTANCE_CROP(ARM, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(Crop, CropHelper, ARM, Precision::FP32);
 #endif
 
-#if defined USE_X86_PLACE || defined(BUILD_LITE)
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_CROP(X86, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(Crop, CropHelper, X86, Precision::FP32);
 #endif

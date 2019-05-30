@@ -28,6 +28,9 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_cast.h"
 #endif
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_cast.h"
+#endif  // USE_MLU
 
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_cast.h"

@@ -26,7 +26,7 @@ namespace saber {
 template <DataType OpDtype>
 class SaberPad<X86, OpDtype>: \
     public ImplBase <
-        X86, OpDtype,
+    X86, OpDtype,
     PadParam<X86 >> {
 
 public:
@@ -62,6 +62,8 @@ public:
         int out_c_index = outputs[0]->channel_index();
         int out_h_index = outputs[0]->height_index();
         int out_w_index = outputs[0]->width_index();
+        CHECK_EQ(inputs[0]->get_layout(), outputs[0]->get_layout());
+
         _out_n_stride = out_stride[out_n_index];
         _out_c_stride = out_stride[out_c_index];
         _out_h_stride = out_stride[out_h_index];
@@ -70,6 +72,16 @@ public:
         _in_c_stride = in_stride[in_c_index];
         _in_h_stride = in_stride[in_h_index];
         _in_w_stride = in_stride[in_w_index];
+
+        if (inputs[0]->get_layout() == Layout_NCHW_C8R) {
+            CHECK_EQ(inputs[0]->channel() % 8, 0);
+            _out_c_stride = _out_c_stride * 8;
+            _out_h_stride = _out_h_stride * 8;
+            _out_w_stride = _out_w_stride * 8;
+            _in_c_stride = _in_c_stride * 8;
+            _in_h_stride = _in_h_stride * 8;
+            _in_w_stride = _in_w_stride * 8;
+        }
 
         return SaberSuccess;
     }
@@ -88,7 +100,7 @@ private:
     int _out_w_stride;
 };
 
-template class SaberPad<X86, AK_FLOAT>;
+
 
 } //namespace saber
 

@@ -22,12 +22,11 @@
 #include "saber/core/tensor.h"
 #endif
 
-namespace anakin{
-
-namespace saber{
+namespace anakin {
+namespace saber {
 
 template <typename TargetType>
-class Context final{
+class Context final {
     typedef TargetWrapper<TargetType> API;
 public:
     typename Env<TargetType>::Devs& devs = Env<TargetType>::cur_env();
@@ -37,20 +36,9 @@ public:
      * @param data_stream_id
      * @param compute_stream_id
      */
-    Context(int device_id = 0, int data_stream_id = 0, int compute_stream_id = 0){
-#ifdef USE_BM
-        if(std::is_same<TargetType, BM>::value){
-            LOG(INFO) << "context init for BM";
-            int dev_count = 0;
-            TargetWrapper<BM>::get_device_count(dev_count);
-            CHECK_GE(dev_count, 1) << "Env is not initialized or current target is not exit!";
-            _bm_handle = TargetWrapper<BM>::get_handle();
-            return;
-        }
-#endif
-
+    Context(int device_id = 0, int data_stream_id = 0, int compute_stream_id = 0) {
         CHECK_GT(devs.size(), 0) << "Env is not initialized or current target is not exit!";
-        if (device_id >= devs.size()){
+        if (device_id >= devs.size()) {
             LOG(WARNING) << "device index exceeds the number of devices, set to default device(0)!";
             _device_id = 0;
         } else {
@@ -93,14 +81,8 @@ public:
 #endif
     }
 
-    Context(const Context<TargetType>& ctx){
-#ifdef USE_BM
-        if(std::is_same<TargetType, BM>::value){
-            LOG(INFO) << "context init for BM";
-            _bm_handle = ctx._bm_handle;
-            return;
-        }
-#endif
+    Context(const Context<TargetType>& ctx) {
+
         _device_id = ctx._device_id;
         _data_stream_id = ctx._data_stream_id;
         _compute_stream_id = ctx._compute_stream_id;
@@ -115,7 +97,7 @@ public:
 #endif
     }
 
-    Context& operator=(const Context& ctx){
+    Context& operator=(const Context& ctx) {
         this->_device_id = ctx._device_id;
         this->_data_stream_id = ctx._data_stream_id;
         this->_compute_stream_id = ctx._compute_stream_id;
@@ -127,11 +109,12 @@ public:
         this->_work_space.copy_from(ctx._work_space);
         this->_arch = ctx._arch;
         this->_count = ctx._count;
-#endif
-#ifdef USE_BM
-        this->_bm_handle = ctx._bm_handle;
+
 #endif
         return *this;
+    }
+
+    ~Context() {
     }
 
     bool operator==(const Context &right) {
@@ -145,9 +128,7 @@ public:
         comp_eq = comp_eq && (_arch == right._arch);
         comp_eq = comp_eq && (_count == right._count);
 #endif
-#ifdef USE_BM
-        comp_eq = comp_eq && (_bm_handle == right._bm_handle);
-#endif
+
         return comp_eq;
     }
 
@@ -163,7 +144,7 @@ public:
      * \brief get data process stream
      * @return
      */
-    typename API::stream_t get_data_stream(){
+    typename API::stream_t get_data_stream() {
         return _stream_data;
     }
 
@@ -171,17 +152,12 @@ public:
      * \brief get compute process stream
      * @return
      */
-    typename API::stream_t get_compute_stream(){
+    typename API::stream_t get_compute_stream() {
         return _stream_compute;
     }
 
-#ifdef USE_BM
-    bm_handle_t get_handle() {
-        return _bm_handle;
-    }
-#endif
-
     std::string get_compute_ability() {
+        // Fixme. need be !devs[_device_id]._info._compute_ability.empty()
         if (devs[_device_id]._compute_ability) {
             return devs[_device_id]._compute_ability;
         } else {
@@ -205,6 +181,8 @@ public:
     void bind_dev();
     SaberStatus workspace_extend(Shape sh);
 #endif
+    bool fusion() {return false;}
+
 private:
     //! current stream to process
     typename API::stream_t _stream_data;
@@ -215,18 +193,23 @@ private:
     int _compute_stream_id;
 #ifdef USE_ARM_PLACE
     ARMArch _arch;
-    PowerMode _mode{SABER_POWER_HIGH};
-    std::vector<int> _act_ids{0};
+    PowerMode _mode {SABER_POWER_HIGH};
+    std::vector<int> _act_ids {0};
     Tensor<ARM> _work_space;
-    long long _count{0};
-#endif
-#ifdef USE_BM
-    bm_handle_t _bm_handle;
+    long long _count {0};
 #endif
 };
 
 } //namespace saber
-
 } //namespace anakin
+
+#ifdef USE_MLU
+#include "saber/core/impl/mlu/mlu_context.h"
+#endif
+
+#ifdef USE_BM_PLACE
+#include "saber/core/impl/bm/bm_context.h"
+#endif
+
 
 #endif //ANAKIN_SABER_CORE_CONTEXT_H

@@ -185,43 +185,99 @@ void test_pooling() {
     typedef typename DataTrait<TargetType_D, OpDtype> :: Dtype dtype;
     TestSaberBase<TargetType_D, TargetType_H, OpDtype, Pooling, PoolingParam> testbase;
 
-    for (int window_h : {2, 3, 5, 7}) {
-        for (int window_w : {2, 3, 5, 7}) {
-            for (int pad_h : {1, 2}) {
-                for (int pad_w : {1, 2}) {
-                    if (pad_h >= window_h || pad_w >= window_w){
+    using vint = std::vector<int>;
+    vint v_window_h = {2, 3, 5, 7};
+    vint v_window_w = {2, 3, 5, 7};
+    vint v_pad_h = {1, 2};
+    vint v_pad_w = {1, 2};
+
+    vint v_in_n = {1, 2};
+    vint v_in_c = {1, 3};
+    vint v_in_h = {7, 8, 13, 28, 32, 64};
+    vint v_in_w = {7, 8, 13, 28, 32, 64};
+
+    // mlu pooling test is tooooo slowwwww.
+    // speedup for ci. local test should test all.
+    if (std::is_same<TargetType_D, MLU>::value) {
+        v_window_h = {2, 5};
+        v_window_w = {3, 7};
+
+        v_in_h = {13, 32};
+        v_in_w = {7, 64};
+    }
+    
+    for (int window_h : v_window_h) {
+    for (int window_w : v_window_w) {
+        for (int pad_h : v_pad_h) {
+        for (int pad_w : v_pad_w) {
+            if (pad_h >= window_h || pad_w >= window_w){
+                continue;
+            }
+            for (PoolingType pooling_type : {Pooling_max,
+                                             Pooling_average_include_padding,
+                                             Pooling_average_exclude_padding}) {
+                if (std::is_same<TargetType_D, MLU>::value) {
+                    // mlu unsupport this param for now
+                    if (pooling_type == Pooling_average_exclude_padding) {
                         continue;
                     }
-                    for (PoolingType pooling_type : {Pooling_max, Pooling_average_include_padding, Pooling_average_exclude_padding}) {
-                        for (int stride_h : {1, 2 }) {
-                            for (int stride_w : {1, 2}) {
-                                PoolingParam<TargetType_D> param(window_h, window_w, pad_h, pad_w, stride_h, stride_w,
-                                                                 pooling_type);
-                                LOG(INFO) << "win_h:" << window_h << "win_w:" << window_w \
-                                          << "pad_h:" << pad_h << "pad_w:" << pad_w \
-                                          << "stride_h:" << stride_h << "stride_w:" << stride_w \
-                                          << "pooling_type:" << pooling_type;
-
-                                for (int in_n : {1, 2}) {
-                                    for (int in_c : {1, 3}) {
-                                        for (int in_h : {7, 8, 13, 28, 32, 64}) {
-                                            for (int in_w : {7, 8, 13, 28, 32, 64}) {
-                                                LOG(INFO) << "n:" << in_n << ",in_c:" << in_c << ",in_h:" << in_h << ",in_w:" << in_w;
-                                                testbase.set_param(param);//set param
-                                                testbase.set_input_shape(Shape({in_n, in_c, in_h, in_w}), SPECIAL); //add some input shape
-                                                testbase.run_test(pooling_cpu_func<dtype, TargetType_D, TargetType_H>, 0.0001);//run test
-
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
-            }
+
+                for (int stride_h : {1, 2}) {
+                for (int stride_w : {1, 2}) {
+                    PoolingParam<TargetType_D> param(window_h, window_w, pad_h, pad_w,
+                                                     stride_h, stride_w, pooling_type);
+                    LOG(INFO) << "win_h:" << window_h << " win_w:" << window_w \
+                              << " pad_h:" << pad_h << " pad_w:" << pad_w \
+                              << " stride_h:" << stride_h << " stride_w:" << stride_w \
+                              << " pooling_type:" << pooling_type;
+
+                    for (int in_n : v_in_n) {
+                    for (int in_c : v_in_c) {
+                    for (int in_h : v_in_h) {
+                    for (int in_w : v_in_w) {
+                        LOG(INFO) << "n:" << in_n << ",in_c:" << in_c \
+                                  << ",in_h:" << in_h << ",in_w:" << in_w;
+
+                        // Fixme. saber_output_shape != mlu_output_shape, need camb to solve 
+                        if (std::is_same<TargetType_D, MLU>::value) {
+                             int out_height = static_cast<int>(ceilf(static_cast<float>(
+                                              in_h + 2 * pad_h - window_h) / stride_h)) + 1;
+
+                             int out_width = static_cast<int>(ceilf(static_cast<float>(
+                                             in_w + 2 * pad_w - window_w) / stride_w)) + 1;
+                             // diff code                
+                             if (param.pooling_padded()) {
+                                 if ((out_height - 1) * stride_h >= in_h + pad_h) {
+                                     continue;
+                                 }
+                                 if ((out_width - 1) * stride_w >= in_w + pad_w) {
+                                     continue;
+                                 }
+                             }
+                        }
+
+                        testbase.set_param(param);//set param
+                        testbase.set_input_shape(Shape({in_n, in_c, in_h, in_w}), SPECIAL); //add some input shape
+                        if (std::is_same<TargetType_D, MLU>::value) {
+                            testbase.run_test(pooling_cpu_func<dtype, TargetType_D, TargetType_H>,
+                                              0.02, true);//run test
+                        } else {
+                            testbase.run_test(pooling_cpu_func<dtype, TargetType_D, TargetType_H>,
+                                              0.0001);//run test
+                        }
+
+                    }
+                    }
+                    }
+                    } // end for nchw
+                }
+                } // end for stride_hw
+            } // end for pooling_type
         }
+        } // end for pad_hw
     }
+    } // end for window_hw
 
 }
 
@@ -290,8 +346,10 @@ TEST(TestSaberFunc, test_func_pool) {
 #ifdef USE_ARM_PLACE
     test_pooling<ARM, ARM, AK_FLOAT>();
 #endif
+#ifdef USE_MLU
+    test_pooling<MLU, MLUHX86, AK_FLOAT>();
+#endif
 }
-
 
 #ifdef USE_CUDA
 TEST(TestSaberFunc, test_func_pool_res) {

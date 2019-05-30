@@ -1,5 +1,84 @@
+/* Copyright (c) 2019 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+   
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License. 
+*/
+
 #include "framework/utils/parameter_fusion.h"
 namespace anakin {
+
+static void basic_x86_gemm(const int m, const int n, const int k,
+                const float* a, const float* b, float* c,
+                const float alpha, const float beta,
+                const bool trans_a, const bool trans_b) {
+    if (!trans_a && !trans_b) {
+        int lda = k;
+        int ldb = n;
+        int ldc = n;
+
+        for (int m_i = 0; m_i < m; ++m_i) {
+            for (int n_i = 0; n_i < n; ++n_i) {
+                c[m_i * ldc + n_i] *= beta;
+
+                for (int k_i = 0; k_i < k; ++k_i) {
+                    c[m_i * ldc + n_i] += alpha * a[m_i * lda + k_i] * b[k_i * ldb + n_i];
+                }
+            }
+        }
+    } else if (!trans_a && trans_b) {
+        int lda = k;
+        int ldb = k;
+        int ldc = n;
+
+        for (int m_i = 0; m_i < m; ++m_i) {
+            for (int n_i = 0; n_i < n; ++n_i) {
+                c[m_i * ldc + n_i] *= beta;
+
+                for (int k_i = 0; k_i < k; ++k_i) {
+                    c[m_i * ldc + n_i] += alpha * a[m_i * lda + k_i] * b[n_i * ldb + k_i];
+                }
+            }
+        }
+    } else if (trans_a && !trans_b) {
+        int lda = m;
+        int ldb = n;
+        int ldc = n;
+
+        for (int m_i = 0; m_i < m; ++m_i) {
+            for (int n_i = 0; n_i < n; ++n_i) {
+                c[m_i * ldc + n_i] *= beta;
+
+                for (int k_i = 0; k_i < k; ++k_i) {
+                    c[m_i * ldc + n_i] += alpha * a[k_i * lda + m_i] * b[k_i * ldb + n_i];
+                }
+            }
+        }
+    } else {
+        int lda = m;
+        int ldb = k;
+        int ldc = n;
+
+        for (int m_i = 0; m_i < m; ++m_i) {
+            for (int n_i = 0; n_i < n; ++n_i) {
+                c[m_i * ldc + n_i] *= beta;
+
+                for (int k_i = 0; k_i < k; ++k_i) {
+                    c[m_i * ldc + n_i] += alpha * a[k_i * lda + m_i] * b[n_i * ldb + k_i];
+                }
+            }
+        }
+    }
+
+}
 /**
  * \brief  update fp32 conv weights with batchnorm and scale parameters.
  */
@@ -255,6 +334,69 @@ void WeightsFusion<float, T>::update_deconv_weights_without_scale(
     weights.d_tensor().copy_from(weights.h_tensor());
     weights.d_tensor().set_scale(w_scale);
     bias.d_tensor().copy_from(bias.h_tensor());
+}
+
+/**
+* \brief  update dense weights.
+*/
+template<typename T>
+void WeightsFusion<float, T>::update_dense_weights(PBlock<T> weights_0, PBlock<T> bias_0, 
+    bool bias_term_0, int out_dim_0, bool is_trans_0,
+    PBlock<T> weights_1, PBlock<T> bias_1, 
+    bool bias_term_1, int out_dim_1, bool is_trans_1){
+        typedef typename target_host<T>::type T_HOST;
+        auto& w_0_tensor = weights_0.h_tensor();
+        auto& w_1_tensor = weights_1.h_tensor();
+        auto& b_0_tensor = bias_0.h_tensor();
+        auto& b_1_tensor = bias_1.h_tensor();
+
+        const float* w_0_data = static_cast<const float*>(w_0_tensor.data());
+        const float* w_1_data = static_cast<const float*>(w_1_tensor.data());
+        CHECK_GT(out_dim_1, 0) << "dense out dim must > 0";
+        CHECK_GT(out_dim_0, 0) << "dense out dim must > 0";
+        CHECK_GE(w_0_tensor.valid_size(), out_dim_0);
+        CHECK_GE(w_1_tensor.valid_size(), out_dim_0 * out_dim_1);
+        int m = w_0_tensor.valid_size() / out_dim_0;
+        int k = out_dim_0;
+        int n = out_dim_1;
+
+        Tensor<T_HOST> temp_tensor;
+        temp_tensor.re_alloc(Shape({1, 1, m, n}));
+        float* w_fusion_data = static_cast<float*>(temp_tensor.mutable_data());
+
+        
+        basic_x86_gemm(n, m, k, w_1_data, w_0_data, w_fusion_data, 
+                       1, 0, is_trans_1, is_trans_0);
+        
+        
+        weights_0.re_alloc(temp_tensor.valid_shape());
+
+        w_0_tensor.copy_from(temp_tensor);
+        weights_0.map_to_device();
+
+        if (bias_term_0){
+            int n = out_dim_1;
+            int k = w_1_tensor.valid_size() / n;
+            CHECK_GE(b_0_tensor.valid_size(), k);
+            int m = 1;
+
+            Tensor<T_HOST> temp_bias_tensor;
+            temp_bias_tensor.re_alloc(Shape({1, n, 1, 1}));
+            float* b_fusion_data = static_cast<float*>(temp_bias_tensor.mutable_data());            
+            const float* b_0_data = static_cast<float*>(b_0_tensor.data());
+            int beta = 0;
+            if (bias_term_1){
+                CHECK_GE(b_1_tensor.valid_size(), n);
+                temp_bias_tensor.copy_from(b_1_tensor);
+                beta = 1;
+            }
+
+            basic_x86_gemm(m, n, k, b_0_data, w_1_data, b_fusion_data, 1, beta, false, !is_trans_1);
+
+            b_1_tensor.copy_from(temp_bias_tensor);
+            bias_1.map_to_device();
+            
+        }
 }
 
 /**
@@ -554,6 +696,11 @@ template class WeightsFusion<char, X86>;
 #if defined USE_ARM_PLACE
 template class WeightsFusion<float, ARM>;
 template class WeightsFusion<char, ARM>;
+#endif
+
+#if defined AMD_GPU
+template class WeightsFusion<float, AMD>;
+template class WeightsFusion<char, AMD>;
 #endif
 
 }

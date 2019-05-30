@@ -9,7 +9,7 @@ namespace anakin {
 namespace saber {
 namespace jit {
 
-#define USE_OMP_IN_INTRINSIC_PACKED_FC 0
+#define USE_OMP_IN_INTRINSIC_PACKED_FC 1
 
 #define GET_OFF(field) offsetof(jit_int8_packed_fc_call_t, field)
 using namespace Xbyak;

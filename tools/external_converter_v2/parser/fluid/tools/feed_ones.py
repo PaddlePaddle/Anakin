@@ -5,6 +5,7 @@
 A separate Fluid test file for feeding specific data.
 '''
 
+import argparse
 import sys
 import numpy as np
 import os
@@ -52,6 +53,7 @@ def feed_ones(block, feed_target_names, batch_size=1):
         return np.ones(np_shape, dtype=np_dtype)
     for feed_target_name in feed_target_names:
         feed_dict[feed_target_name] = fill_ones(feed_target_name, batch_size)
+
     return feed_dict
 
 
@@ -113,7 +115,7 @@ def fetch_tmp_vars(block, fetch_targets, var_names_list=None):
     if var_names_list is None:
         var_names_list = block.vars.keys()
     for var_name in var_names_list:
-        if '.tmp_' in var_name and var_name not in old_fetch_names:
+        if var_name != '' and var_name not in old_fetch_names:
             var = block.var(var_name)
             new_fetch_vars.append(var)
             block.append_op(
@@ -201,7 +203,7 @@ def fluid_inference_test(model_path):
         feed_target_names, 
         fetch_targets] = load_inference_model(model_path, exe)
         global_block = net_program.global_block()
-        draw(global_block)
+        #draw(global_block)
         feed_list = feed_ones(global_block, feed_target_names, 1)
         #feed_list = feed_randn(global_block, feed_target_names, 1, need_save=True)
         fetch_targets = fetch_tmp_vars(global_block, fetch_targets, [GLB_arg_name])
@@ -213,13 +215,18 @@ def fluid_inference_test(model_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        raise NameError('Usage: python ./all_ones.py path/to/model arg_name batch_size')
-    if len(sys.argv) > 1:
-        GLB_model_path = sys.argv[1]
-    if len(sys.argv) > 2:
-        GLB_arg_name = sys.argv[2]
-    if len(sys.argv) > 3:
-        GLB_batch_size = sys.argv[3]
-    fluid_inference_test(GLB_model_path)
+    arg_parser = argparse.ArgumentParser('fluid feed_ones')
 
+    arg_parser.add_argument('--model_path', type=str, required=True)
+    arg_parser.add_argument('--arg_name', type=str)
+    arg_parser.add_argument('--batch_size', type=int)
+
+    args = arg_parser.parse_args()
+
+    GLB_model_path = args.model_path
+    if args.arg_name is not None:
+        GLB_arg_name = args.arg_name
+    if args.batch_size is not None:
+        GLB_batch_size = args.batch_size
+
+    fluid_inference_test(GLB_model_path)

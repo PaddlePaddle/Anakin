@@ -30,6 +30,21 @@ void flatten_cpu_base(const std::vector<Tensor<TargetType_H>* >& input,
     shape_out[0] = input[0]->num();
     shape_out[1] = input[0]->valid_size() / input[0]->num();
     output[0]->set_shape(shape_out);
+
+    // mlu realize flatten by reshape, and copy the res back to host
+	// This test only check the shape ,but not the res.
+	// in addition, mlu only support 4d tensor.
+	// so we need the following code.
+	if (std::is_same<TargetType_D, MLU>::value) {
+		int size = input[0] -> valid_size();
+		dtype* in_data = (dtype*)(input[0]->mutable_data());
+		dtype* out_data = (dtype*)(output[0]->mutable_data());
+		for (int i = 0; i < size; ++i) {
+			out_data[i] = in_data[i];
+		}
+		Shape tmp_out({shape_out[0], shape_out[1], 1, 1});
+		output[0]->set_shape(tmp_out);
+	}
 }
 
 TEST(TestSaberFunc, test_op_flatten) {
@@ -65,6 +80,30 @@ TEST(TestSaberFunc, test_op_flatten) {
         }
     }
 #endif
+
+#ifdef USE_MLU
+    Env<MLU>::env_init();
+    TestSaberBase<MLU, MLUHX86, AK_FLOAT, Flatten, FlattenParam> testbase_mlu;
+    for (int w_in : {2, 8, 16}) {
+        for (int h_in : {2, 8, 32}) {
+            for (int ch_in : {2, 3, 8, 64}) {
+                for (int num_in : {1, 21, 32}) {
+                    int out_num = w_in * 2;
+                    DLOG(INFO) << "num_in: " << num_in;
+                    DLOG(INFO) << "ch_in: " << ch_in;
+                    DLOG(INFO) << "h_in: " << h_in;
+                    DLOG(INFO) << "w_in: " << w_in;
+                    Shape shape({num_in, ch_in, h_in, w_in});
+                    FlattenParam<MLU> param;
+                    testbase_mlu.set_param(param);
+                    testbase_mlu.set_rand_limit(1, 12);
+                    testbase_mlu.set_input_shape(shape);
+                    testbase_mlu.run_test(flatten_cpu_base<float, MLU, MLUHX86>, 0.02, true);
+                }
+            }
+        }
+    }
+#endif  // USE_MLU
 
 }
 

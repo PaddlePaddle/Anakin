@@ -2,6 +2,10 @@
 #include "saber/saber_funcs_param.h"
 #include "saber/core/tensor_op.h"
 #include "mkl_cblas.h"
+#ifdef USE_SGX
+extern "C" void mkl_free_buffers();
+#endif
+
 namespace anakin {
 namespace saber {
 
@@ -15,6 +19,9 @@ static void gemm(const bool TransA, const bool TransB, int m, int n, int k, cons
     CBLAS_TRANSPOSE cuTransB =
         (!TransB) ? CblasNoTrans : CblasTrans;
     cblas_sgemm(CblasRowMajor, cuTransA, cuTransB, m, n, k, alpha, a, k, b, n, beta, c, n);
+#ifdef USE_SGX
+    mkl_free_buffers();
+#endif
 };
 
 template <typename Dtype>
@@ -43,8 +50,9 @@ SaberStatus SaberSequenceConv<X86, OpDtype>::dispatch(
     SequenceConvParam<X86>& param) {
     DataTensor_in* in_data = inputs[0];
     DataTensor_out* out_data = outputs[0];
+    bool bias_term = param.bias_term;
     std::vector<int> offset = in_data->get_seq_offset()[0];
-
+    
     int word_num = offset[offset.size() - 1];
     Shape sh_im({1, 1, word_num, param.filter_tensor->height()});
     _temp_im2col_tensor.re_alloc(sh_im, AK_FLOAT);
@@ -59,6 +67,15 @@ SaberStatus SaberSequenceConv<X86, OpDtype>::dispatch(
 
     gemm(false, false, word_num, _feature_size, _hidden_kernel_size, 1.f, static_cast<const float*>(_temp_im2col_tensor.data()),
          static_cast<const float*>(param.filter_tensor->data()), 0.f, static_cast<float*>(out_data->mutable_data()));
+    auto output_ptr=static_cast<float*>(out_data->mutable_data());
+    if (bias_term) {
+        auto bias_ptr= static_cast<float*>(param.bias_tensor->mutable_data());
+        for (int out_id=0; out_id<word_num; out_id++) {
+            for (int inner_id=0; inner_id<_feature_size; inner_id++) {
+                output_ptr[out_id*_feature_size+inner_id] += bias_ptr[inner_id];
+            } 
+        }
+    }
     std::vector<std::vector<int>> voffset;
     voffset.push_back(offset);
     out_data->set_seq_offset(voffset);

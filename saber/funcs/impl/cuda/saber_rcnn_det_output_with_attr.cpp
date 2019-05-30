@@ -110,13 +110,13 @@ SaberStatus SaberRCNNDetOutputWithAttr<NV, AK_FLOAT>::create(
     if (this->has_spmp_) {
         CHECK_EQ(num_rois_, inputs[this->spmp_bottom_idx_]->num());
         CHECK_EQ(this->spmp_dim_sum_,
-                inputs[this->spmp_bottom_idx_]->count(1,
+                inputs[this->spmp_bottom_idx_]->count_valid(1,
                         inputs[this->spmp_bottom_idx_]->dims()));
     }
 
     if (this->has_cam3d_) {
 //        CHECK_EQ(num_rois_, inputs[this->cam3d_bottom_idx_]->num());
-        num_cam3d_ = inputs[this->cam3d_bottom_idx_]->count(1,
+        num_cam3d_ = inputs[this->cam3d_bottom_idx_]->count_valid(1,
                 inputs[this->cam3d_bottom_idx_]->dims());
     }
 
@@ -193,7 +193,7 @@ SaberStatus SaberRCNNDetOutputWithAttr<NV, AK_FLOAT>::dispatch(
     OpDataType min_size_h_cur = this->min_size_h_;
 
     if (has_img_info_) {
-        if (inputs.back()->count(1, inputs.back()->dims()) == 6) {
+        if (inputs.back()->count_valid(1, inputs.back()->dims()) == 6) {
             //            const OpDataType* img_info_data = inputs.back()->cpu_data();
             _img_info_data_host_tensor->async_copy_from(*inputs.back(), cuda_stream);
             inputs.back()->record_event(cuda_stream);

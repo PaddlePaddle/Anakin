@@ -1,6 +1,4 @@
 #include "saber/core/tensor_op.h"
-#ifdef USE_ARM_PLACE
-#include "saber/core/tensor_op.h"
 #include "saber/funcs/timer.h"
 #include "test/saber/test_saber_func.h"
 #include "saber/funcs/conv.h"
@@ -8,7 +6,7 @@
 #include "saber/funcs/type_trans.h"
 using namespace anakin::saber;
 
-
+#ifdef USE_ARM_PLACE
 
 int g_cluster = 0;
 int g_threads = 1;
@@ -532,12 +530,12 @@ SaberStatus test_arm_conv_int8(int n, int c, int h, int w, \
 #if 1
 TEST(TestSaberFunc, test_func_conv_depthwise_3x3_int8) {
     if (g_basic_test) {
-        for (auto& batch : {1, 2}) {
-            for (auto& c : {1, 3, 8, 16, 24}) {
-                    for (auto& h : {4, 8, 9, 15, 28, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 112, 128, 256}) {
+        for (auto& batch : {2}) {
+            for (auto& c : {1, 9, 25}) {
+                    for (auto& h : {4, 9, 15, 112}) {
                         for (auto &flag_bias : {false, true}) {
                             for (auto &flag_relu : {false, true}) {
-                                for (auto &th : {1, 2, 4}) {
+                                for (auto &th : {1, 4}) {
                                     for (auto & stride : {1, 2}){
                                         int stride_w = stride;
                                         int stride_h = stride;
@@ -632,14 +630,14 @@ TEST(TestSaberFunc, test_func_conv_depthwise_5x5_int8) {
 #if 1
 TEST(TestSaberFunc, test_func_conv_3x3s1_direct_int8) {
     if (g_basic_test) {
-        for (auto& batch : {1, 2}) {
-            for (auto& c : {1, 3, 8, 16, 32, 64}) {
-                for (auto& h : {5, 15, 16, 28, 56, 112, 128, 256}) {
-                    for (auto& w : {6, 15, 28, 29, 30, 31, 32, 56, 112, 128, 255, 256}) {
+        for (auto& batch : {2}) {
+            for (auto& c : {1, 3, 33}) {
+                for (auto& h : {5, 16, 27}) {
+                    for (auto& w : {6, 15, 28, 112}) {
                         for (auto &flag_bias : {false, true}) {
                             for (auto &flag_relu : {false, true}) {
-                                for (auto &th : {1, 2, 4}) {
-                                    for (auto & chout : {3, 8, 9, 10, 11, 12}){
+                                for (auto &th : {1, 4}) {
+                                    for (auto & chout : {3, 8, 17}){
                                         int stride_w = 1;
                                         int stride_h = 1;
                                         int group = 1;
@@ -682,13 +680,13 @@ TEST(TestSaberFunc, test_func_conv_3x3s1_direct_int8) {
 TEST(TestSaberFunc, test_func_conv_3x3s2_direct_int8) {
 
     if (g_basic_test) {
-        for (auto& batch : {1, 2}) {
+        for (auto& batch : {2}) {
         for (auto& ci : {2, 3, 8}) {
         for (auto& co : {1, 5, 16}) {
-        for (auto& h : {1, 3, 8, 15, 16, 28, 32, 75}) {
+        for (auto& h : {1, 3, 8, 17, 31}) {
         for (auto &flag_bias : {false, true}) {
         for (auto &flag_relu : {false, true}) {
-        for (auto &th : {1, 2, 4}) {
+        for (auto &th : {1, 4}) {
             int stride_w = 2;
             int stride_h = 2;
             int group = 1;
@@ -730,14 +728,14 @@ TEST(TestSaberFunc, test_func_conv_3x3s2_direct_int8) {
 TEST(TestSaberFunc, test_func_conv_1x1s1_int8) {
 
     if (g_basic_test) {
-    for (auto& batch : {1, 2}) {
+    for (auto& batch : {2}) {
     for (auto& c : {1, 3, 8}) {
     for (auto& cout : {1, 5, 16}) {
     for (auto& g_div : {1, 2}) {
-    for (auto& h : {1, 3, 8, 15, 28, 32, 38, 75}) {
+    for (auto& h : {1, 3, 32, 38, 75}) {
     for (auto &flag_bias : {false, true}) {
     for (auto &flag_relu : {false, true}) {
-    for (auto &th : {1, 2, 4}) {
+    for (auto &th : {1, 4}) {
         int w = h;
         int g = g_div;
         if ((c % g_div != 0) || (cout % g_div != 0)) {
@@ -773,19 +771,19 @@ TEST(TestSaberFunc, test_func_conv_1x1s1_int8) {
 #if 1
 TEST(TestSaberFunc, test_func_conv_gemm_int8) {
     if (g_basic_test) {
-    for (auto& batch : {1, 2}) {
+    for (auto& batch : {2}) {
     for (auto& c : {1, 3, 8}) {
     for (auto& cout : {1, 5, 16}) {
     for (auto& g_div : {1, 2}) {
-    for (auto& h : {1, 3, 8, 15, 28, 32, 38, 75}) {
-    for (auto& kw : {1, 2, 3, 5}) {
-    for (auto& kh : {1, 2, 3, 5}) {
+    for (auto& h : {1, 3, 15, 33}) {
+    for (auto& kw : {1, 2, 5}) {
+    for (auto& kh : {1, 3, 5}) {
     for (auto& pad : {1, 2}) {
     for (auto& stride : {1, 2}) {
     for (auto& dila : {1, 2}) {
     for (auto &flag_bias : {false, true}) {
     for (auto &flag_relu : {false, true}) {
-    for (auto &th : {1, 2, 4}) {
+    for (auto &th : {4}) {
         int w = h;
         int g = g_div;
         if ((c % g_div != 0) || (cout % g_div != 0)) {

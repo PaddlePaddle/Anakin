@@ -4,8 +4,9 @@
 #ifdef USE_ARM_PLACE
 
 #ifdef PLATFORM_ANDROID
-#include <sys/syscall.h>
 #include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/system_properties.h>
 #include "cpu_info.h"
 #endif //PLATFORM_ANDROID
 
@@ -90,6 +91,25 @@ void arm_get_cpu_arch(std::vector<ARMArch>& archs){
                 case 0xd0a:
                     archs.push_back(A75);
                     break;
+                case 0xd40:
+                    archs.push_back(A76);
+                    break;
+                case 0x804:
+                    // 855
+                    archs.push_back(A76);
+                    break;
+                case 0x805:
+                    // 855
+                    archs.push_back(A55);
+                    break;
+                case 0x802:
+                    // 845
+                    archs.push_back(A75);
+                    break;
+                case 0x803:
+                    // 845
+                    archs.push_back(A55);
+                    break;
                 case 0x800:
                     // 835
                     archs.push_back(A73);
@@ -170,6 +190,7 @@ size_t arm_get_meminfo() {
 
 #ifdef PLATFORM_ANDROID
 std::string arm_get_cpu_name(){
+    std::string cpu_name;
     FILE* fp = fopen("/proc/cpuinfo", "rb");
     if (!fp) {
         return "";
@@ -181,12 +202,21 @@ std::string arm_get_cpu_name(){
             break;
         }
         if (strstr(line, "Hardware") != NULL){
-            fclose(fp);
-            return std::string(line);
+            cpu_name = std::string(line);
         }
     }
+    // cpu name concat board name, platform name and chip name
+    char board_name[128];
+    char platform_name[128];
+    char chip_name[128];
+    __system_property_get("ro.product.board", board_name);
+    __system_property_get("ro.board.platform", platform_name);
+    __system_property_get("ro.chipname", chip_name);
+    cpu_name = cpu_name + "_" + board_name + "_" + platform_name + "_" + chip_name;
+    std::transform(cpu_name.begin(), cpu_name.end(), cpu_name.begin(), ::toupper);
+    LOG(INFO) << "CPU Name : " << cpu_name;
     fclose(fp);
-    return "";
+    return cpu_name;
 }
 
 
@@ -197,47 +227,42 @@ int get_max_freq_khz(int cpuid) {
      cpuid);
 
     FILE* fp = fopen(path, "rb");
-
     if (!fp) {
         // second try, for online cpu
         snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state",\
          cpuid);
         fp = fopen(path, "rb");
-
-        if (!fp) {
-            // third try, for online cpu
-            snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",\
-             cpuid);
-            fp = fopen(path, "rb");
-
-            if (!fp) {
-                return -1;
-            }
-
-            int max_freq_khz = -1;
-            fscanf(fp, "%d", &max_freq_khz);
-
-            fclose(fp);
-
-            return max_freq_khz;
-        }
     }
 
     int max_freq_khz = 0;
-    while (!feof(fp)) {
-        int freq_khz = 0;
-        int nscan = fscanf(fp, "%d %*d", &freq_khz);
-        if (nscan != 1) {
-            break;
-        }
+    if (fp){
+        while (!feof(fp)) {
+            int freq_khz = 0;
+            int nscan = fscanf(fp, "%d %*d", &freq_khz);
+            if (nscan != 1) {
+                break;
+            }
 
-        if (freq_khz > max_freq_khz) {
-            max_freq_khz = freq_khz;
+            if (freq_khz > max_freq_khz) {
+                max_freq_khz = freq_khz;
+            }
         }
+    }
+    if (max_freq_khz == 0 || !fp){
+        // third try, for online cpu
+        snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",\
+            cpuid);
+        fp = fopen(path, "rb");
+        if (!fp) {
+            return -1;
+        }
+        int max_freq_khz = -1;
+        fscanf(fp, "%d", &max_freq_khz);
+        fclose(fp);
+        return max_freq_khz;
     }
 
     fclose(fp);
-
     return max_freq_khz;
 }
 
@@ -450,9 +475,10 @@ void Context<ARM>::bind_dev() {
 
 template <>
 void Context<ARM>::set_run_mode(PowerMode mode, int threads) {
-#ifdef USE_OPENMP
+
     int big_core_size = devs[_device_id]._info._big_core_ids.size();
     int small_core_size = devs[_device_id]._info._little_core_ids.size();
+#ifdef USE_OPENMP
     if (threads > big_core_size + small_core_size) {
         threads = big_core_size + small_core_size;
     }
@@ -482,7 +508,7 @@ void Context<ARM>::set_run_mode(PowerMode mode, int threads) {
                     _act_ids = devs[_device_id]._info._big_core_ids;
                 } else {
                     for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(devs[_device_id]._info._big_core_ids[i]);
+                        _act_ids.push_back(devs[_device_id]._info._big_core_ids[devs[_device_id]._info._big_core_ids.size() - 1 - i]);
                     }
                 }
             } else {
@@ -595,7 +621,7 @@ void Context<ARM>::set_run_mode(PowerMode mode, int threads) {
             }
             break;
     }
-    //! fix multi-threads SABER_POWER_HIGH mode
+    
     if (_mode == SABER_POWER_NO_BIND) {
         int threads = _act_ids.size();
         omp_set_num_threads(threads);

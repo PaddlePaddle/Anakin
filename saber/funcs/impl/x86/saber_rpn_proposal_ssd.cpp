@@ -65,7 +65,7 @@ SaberStatus SaberRPNProposalSSD<X86, AK_FLOAT>::dispatch(
     float min_size_h_cur = this->min_size_h_;
 
     if (has_img_info_) {
-        if (inputs.back()->count(1, inputs.back()->dims()) == 6) {
+        if (inputs.back()->count_valid(1, inputs.back()->dims()) == 6) {
             _img_info_data_host_tensor->reshape(inputs.back()->valid_shape());
             _img_info_data_host_tensor->copy_from(*inputs.back());
             const float* img_info_data = (const float*)_img_info_data_host_tensor->data();

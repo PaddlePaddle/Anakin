@@ -72,6 +72,7 @@ Status DenseHelper<X86, Precision::FP16>::Init(OpContext<X86>& ctx,
     SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, VENDER_IMPL, ctx));
     return Status::OK();
 }
+#ifndef USE_SGX
 template<>
 Status DenseHelper<X86, Precision::INT8>::Init(OpContext<X86>& ctx,
                                                const std::vector<Tensor4dPtr<X86> >& ins,
@@ -79,7 +80,7 @@ Status DenseHelper<X86, Precision::INT8>::Init(OpContext<X86>& ctx,
     SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, VENDER_IMPL, ctx));
     return Status::OK();
 }
-
+#endif
 template<typename Ttype, Precision Ptype>
 Status DenseHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype> >&
         ins,
@@ -97,6 +98,16 @@ ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, NV, Precision::INT8);
 template class DenseHelper<NV, Precision::FP16>;
 template class DenseHelper<NV, Precision::INT8>;
 #endif
+#ifdef USE_MLU
+INSTANCE_DENSE(MLU, Precision::FP32);
+INSTANCE_DENSE(MLU, Precision::FP16);
+template class DenseHelper<MLU, Precision::FP32>;
+template class DenseHelper<MLU, Precision::FP16>;
+template class DenseHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 
 #ifdef USE_ARM_PLACE
 INSTANCE_DENSE(ARM, Precision::FP32);
@@ -123,9 +134,11 @@ ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, ARM, Precision::INT8);
 INSTANCE_DENSE(X86, Precision::FP32);
 template class DenseHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, X86, Precision::FP32);
+#ifndef USE_SGX
 INSTANCE_DENSE(X86, Precision::INT8);
 template class DenseHelper<X86, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, X86, Precision::INT8);
+#endif
 #endif
 
 #ifdef AMD_GPU
@@ -146,8 +159,14 @@ ANAKIN_REGISTER_OP(Dense)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("fullconnect")
 .__alias__<NV, Precision::FP32>("fc")
-        .__alias__<NV, Precision::INT8>("fc")
+.__alias__<NV, Precision::INT8>("fc")
 #endif
+#ifdef USE_MLU
+        .__alias__<MLU, Precision::FP32>("fullconnect")
+.__alias__<MLU, Precision::FP32>("fc")
+#endif  // USE_MLU
+
+
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("fullconnect")
 .__alias__<ARM, Precision::FP32>("fc")

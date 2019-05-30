@@ -457,7 +457,11 @@ SaberStatus VenderLstm<X86, AK_FLOAT>::single_batch(
             cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1, xx + o_offset * aligned_hidden_size_, 1);
         }
 
-        memcpy(act, ct, aligned_hidden_size_ * sizeof(float));
+        if (act) {
+            memcpy(act, ct, aligned_hidden_size_ * sizeof(float));
+        } else {
+            LOG(FATAL) << "act is null!!!";
+        }
         // compute output gate
 #if defined(__AVX2__) and defined(__FMA__)
 
@@ -950,8 +954,11 @@ SaberStatus VenderLstm<X86, AK_FLOAT>::dispatch(
                 cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1,
                              xx + s * 4 * aligned_hidden_size_ + o_offset * aligned_hidden_size_, 1);
             }
-
-            memcpy(act, cit, aligned_hidden_size_ * sizeof(float));
+            if (act) {
+                memcpy(act, cit, aligned_hidden_size_ * sizeof(float));
+            } else {
+                LOG(FATAL) << "act is null!!!";
+            }
             float* ot = (float*)(xx + s * 4 * aligned_hidden_size_ + o_offset * aligned_hidden_size_);
             float* Hht = (float*)(act);
             float* hit_temp = (float*)(ht + s * aligned_hidden_size_);

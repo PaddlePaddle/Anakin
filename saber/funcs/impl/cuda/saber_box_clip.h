@@ -29,7 +29,7 @@ class SaberBoxClip<NV, OpDtype> : \
     public ImplBase <
     NV,
     OpDtype,
-    EmptyParam<NV> > {
+    BoxClipParam<NV> > {
 public:
     typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
@@ -38,7 +38,7 @@ public:
 
     virtual SaberStatus init(const std::vector<Tensor<NV>*>& inputs,
                              std::vector<Tensor<NV>*>& outputs,
-                             EmptyParam<NV>& param, Context<NV>& ctx) {
+                             BoxClipParam<NV>& param, Context<NV>& ctx) {
         // get context
         this->_ctx = &ctx;
         cuda_seq_offset.re_alloc(Shape({1, 1, 1, 1}), AK_FLOAT);
@@ -47,14 +47,14 @@ public:
 
     virtual SaberStatus create(const std::vector<Tensor<NV>*>& inputs,
                                std::vector<Tensor<NV>*>& outputs,
-                               EmptyParam<NV>& param, Context<NV>& ctx) {
+                               BoxClipParam<NV>& param, Context<NV>& ctx) {
 
         return SaberSuccess;
     }
 
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                                  std::vector<Tensor<NV>*>& outputs,
-                                 EmptyParam<NV>& param)override;
+                                 BoxClipParam<NV>& param)override;
 
 private:
     Tensor<NV> cuda_seq_offset;

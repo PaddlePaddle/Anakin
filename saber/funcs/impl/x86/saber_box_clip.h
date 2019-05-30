@@ -29,7 +29,7 @@ class SaberBoxClip<X86, OpDtype> : \
     public ImplBase <
     X86,
     OpDtype,
-    EmptyParam<X86> > {
+        BoxClipParam<X86> > {
 public:
     typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
 
@@ -38,7 +38,7 @@ public:
 
     virtual SaberStatus init(const std::vector<Tensor<X86>*>& inputs,
                              std::vector<Tensor<X86>*>& outputs,
-                             EmptyParam<X86>& param, Context<X86>& ctx) {
+                             BoxClipParam<X86>& param, Context<X86>& ctx) {
         // get context
         this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
@@ -46,14 +46,14 @@ public:
 
     virtual SaberStatus create(const std::vector<Tensor<X86>*>& inputs,
                                std::vector<Tensor<X86>*>& outputs,
-                               EmptyParam<X86>& param, Context<X86>& ctx) {
+                               BoxClipParam<X86>& param, Context<X86>& ctx) {
 
         return SaberSuccess;
     }
 
     virtual SaberStatus dispatch(const std::vector<Tensor<X86>*>& inputs,
                                  std::vector<Tensor<X86>*>& outputs,
-                                 EmptyParam<X86>& param)override;
+                                 BoxClipParam<X86>& param)override;
 
 private:
 

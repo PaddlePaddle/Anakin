@@ -43,8 +43,8 @@ public:
     virtual void operator() (OpContext<Ttype> &ctx, 
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
-		LOG(ERROR) << "Not Impl Yet Operator  DeformConvolution<Ttype("
-				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
+		LOG(ERROR) << "Not Impl Yet Operator  DeformConvolution<Ttype(";
+//				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";
     }
 
     friend class DeformConvolutionHelper<Ttype, Ptype>;

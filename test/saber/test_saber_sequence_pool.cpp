@@ -208,6 +208,42 @@ TEST(TestSaberFunc, test_func_sequence_pool){
     LOG(INFO)<<"x86 test end.";
 
 #endif
+
+#ifdef USE_BANG
+#ifdef USE_MLU
+    LOG(INFO)<<"MLU test......";
+    Env<MLU>::env_init();
+    //Init the test_base
+    TestSaberBase<MLU, MLUHX86, AK_FLOAT,SequencePool, SequencePoolParam> testbase;
+                    for (auto seq_type:{Sequence_pool_average,/* Sequence_pool_sum,\
+                                       Sequence_pool_max, Sequence_pool_sqrt,\
+                                       Sequence_pool_first, Sequence_pool_last*/}){
+    for (auto num:{4,10,32}){
+        for (auto c:{1, 30, 128}){
+            for (auto h:{2, 32}){
+                for (auto w:{2, 32}){
+                        Tensor<MLU> input;
+                        input.re_alloc(Shape({num, c, h, w}), AK_FLOAT);
+                        fill_tensor_rand(input, 1, 12);
+                        std::vector<int> seq_offset;
+                        ge_seq_offset(num, seq_offset);
+                        std::vector<std::vector<int>> vseq_offset;
+                        vseq_offset.push_back(seq_offset);
+                        input.set_seq_offset(vseq_offset);
+                        std::vector<Tensor<MLU>*> inputs;
+                        inputs.push_back(&input);
+                        testbase.add_custom_input(inputs);
+                        SequencePoolParam<MLU> param(seq_type);
+                        testbase.set_param(param);
+                        testbase.run_test(sequence_pool_cpu<float, MLU, MLUHX86>, 0.02, true);
+                    }
+                }
+            }
+        }
+    }
+    LOG(INFO)<<"MLU test end.";
+#endif // USE_MLU
+#endif // USE_BANG
 }
 int main(int argc, const char** argv) {
     // initial logger

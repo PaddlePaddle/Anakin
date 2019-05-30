@@ -117,7 +117,48 @@ TEST(TestSaberFunc, test_func_resize){
         }
     }while(0);
 #endif
+
+#if 0
+#ifdef USE_MLU
+    LOG(INFO) << "mlu test......";
+    //Init the test_base
+    Env<MLUHX86>::env_init();
+    Env<MLU>::env_init();
+    do {
+        TestSaberBase<MLU, MLUHX86, AK_FLOAT, Unpool, PoolingParam> testbase(2);
+        for (int num_in : {1, 3, 32}) {
+            for (int c_in : {1, 3, 12}) {
+                for (int h_in : {2, 3, 25}) {
+                    for (int w_in : {2, 3, 32}) {
+
+                        PoolingParam<MLU> param(3, 3, 0, 0, 3, 3, Pooling_max, false);
+                        Tensor<MLU> td, td_pool_index;
+                        Tensor<MLUHX86> th_pool_index;
+                        Shape sh_in({num_in, c_in, h_in, w_in});
+                        td.re_alloc(sh_in, AK_FLOAT);
+                        th_pool_index.re_alloc(sh_in, AK_FLOAT);
+                        td_pool_index.re_alloc(sh_in, AK_FLOAT);
+                        fill_tensor_rand(td, -1.0, 1.0);
+                        float* pool_index_data = (float*)th_pool_index.mutable_data();
+                        create_pooling_index(pool_index_data, num_in, c_in, h_in, w_in, param);
+                        td_pool_index.copy_from(th_pool_index);
+                        std::vector<Tensor<MLU>*> input;
+                        write_tensorfile(td, "td");
+                        write_tensorfile(td_pool_index, "td_pool_index");
+                        input.push_back(&td);
+                        input.push_back(&td_pool_index);
+                        testbase.add_custom_input(input);
+                        testbase.set_param(param);
+                        testbase.run_test(unpool_cpu<float, MLU, MLUHX86>, 0.0001, true);
+                    }
+                }
+            }
+        }
+    } while (0);
+#endif // ifdef USE_MLU
+#endif // if 0
 }
+
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);

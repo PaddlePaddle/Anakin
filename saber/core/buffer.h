@@ -36,8 +36,11 @@ public:
      * \brief constructor with buffer size, in Dtype
      */
     explicit Buffer(size_t size)
-    	: _data(nullptr), _own_data(true), _count(size), _capacity(size){
-    	SABER_CHECK(alloc(size));
+            : _data(nullptr), _own_data(true), _count(size), _capacity(size){
+        // alloc when size > 0
+        if (size != 0) {
+            SABER_CHECK(alloc(size));
+        }
         _id = API::get_device_id();
     }
 
@@ -147,7 +150,11 @@ public:
         _capacity = size;
         _own_data = true;
         _count = size;
-        return SaberSuccess;
+        if (_data) {
+            return SaberSuccess;
+        } else {
+            return SaberOutOfMem;
+        }
     }
 
     /**

@@ -50,7 +50,9 @@ struct HashIO {
  */
 class Scheduler : public ScheduleBase<io, node, HashIO> {
 public:
-    Scheduler() {}
+    Scheduler()
+        : _vgraph(nullptr)
+    {}
     virtual ~Scheduler() {}
 
     /// register the graph's read and write io resource.

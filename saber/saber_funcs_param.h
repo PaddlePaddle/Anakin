@@ -368,15 +368,16 @@ struct BatchnormParam {
 template <typename TargetType>
 struct BoxCoderParam {
     BoxCoderParam() {};
-    BoxCoderParam(Tensor<TargetType>* prior_box_var_in, bool box_normalized_in, int axis_in) :
-            box_normalized(box_normalized_in), axis(axis_in), var_tensor(prior_box_var_in) {}
+    BoxCoderParam(Tensor<TargetType>* prior_box_var_in, bool box_normalized_in, int axis_in, float min_hw_scale_in = -1.f) :
+            box_normalized(box_normalized_in), axis(axis_in), var_tensor(prior_box_var_in), min_hw_scale(min_hw_scale_in) {}
     BoxCoderParam(const BoxCoderParam& right):
             box_normalized(right.box_normalized),
-            axis(right.axis), var_tensor(right.var_tensor) {}
+            axis(right.axis), var_tensor(right.var_tensor),min_hw_scale(right.min_hw_scale) {}
     BoxCoderParam& operator=(const BoxCoderParam& right) {
         box_normalized = right.box_normalized;
         axis = right.axis;
         var_tensor = right.var_tensor;
+        min_hw_scale = right.min_hw_scale;
         return *this;
     }
     bool operator == (const BoxCoderParam& right) {
@@ -384,6 +385,7 @@ struct BoxCoderParam {
         cmp_eq = cmp_eq && (box_normalized == right.box_normalized);
         cmp_eq = cmp_eq && (axis == right.axis);
         cmp_eq = cmp_eq && (var_tensor == right.var_tensor);
+        cmp_eq = cmp_eq && (min_hw_scale == right.min_hw_scale);
         return cmp_eq;
     }
 
@@ -392,9 +394,30 @@ struct BoxCoderParam {
     }
 
 public:
+    float min_hw_scale{-1};
     bool box_normalized{true};
     int axis{0};
     Tensor<TargetType>* var_tensor{nullptr};
+};
+
+template <typename TargetType>
+struct BoxClipParam {
+    BoxClipParam() {};
+    BoxClipParam(bool is_ori_box_in) :
+            is_ori_box(is_ori_box_in) {}
+    BoxClipParam(const BoxClipParam& right):
+            is_ori_box(right.is_ori_box) {}
+    BoxClipParam& operator=(const BoxClipParam& right) {
+        is_ori_box = right.is_ori_box;
+        return *this;
+    }
+    bool operator == (const BoxClipParam& right) {
+        bool cmp_eq = true;
+        cmp_eq = cmp_eq && (is_ori_box == right.is_ori_box);
+        return cmp_eq;
+    }
+public:
+    bool is_ori_box{true};
 };
 
 template <typename TargetType>
@@ -1004,7 +1027,7 @@ struct DetectionOutputParam {
     int keep_top_k{-1};
     CodeType type{CORNER};
     float conf_thresh;
-    int nms_top_k;
+    int nms_top_k{-1};
     float nms_thresh{0.3f};
     float nms_eta{1.f};
 
@@ -1960,7 +1983,7 @@ struct Pad2DParam {
     Pad2DParam():_mode(PAD_CONSTANT), _pad_value(0.f), _pad_h({0, 0}), _pad_w({0, 0}) {}
     Pad2DParam(std::vector<int> pad_h, std::vector<int> pad_w, \
             float pad_value, PadMode mode = PAD_CONSTANT){
-        mode = mode;
+        _mode = mode;
         _pad_h = pad_h;
         _pad_w = pad_w;
         _pad_value = pad_value;
@@ -2623,6 +2646,8 @@ struct SequenceConvParam {
 
     SequenceConvParam()
         : filter_tensor(nullptr),
+          bias_tensor(nullptr),
+          bias_term(false),
           padding_tensor(nullptr),
           context_length(1),
           context_start(0),
@@ -2630,9 +2655,11 @@ struct SequenceConvParam {
           padding_trainable(false)
     {}
     SequenceConvParam(opTensor* filter_tensor_in, int context_length_in,
-                      int context_start_in = 0, int context_stride_in = 1, bool padding_trainable_in = false,
-                      opTensor* padding_tensor_in = nullptr)
+                      int context_start_in = 0, int context_stride_in = 1, bool padding_trainable_in = false, 
+                      opTensor* padding_tensor_in = nullptr, bool bias_term_in = false, opTensor* bias_tensor_in = nullptr)
         : filter_tensor(filter_tensor_in),
+          bias_tensor(bias_tensor_in),
+          bias_term(bias_term_in),
           padding_tensor(padding_tensor_in),
           context_length(context_length_in),
           context_start(context_start_in),
@@ -2641,6 +2668,8 @@ struct SequenceConvParam {
     {}
     SequenceConvParam(const SequenceConvParam& right)
         : filter_tensor(right.filter_tensor),
+          bias_tensor(right.bias_tensor),
+          bias_term(right.bias_term),
           padding_tensor(right.padding_tensor),
           context_length(right.context_length),
           context_start(right.context_start),
@@ -2649,6 +2678,8 @@ struct SequenceConvParam {
     {}
     SequenceConvParam& operator=(const SequenceConvParam& right) {
         filter_tensor = right.filter_tensor;
+        bias_tensor = right.bias_tensor;
+        bias_term = right.bias_term;
         padding_tensor = right.padding_tensor;
         context_length = right.context_length;
         context_start = right.context_start;
@@ -2659,6 +2690,8 @@ struct SequenceConvParam {
     bool operator==(const SequenceConvParam& right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (filter_tensor = right.filter_tensor);
+        comp_eq = comp_eq && (bias_tensor = right.bias_tensor);
+        comp_eq = comp_eq && (bias_term = right.bias_term);
         comp_eq = comp_eq && (padding_tensor = right.padding_tensor);
         comp_eq = comp_eq && (context_length = right.context_length);
         comp_eq = comp_eq && (context_start = right.context_start);
@@ -2668,11 +2701,13 @@ struct SequenceConvParam {
     }
 
     opTensor* filter_tensor;
+    opTensor* bias_tensor;
     opTensor* padding_tensor;
     int context_length;
     int context_start;
     int context_stride;
     bool padding_trainable;
+    bool bias_term;
 };
 
 template <typename TargetType>
@@ -2714,6 +2749,27 @@ struct SequencePoolParam {
         return comp_eq;
     }
     SequencePoolType sequence_pool_type;
+};
+
+template <typename TargetType>
+struct SequencePoolConcatV2Param {
+    SequencePoolConcatV2Param() = default;
+    SequencePoolConcatV2Param(std::vector<SequencePoolType> sequence_pool_type_list_in)
+        : sequence_pool_type_list(sequence_pool_type_list_in) {}
+    SequencePoolConcatV2Param(const SequencePoolConcatV2Param& right)
+        : sequence_pool_type_list(right.sequence_pool_type_list)
+    {}
+    SequencePoolConcatV2Param& operator=(const SequencePoolConcatV2Param& right) {
+        sequence_pool_type_list = right.sequence_pool_type_list;
+        return *this;
+    }
+    bool operator==(const SequencePoolConcatV2Param& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (sequence_pool_type_list == right.sequence_pool_type_list);
+        return comp_eq;
+    }
+    std::vector<SequencePoolType> sequence_pool_type_list;
+    //std::vector<int> sequence_pool_type_list;
 };
 
 template <typename type>
@@ -3497,6 +3553,9 @@ struct AlignedMatMulParam{
     bool is_transpose_X{false};
     bool is_transpose_Y{false};
     float scale{1.0f};
+    int M;
+    int N;
+    int K;
 };
 
 template <typename TargetType>
@@ -3716,6 +3775,32 @@ struct YoloBoxParam {
     int downsample_ratio{0};
 };
 
+template <typename TargetType>
+struct FusionParam {
+
+    FusionParam() = default;
+    FusionParam(std::string model_path_in) 
+                                  :model_path(model_path_in)
+    {}
+
+    FusionParam(const FusionParam& right)
+                                  :model_path(right.model_path)
+    {}
+
+    FusionParam& operator=(const FusionParam& right) 
+    {
+        model_path = right.model_path;
+        return *this;
+    }
+    bool operator==(const FusionParam& right) 
+    {
+        bool flag = true;
+        flag = flag && (model_path == right.model_path);
+        return flag;
+    }
+
+    std::string model_path;
+};
 }
 }
 #endif //SABER_FUNCS_PARAM_H

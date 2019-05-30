@@ -29,6 +29,11 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_unpool.h"
 #endif
+
+#ifdef USE_MLU_PLACE
+#include "saber/funcs/impl/mlu/saber_unpool.h"
+#endif // ifdef USE_MLU_PLACE
+
 namespace anakin {
 namespace saber {
 

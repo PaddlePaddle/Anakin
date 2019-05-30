@@ -40,6 +40,10 @@
 #include "saber/funcs/impl/impl_normalize.h"
 */
 
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_normalize.h"
+#endif
+
 namespace anakin{
 
 namespace saber{

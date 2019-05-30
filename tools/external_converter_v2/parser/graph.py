@@ -16,12 +16,31 @@ class Graph(object):
     """
     def __init__(self, config):
         """
-        category: FLUID
+        category: CAFFE, LEGO, PADDLE, TF, MXNET
         """
-        self.save_file_path = config.SavePath + config.ResultName + ".paddle_inference.bin"
-        if config.framework == 'FLUID':
+        self.save_file_path = config.SavePath + config.ResultName + ".anakin.bin"
+        if config.framework == 'CAFFE':
+            from caffe import CaffeParser
+            self.parser = CaffeParser(config.framework_config_dict)
+        elif config.framework == 'PADDLE':
+            pass
+        elif config.framework == 'LEGO':
+            from lego import LegoParser_test
+            self.parser = LegoParser_test(config.framework_config_dict)
+        elif config.framework == 'TENSORFLOW':
+            from tensorflow import TFParser
+            self.parser=TFParser(config.framework_config_dict)
+        elif config.framework == 'MXNET':
+            pass
+        elif config.framework == 'FLUID':
             from fluid import FluidParser
             self.parser = FluidParser(config.framework_config_dict)
+        elif config.framework == 'ONNX':
+            from onnx import OnnxParser
+            self.parser = OnnxParser(config.framework_config_dict)
+        elif config.framework == 'HOUYI':
+            from houyi import HouyiParser
+            self.parser = HouyiParser(config.framework_config_dict)
         else:
             raise NameError('ERROR: GrapProtoIO not support %s model.' % (config.framework))
         self.graph_io = self.parser()

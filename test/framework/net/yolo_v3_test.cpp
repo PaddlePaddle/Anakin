@@ -16,6 +16,12 @@ using Target_H = ARM;
 #elif defined(AMD_GPU)
 using Target = AMD;
 using Target_H = X86;
+#elif defined(USE_MLU)
+using Target = MLU;
+using Target_H = MLUHX86;
+#elif defined(USE_BM_PLACE)
+using Target = BM;
+using Target_H = BMX86;
 #endif
 
 //#define USE_DIEPSE

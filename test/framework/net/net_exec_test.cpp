@@ -16,6 +16,12 @@ using Target_H = ARM;
 #elif defined(AMD_GPU)
 using Target = AMD;
 using Target_H = X86;
+#elif defined(USE_MLU)
+using Target = MLU;
+using Target_H = MLUHX86;
+#elif defined(USE_BM_PLACE)
+using Target = BM;
+using Target_H = BMX86;
 #endif
 
 //#define USE_DIEPSE
@@ -85,7 +91,9 @@ TEST(NetTest, net_execute_base_test) {
     LOG(INFO)<<"net_execute_base_test";
     // reshape the input_0 's shape for graph model
     //graph->Reshape("input_0", {1, 8, 640, 640});
-	graph->ResetBatchSize("input_0", g_batch_size);
+    for (auto& in : graph->get_ins()) {
+        graph->ResetBatchSize(in, g_batch_size);
+    }
 
     // register all tensor inside graph
     // graph->RegistAllOut();
@@ -96,6 +104,7 @@ TEST(NetTest, net_execute_base_test) {
 
     //anakin graph optimization
     graph->Optimize();
+    graph->save(model_saved_path);
 
     // constructs the executer net
 	//{ // inner scope
@@ -108,25 +117,26 @@ TEST(NetTest, net_execute_base_test) {
 #endif
 
     net_executer.init(*graph);
-    // get in
-    auto d_tensor_in_p = net_executer.get_in("input_0");
-    Tensor4d<Target_H> h_tensor_in;
+    // fill all of in_tensor 1.0f
+    for (auto d_tensor_in_p: net_executer.get_in_list()) {
+        Tensor4d<Target_H> h_tensor_in;
 
-    auto valid_shape_in = d_tensor_in_p->valid_shape();
-    for (int i=0; i<valid_shape_in.size(); i++) {
-        LOG(INFO) << "detect input_0 dims[" << i << "]" << valid_shape_in[i];
+        auto valid_shape_in = d_tensor_in_p->valid_shape();
+        for (int i=0; i<valid_shape_in.size(); i++) {
+            LOG(INFO) << "detect input_0 dims[" << i << "]" << valid_shape_in[i];
+        }
+
+        h_tensor_in.re_alloc(valid_shape_in);
+        float* h_data = (float*)(h_tensor_in.mutable_data());
+
+        for (int i=0; i<h_tensor_in.size(); i++) {
+            h_data[i] = 1.0f;
+        }
+
+        d_tensor_in_p->copy_from(h_tensor_in);
+        std::vector<std::vector<int>> seq_offset={{0,g_batch_size}};
+        d_tensor_in_p->set_seq_offset(seq_offset);
     }
-
-    h_tensor_in.re_alloc(valid_shape_in);
-    float* h_data = (float*)(h_tensor_in.mutable_data());
-
-    for (int i=0; i<h_tensor_in.size(); i++) {
-        h_data[i] = 1.0f;
-    }
-
-    d_tensor_in_p->copy_from(h_tensor_in);
-    std::vector<std::vector<int>> seq_offset={{0,g_batch_size}};
-    d_tensor_in_p->set_seq_offset(seq_offset);
 
 #ifdef USE_DIEPSE
     // for diepse model
@@ -355,6 +365,7 @@ int main(int argc, const char** argv){
     }
     if (argc > 1) {
         g_model_path = std::string(argv[1]);
+        model_saved_path = g_model_path + ".saved";
     }
     if (argc > 2) {
         g_batch_size = atoi(argv[2]);

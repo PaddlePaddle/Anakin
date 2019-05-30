@@ -96,6 +96,26 @@ TEST(TestSaberFunc, test_func_transpose) {
     } while (0);
 
 #endif
+
+#ifdef USE_MLU
+    LOG(INFO) << "MLU test......";
+    Env<MLU>::env_init();
+    //Init the test_base
+    TestSaberBase<MLU, MLUHX86, AK_FLOAT, Transpose, TransposeParam> testbase;
+
+    for (int num_in : {1, 3, 32}) {
+        for (int c_in : {1, 3, 12}) {
+            for (int h_in : {2, 3, 25}) {
+                for (int w_in : {2, 3, 32}) {
+                    TransposeParam<MLU> param;
+                    testbase.set_param(param);
+                    testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+                    testbase.run_test(transpose_cpu<float, MLU, MLUHX86>, 0.02, true);
+                }
+            }
+        }
+    }
+#endif  // USE_MLU
 }
 int main(int argc, const char** argv) {
     // initial logger

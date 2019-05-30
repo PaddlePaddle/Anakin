@@ -26,6 +26,7 @@ set(MKLML_PROJECT       "extern_mklml")#
 set(MKLML_VER           "mklml_lnx_2019.0.3.20190220")# for vnni mklml_lnx_2019.0.3.20190125
 set(MKLML_URL           "https://github.com/intel/mkl-dnn/releases/download/v0.18/${MKLML_VER}.tgz") # original site
 #set(MKLML_URL 			"http://paddlepaddledeps.cdn.bcebos.com/${MKLML_VER}.tgz") # use paddle mirror site instead
+#set(MKLML_URL           "http://10.124.184.44:12345/mklml_lnx_2019.0.3.20190220.tgz")
 set(MKLML_SOURCE_DIR    "${ANAKIN_TEMP_THIRD_PARTY_PATH}/mklml")
 set(MKLML_DOWNLOAD_DIR  "${MKLML_SOURCE_DIR}/src/${MKLML_PROJECT}")
 set(MKLML_DST_DIR       ".")
@@ -44,18 +45,29 @@ file(WRITE ${MKLML_DOWNLOAD_DIR}/CMakeLists.txt
   "install(DIRECTORY ${MKLML_VER}/include ${MKLML_VER}/lib \n"
   "        DESTINATION ${MKLML_DST_DIR})\n")
 
-ExternalProject_Add(
-    ${MKLML_PROJECT}
-    ${EXTERNAL_PROJECT_LOG_ARGS}
-    PREFIX                ${MKLML_SOURCE_DIR}
-    DOWNLOAD_DIR          ${MKLML_DOWNLOAD_DIR}
-    DOWNLOAD_COMMAND      wget --no-check-certificate ${MKLML_URL} -c -O ${MKLML_VER}.tgz
-	&& tar -zxf ${MKLML_VER}.tgz -C ${MKLML_DOWNLOAD_DIR}
-    UPDATE_COMMAND        ""
-    PATCH_COMMAND	  	  ""
-    CMAKE_ARGS            -DCMAKE_INSTALL_PREFIX=${MKLML_INSTALL_ROOT}
-)
+#ExternalProject_Add(
+#    ${MKLML_PROJECT}
+#    ${EXTERNAL_PROJECT_LOG_ARGS}
+#    PREFIX                ${MKLML_SOURCE_DIR}
+#    DOWNLOAD_DIR          ${MKLML_DOWNLOAD_DIR}
+#    DOWNLOAD_COMMAND      wget --no-check-certificate ${MKLML_URL} -c -O ${MKLML_VER}.tgz
+#	&& tar -zxf ${MKLML_VER}.tgz -C ${MKLML_DOWNLOAD_DIR}
+#    UPDATE_COMMAND        ""
+#    PATCH_COMMAND	  	  ""
+#    CMAKE_ARGS            -DCMAKE_INSTALL_PREFIX=${MKLML_INSTALL_ROOT}
+#)
 
+ExternalProject_Add(
+        ${MKLML_PROJECT}
+        ${EXTERNAL_PROJECT_LOG_ARGS}
+        PREFIX                ${MKLML_SOURCE_DIR}
+        DOWNLOAD_DIR          ${MKLML_DOWNLOAD_DIR}
+        DOWNLOAD_COMMAND      git clone -b 20190320190220 ssh://git@icode.baidu.com:8235/baidu/personal-code/mklml_bak
+        && tar -zxf mklml_bak/${MKLML_VER}.tgz -C ${MKLML_DOWNLOAD_DIR}
+        UPDATE_COMMAND        ""
+        PATCH_COMMAND	  	  ""
+        CMAKE_ARGS            -DCMAKE_INSTALL_PREFIX=${MKLML_INSTALL_ROOT}
+)
 
 add_library(mklml SHARED IMPORTED GLOBAL)
 SET_PROPERTY(TARGET mklml PROPERTY IMPORTED_LOCATION ${MKLML_IOMP_LIB})

@@ -10,7 +10,7 @@ using namespace anakin::saber;
 
 template <typename dtype, typename TargetType_D, typename TargetType_H>
 void box_clip_basic(const std::vector<Tensor<TargetType_H>*>& inputs,
-                    std::vector<Tensor<TargetType_H>*>& outputs, EmptyParam<TargetType_D>& param) {
+                    std::vector<Tensor<TargetType_H>*>& outputs, BoxClipParam<TargetType_D>& param) {
     static constexpr int im_info_size = 3;
     static constexpr int box_info_size = 4;
     auto seq_offset = inputs[1]->get_seq_offset();
@@ -56,9 +56,9 @@ void test_model() {
     int height = 1;
     int width = 1;
 
-    TestSaberBase<TargetType_D, TargetType_H, Dtype, BoxClip, EmptyParam> testbase(2, 1);
+    TestSaberBase<TargetType_D, TargetType_H, Dtype, BoxClip, BoxClipParam> testbase(2, 1);
 
-    EmptyParam<TargetType_D> param;
+    BoxClipParam<TargetType_D> param;
 
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
     Shape im_info_shape({batch, 3, 1, 1}, Layout_NCHW);
@@ -87,7 +87,7 @@ TEST(TestSaberFunc, test_func_axpy) {
 
 #ifdef USE_CUDA
     //Init the test_base
-    test_model<AK_FLOAT, NV, NVHX86>();
+//    test_model<AK_FLOAT, NV, NVHX86>();
 #endif
 #ifdef USE_X86_PLACE
     test_model<AK_FLOAT, X86, X86>();

@@ -83,6 +83,16 @@ template class PermuteHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Permute, PermuteHelper, ARM, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_PERMUTE(MLU, Precision::FP32);
+INSTANCE_PERMUTE(MLU, Precision::FP16);
+template class PermuteHelper<MLU, Precision::FP32>;
+template class PermuteHelper<MLU, Precision::FP16>;
+template class PermuteHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Permute, PermuteHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Permute, PermuteHelper, MLU, Precision::FP16);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(Permute)
 .Doc("Permute operator")
@@ -97,6 +107,9 @@ ANAKIN_REGISTER_OP(Permute)
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("permute")
+#endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("permute")
 #endif
 .num_in(1)
 .num_out(1)

@@ -25,6 +25,9 @@
 #include "saber/funcs/impl/cuda/vender_activation.h"
 #endif
 
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_activation.h"
+#endif  // USE_MLU
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_activation.h"
 #endif
@@ -77,7 +80,7 @@ public:
         if (param.active == Active_sigmoid || param.active == Active_relu || param.active == Active_clipped_relu){
             output[0]->set_posstive_flag(true);
         }
-        return output[0]->set_shape(output_shape);
+        return output[0]->set_shape_without_layout(output_shape);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {

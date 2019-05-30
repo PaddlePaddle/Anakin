@@ -94,6 +94,16 @@ template class ReshapeHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Reshape, ReshapeHelper, AMD, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_RESHAPE(MLU, Precision::FP32);
+INSTANCE_RESHAPE(MLU, Precision::FP16);
+template class ReshapeHelper<MLU, Precision::FP32>;
+template class ReshapeHelper<MLU, Precision::FP16>;
+template class ReshapeHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Reshape, ReshapeHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Reshape, ReshapeHelper, MLU, Precision::FP16);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(Reshape)
 .Doc("Reshape operator")
@@ -108,6 +118,9 @@ ANAKIN_REGISTER_OP(Reshape)
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("reshape")
+#endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("reshape")
 #endif
 .num_in(1)
 .num_out(1)

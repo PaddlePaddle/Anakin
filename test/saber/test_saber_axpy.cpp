@@ -73,7 +73,11 @@ void test_model(){
         shape_v.push_back(shape);//x
         shape_v.push_back(shape);//y
         testbase.set_input_shape(shape_v);//add some input shape
-        testbase.run_test(axpy_nv_basic<float, TargetType_D, TargetType_H>);//run test
+        if (std::is_same<TargetType_D, MLU>::value) {
+            testbase.run_test(axpy_nv_basic<float, TargetType_D, TargetType_H>, 0.02, true);
+        } else {
+            testbase.run_test(axpy_nv_basic<float, TargetType_D, TargetType_H>);
+        }
     }
 
 }
@@ -89,6 +93,10 @@ TEST(TestSaberFunc, test_func_axpy) {
 #endif
 #ifdef USE_ARM_PLACE
     test_model<AK_FLOAT, ARM, ARM>();
+#endif
+#ifdef USE_MLU
+   Env<MLU>::env_init();
+   test_model<AK_FLOAT, MLU, MLUHX86>();
 #endif
 }
 

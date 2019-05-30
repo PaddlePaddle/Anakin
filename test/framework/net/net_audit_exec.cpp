@@ -1,4 +1,5 @@
 #include <string>
+#include <mutex>
 #include<random>
 #include "net_test.h"
 #include "saber/funcs/timer.h"
@@ -19,10 +20,18 @@ using Target_H = ARM;
 #elif defined(AMD_GPU)
 using Target = AMD;
 using Target_H = X86;
+#elif defined(USE_MLU)
+using Target = MLU;
+using Target_H = MLUHX86;
+#elif defined(USE_BM_PLACE)
+using Target = BM;
+using Target_H = BMX86;
 #endif
 
 std::string g_model_path = "";
 std::string g_input_path = "";
+
+std::mutex g_mut;
 
 int g_batch_size=1;
 int g_thread_num=1;
@@ -74,8 +83,10 @@ double InferencePerf(graph::Graph<Target, Precision::FP32>* graph, int thread_id
     LOG(INFO) << "Thread (" << thread_idx << ") processing";
     // constructs the executer net
     Net<Target, Precision::FP32> net_executer(true);
-
-    net_executer.init(*graph);
+    { // net init is not thread safety , so we need to reorder the init 
+        std::lock_guard<std::mutex> guard(g_mut);
+        net_executer.init(*graph);
+    }
 
     // get ins
     for(auto& input_name : graph->get_ins()) {
@@ -89,16 +100,17 @@ double InferencePerf(graph::Graph<Target, Precision::FP32>* graph, int thread_id
         }
     }
 
-
     // do inference warm up
 	for(int i = 0; i < g_warm_up; i++) {
 		net_executer.prediction();
 	}
 
     Context<Target> ctx(0, 0, 0);
-    saber::SaberTimer<Target> my_time;
-    my_time.start(ctx);
     double count = 0.f;
+
+#ifdef ENABLE_OP_TIMER
+    net_executer.reset_op_time();
+#endif
 
     for(int i = 0; i < g_epoch; i++) {
         saber::SaberTimer<Target> my_time;
@@ -112,13 +124,17 @@ double InferencePerf(graph::Graph<Target, Precision::FP32>* graph, int thread_id
         my_time.end(ctx);
         //LOG(INFO)<<"immed time : "<<my_time.get_average_ms() ;
         count += my_time.get_average_ms();
-		if(i==100){
+		if(i==g_epoch/2){
 			double mem_used = anakin::MemoryInfo<Target>::Global().get_used_mem_in_mb();
 			LOG(INFO) << "Checking_mem_used: " << mem_used;
 		}
     }
 
     LOG(INFO)<<"InferencePerf aveage time: "<<count/g_epoch << " ms";
+
+#ifdef ENABLE_OP_TIMER
+    net_executer.print_and_reset_optime_summary(g_epoch);
+#endif
 
     // get out result
     //auto* tensor_out = net_executer.get_out("detection_output_0.tmp_0662");  // face 1
@@ -138,11 +154,12 @@ void InferencePerfWithMultiThread() {
     if(!status ) {
         LOG(FATAL) << " [ERROR] " << status.info();
     }
-    // reshape the input 's shape for graph model
-    //graph->Reshape("data", {1, 3, 195, 758}); // face_box1
-    //graph->Reshape("data", {1, 3, 227, 958}); // face_box1 not fusion
-    //graph->Reshape("image", {1, 3, 210, 216}); // face_box2
+    
+    for(auto& in : graph->get_ins()) {
+        graph->ResetBatchSize(in, g_batch_size);
+    }
 
+    
     //anakin graph optimization
     graph->Optimize();
 
@@ -158,7 +175,7 @@ void InferencePerfWithMultiThread() {
     }
     auto t1 = std::chrono::high_resolution_clock::now();
     counter = std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count();
-    int QPS = g_epoch * g_thread_num / (counter / 1e6);
+    int QPS = g_epoch * g_thread_num / (counter / 1e3);
     LOG(ERROR) << " QPS : " << QPS;
     delete graph;
 }

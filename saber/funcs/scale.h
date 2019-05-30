@@ -35,6 +35,9 @@
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_scale.h"
 #endif
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_scale.h"
+#endif
 namespace anakin {
 namespace saber {
 

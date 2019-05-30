@@ -28,7 +28,7 @@
 #endif
 
 #ifdef AMD_GPU
-#include "saber/funcs/impl/impl_resize.h"
+#include "saber/funcs/impl/amd/include/saber_resize.h"
 #endif
 
 #ifdef USE_ARM_PLACE

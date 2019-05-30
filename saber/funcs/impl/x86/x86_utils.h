@@ -434,16 +434,28 @@ static void reorder_nchwc_nchw(Tensor<HostType>& input,
 
 
 inline void* zmalloc(size_t size, int alignment) {
-    void* ptr = NULL;
+    void* ptr = nullptr;
 
 #ifdef _WIN32
     ptr = _aligned_malloc(size, alignment);
     int rc = ptr ? 0 : -1;
 #else
+#ifdef USE_SGX
+    size_t d = alignment / sizeof(void*);
+    size_t r = alignment % sizeof(void*);
+    // posix_memalign requires alignment to be a power of two multiple
+    // of sizeof(void *). Add this check before calling memalign.
+    if (r != 0 || d == 0 || (d & (d - size_t(1))) != 0) {
+        return nullptr;
+    }
+    ptr = memalign(alignment, size);
+    int rc = ptr == nullptr;
+#else
     int rc = ::posix_memalign(&ptr, alignment, size);
 #endif
+#endif
 
-    return (rc == 0) ? ptr : NULL;
+    return (rc == 0) ? ptr : nullptr;
 }
 
 inline void zfree(void* p) {

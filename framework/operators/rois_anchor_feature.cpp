@@ -3,17 +3,17 @@
 namespace anakin {
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void RoisAnchorFeature<NV, Precision::FP32>::operator()(
-        OpContext<NV>& ctx, const std::vector<Tensor4dPtr<NV> >& ins,
-        std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl = static_cast<RoisAnchorFeatureHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<RoisAnchorFeatureHelper<NV, Precision::FP32>*>
-    (this->_helper)->_param_rois_anchor_feature;
-    impl->_funcs_rois_anchor_feature(ins, outs, param, ctx);
+#define INSTANCE_ROIS_ANCHOR_FEATURE(Ttype, Ptype) \
+template<> \
+void RoisAnchorFeature<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<RoisAnchorFeatureHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<RoisAnchorFeatureHelper<Ttype, Ptype>*> \
+                  (this->_helper)->_param_rois_anchor_feature; \
+    impl->_funcs_rois_anchor_feature(ins, outs, param, ctx); \
 }
-#endif
+
 /// TODO ... specialization other type of operator
 /// set helper
 template<typename Ttype, Precision Ptype>
@@ -63,11 +63,14 @@ Status RoisAnchorFeatureHelper<Ttype, Ptype>::InferShape(
     return Status::OK();
 }
 #ifdef USE_CUDA
+INSTANCE_ROIS_ANCHOR_FEATURE(NV, Precision::FP32);
 template class RoisAnchorFeatureHelper<NV, Precision::FP32>;
 template class RoisAnchorFeatureHelper<NV, Precision::FP16>;
 template class RoisAnchorFeatureHelper<NV, Precision::INT8>;
 #endif
+
 #ifdef USE_ARM_PLACE
+INSTANCE_ROIS_ANCHOR_FEATURE(ARM, Precision::FP32);
 template class RoisAnchorFeatureHelper<ARM, Precision::FP32>;
 template class RoisAnchorFeatureHelper<ARM, Precision::FP16>;
 template class RoisAnchorFeatureHelper<ARM, Precision::INT8>;

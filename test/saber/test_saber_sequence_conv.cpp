@@ -53,6 +53,7 @@ void sequence_conv_cpu(const std::vector<Tensor<TargetType_H>*>& inputs,
 
     Tensor<X86> _temp_im2col_tensor;
     Tensor<X86> temp_filter_tensor;
+    Tensor<X86> temp_bias_tensor;
     int _hidden_size = param.filter_tensor->height() / param.context_length;
     int _feature_size = param.filter_tensor->width();
     int _up_pad = std::max(0, -param.context_start);
@@ -64,6 +65,7 @@ void sequence_conv_cpu(const std::vector<Tensor<TargetType_H>*>& inputs,
     std::vector<std::vector<int>> voffset = in_data->get_seq_offset();
     out_data->set_seq_offset(voffset);
     std::vector<int> offset = voffset[0];
+    bool bias_term = param.bias_term;
     int word_num = offset[offset.size() - 1];
 
     Shape sh_im({1, 1, word_num, param.filter_tensor->height()});
@@ -74,6 +76,7 @@ void sequence_conv_cpu(const std::vector<Tensor<TargetType_H>*>& inputs,
     temp_filter_tensor.set_shape(param.filter_tensor->valid_shape());
     temp_filter_tensor.copy_from(*(param.filter_tensor));
 
+
     for (int i = 0; i < offset.size() - 1; ++i) {
         int start = offset[i];
         int seq_length = offset[i + 1] - offset[i];
@@ -83,7 +86,19 @@ void sequence_conv_cpu(const std::vector<Tensor<TargetType_H>*>& inputs,
 
     gemm(word_num, _feature_size, _hidden_kernel_size, 1.f, (const float*)im2col,
          (const float*)temp_filter_tensor.data(), 0.f, out);
-
+    #ifndef USE_MLU
+    if (bias_term) {
+        auto output_ptr=static_cast<float*>(out);
+        auto bias_ptr= static_cast<float*>(param.bias_tensor->mutable_data());
+        temp_bias_tensor.set_shape(param.bias_tensor->valid_shape());
+        temp_bias_tensor.copy_from(*(param.bias_tensor));
+        for (int out_id=0; out_id<word_num; out_id++) {
+            for (int inner_id=0; inner_id<_feature_size; inner_id++) { 
+                output_ptr[out_id*_feature_size+inner_id]+=bias_ptr[inner_id];
+            }
+        }
+    }
+    #endif
     out_data->set_seq_offset(voffset);
 }
 
@@ -162,6 +177,7 @@ TEST(TestSaberFunc, test_func_saber_sequenconv) {
                   << ", pad_up: " << pad_up;
         TensorD filter_tensor;
         TensorD in_tensor;
+        TensorD bias_tensor;
         std::vector<TensorD*> input;
         Shape in_sh({num, hidden_size, 1, 1});
         Shape filter_sh({1, 1, hidden_size * context_length, feature_size});
@@ -189,6 +205,50 @@ TEST(TestSaberFunc, test_func_saber_sequenconv) {
 
     LOG(INFO) << "x86 end.......";
 #endif
+
+#ifdef USE_MLU
+    LOG(INFO) << "MLU test......";
+
+    Env<MLU>::env_init();
+    //Init the test_base
+    TestSaberBase<MLU, MLUHX86, AK_FLOAT, SequenceConv, SequenceConvParam> testbase_mlu;
+
+    for (auto num : {8}) {
+    for (auto hidden_size : {10}) {
+    for (auto context_length : {2, 3, 7}) {
+    for (auto feature_size : {4}) {
+    for (auto pad_up : {-1}) {
+        LOG(INFO) << "num: " << num << ", hidden_size: " << hidden_size \
+                  << ", context_length: " << context_length << ", feature_size: " << feature_size\
+                  << ", pad_up: " << pad_up;
+        Tensor<MLU> filter_tensor;
+        Tensor<MLU> in_tensor;
+        std::vector<Tensor<MLU>*> input;
+        Shape in_sh({num, hidden_size, 1, 1});
+        Shape filter_sh({1, 1, hidden_size * context_length, feature_size});
+        in_tensor.re_alloc(in_sh, AK_FLOAT);
+        filter_tensor.re_alloc(filter_sh, AK_FLOAT);
+        fill_tensor_rand(filter_tensor, -1.0f, 1.0f);
+        fill_tensor_rand(in_tensor, -1.0f, 1.0f);
+        std::vector<int> seq_offset;
+        std::vector<std::vector<int>> vseq_offset;
+        get_seq_offset(num, seq_offset);
+        vseq_offset.push_back(seq_offset);
+        in_tensor.set_seq_offset(vseq_offset);
+        input.push_back(&in_tensor);
+        SequenceConvParam<MLU> param(&filter_tensor, context_length, pad_up);
+        testbase_mlu.set_param(param);
+        testbase_mlu.add_custom_input(input);
+        testbase_mlu.run_test(sequence_conv_cpu<float, MLU, MLUHX86>, 0.02, true);
+    }
+    }
+    }
+    }
+    }
+
+    LOG(INFO) << "MLU end.......";
+#endif
+
 }
 int main(int argc, const char** argv) {
     // initial logger

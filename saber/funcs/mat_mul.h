@@ -31,6 +31,10 @@
 #include "saber/funcs/impl/amd/include/vender_mat_mul.h"
 #endif
 
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_mat_mul.h"
+#endif
+
 namespace anakin{
 
 namespace saber{

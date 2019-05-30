@@ -4,37 +4,18 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void ReduceMin<NV, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV> >& ins,
-    std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl =
-        static_cast<ReduceMinHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param =
-        static_cast<ReduceMinHelper<NV, Precision::FP32>*>(this->_helper)->_param_reduce_min;
-    impl->_funcs_reduce_min(ins, outs, param, ctx);
+#define INSTANCE_REDUCE_MIN(Ttype, Ptype) \
+template<> \
+void ReduceMin<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<ReduceMinHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<ReduceMinHelper<Ttype, Ptype>*> \
+                  (this->_helper)->_param_reduce_min; \
+    impl->_funcs_reduce_min(ins, outs, param, ctx); \
 }
-#endif
-
-#ifdef USE_X86_PLACE
-template<>
-void ReduceMin<X86, Precision::FP32>::operator()(
-        OpContext<X86>& ctx,
-        const std::vector<Tensor4dPtr<X86> >& ins,
-        std::vector<Tensor4dPtr<X86> >& outs) {
-    auto* impl =
-            static_cast<ReduceMinHelper<X86, Precision::FP32>*>(this->_helper);
-    auto& param =
-            static_cast<ReduceMinHelper<X86, Precision::FP32>*>(this->_helper)->_param_reduce_min;
-    impl->_funcs_reduce_min(ins, outs, param, ctx);
-}
-#endif
 
 /// TODO ... specialization other type of operator
-
-
 /// set helper
 template<typename Ttype, Precision Ptype>
 ReduceMinHelper<Ttype, Ptype>::~ReduceMinHelper() {
@@ -68,16 +49,19 @@ Status ReduceMinHelper<Ttype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
+INSTANCE_REDUCE_MIN(NV, Precision::FP32);
 template class ReduceMinHelper<NV, Precision::FP32>;
 template class ReduceMinHelper<NV, Precision::FP16>;
 template class ReduceMinHelper<NV, Precision::INT8>;
 #endif
 #ifdef USE_ARM_PLACE
+INSTANCE_REDUCE_MIN(ARM, Precision::FP32);
 template class ReduceMinHelper<ARM, Precision::FP32>;
 template class ReduceMinHelper<ARM, Precision::FP16>;
 template class ReduceMinHelper<ARM, Precision::INT8>;
 #endif
 #ifdef USE_X86_PLACE
+INSTANCE_REDUCE_MIN(X86, Precision::FP32);
 template class ReduceMinHelper<X86, Precision::FP32>;
 template class ReduceMinHelper<X86, Precision::FP16>;
 template class ReduceMinHelper<X86, Precision::INT8>;

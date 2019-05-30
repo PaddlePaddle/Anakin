@@ -187,6 +187,39 @@ TEST(TestSaberFunc, test_func_scale) {
     LOG(INFO) << "x86 test end.";
 
 #endif
+#ifdef USE_MLU
+    LOG(INFO) << "mlu test......";
+
+    Env<MLUHX86>::env_init();
+    Env<MLU>::env_init();
+    do {
+        TestSaberBase<MLU, MLUHX86, AK_FLOAT, Spp, SPPParam> testbase;
+
+        for (auto num : {1 /*, 3, 11 */ }) {
+            for (auto c : {1 /*, 3, 11 */ }) {
+                for (auto h : {/*16, 32,*/ 64}) {
+                    for (auto w : {/*16, 32,*/ 64}) {
+                        for (auto pyramid_height : {3}) {
+                            for (auto pool_type : {
+                                        Pooling_max, /*Pooling_average_exclude_padding, Pooling_average_include_padding*/
+                                    }) {
+                                LOG(INFO) << "pyramid_height: " << pyramid_height << " pool_type " << pool_type;
+                                SPPParam<MLU> param(pyramid_height, pool_type);
+                                testbase.set_param(param);
+                                testbase.set_input_shape(Shape({num, c, h, w}));
+                                testbase.run_test(spp_cpu<float, MLU, MLUHX86>, 0.02, true);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } while (0);
+
+    LOG(INFO) << "x86 test end.";
+
+#endif
+
 }
 int main(int argc, const char** argv) {
     // initial logger

@@ -86,7 +86,7 @@ public:
 
 public:
     ///< _param_concat stand for contact parameter
-    saber::EmptyParam<Ttype> _param_concat;
+    saber::BoxClipParam<Ttype> _param_box_clip;
     ///< _funcs_concat stand for contact function
     saber::BoxClip<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_concat;
 

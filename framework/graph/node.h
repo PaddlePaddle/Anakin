@@ -16,15 +16,12 @@
 #ifndef ANAKIN_NODE_H
 #define ANAKIN_NODE_H
 
+#include "anakin_config.h"
 #include "framework/graph/arc.h"
 #include "framework/core/any.h"
 #include "framework/core/base.h"
 #include "framework/core/parameter.h"
 #include <mutex>
-#include "anakin_config.h"
-#ifdef USE_SGX
-#include <support/sgx/sgx_mutex>
-#endif
 namespace anakin {
 
 /**
@@ -212,6 +209,9 @@ public:
 
     inline std::vector<float> scale() const { return _scale; }
 
+    //inline std::string name(){return this->name();}
+    //inline void set_weight_name(){this->weight().name = this->name();}
+
     inline void set_scale(const std::vector<float> &scale) {
         _scale = scale;
     }
@@ -303,6 +303,7 @@ public:
 
     /// get op name
     std::string& get_op_name() { return _op_name; }
+    void set_op_name(std::string name){_op_name = name;}
 
     /// Access to attributes.
     AttrInfo& attr() { return _attr; }

@@ -98,75 +98,65 @@ void mat_mul_cpu_base(const std::vector<Tensor<TargetType_H>* >& input,
     }
 
 }
-TEST(TestSaberFunc, test_op_mat_mul) {
 
+template <DataType datatype, typename TargetType_D, typename TargetType_H>
+void test_model() {
+    using dtype = typename DataTrait<TargetType_H, datatype>::Dtype;
+
+    bool trans_a = true;
+    bool trans_b = false;
     int input_num = 2;
-    bool trans_A = true;
-    bool trans_B = false;
+    TestSaberBase<TargetType_D, TargetType_H, datatype, MatMul, MatMulParam> testbase(input_num);
 
-#ifdef USE_CUDA
-    //2 inputs
-    TestSaberBase<NV, NVHX86, AK_FLOAT, MatMul, MatMulParam> testbase(input_num);
+    std::vector<int> v_w_in   = {2, 8, 16};
+    std::vector<int> v_h_in   = {2, 8, 32};
+    std::vector<int> v_ch_in  = {2, 3, 8, 64};
+    std::vector<int> v_num_in = {1, 21, 32};
 
-    for (int w_in : {
-                2, 8, 16
-            }) {
-        for (int h_in : {
-                    2, 8, 32
-                }) {
-            for (int ch_in : {
-                        2, 3, 8, 64
-                    }) {
-                for (int num_in : {
-                            1, 21, 32
-                        }) {
-                    Shape shape0({num_in, ch_in, w_in, h_in});
-                    Shape shape1({num_in, ch_in, w_in, h_in});
+    // mlu mat_mul is too slow when b is large
+    if (std::is_same<TargetType_D, MLU>::value) {
+        v_ch_in  = {3, 8};
+        v_num_in = {2, 4};
+    }
+
+    for (int w_in : v_w_in) {
+        for (int h_in : v_h_in) {
+            for (int ch_in : v_ch_in) {
+                for (int num_in : v_num_in) {
+                    Shape shape0 = trans_a ? Shape({num_in, ch_in, w_in, h_in}) :
+                                             Shape({num_in, ch_in, h_in, w_in});
+                    Shape shape1 = trans_b ? Shape({num_in, ch_in, h_in, w_in}) :
+                                             Shape({num_in, ch_in, w_in, h_in});
                     std::vector<Shape> shapes;
                     shapes.push_back(shape0);
                     shapes.push_back(shape1);
-                    MatMulParam<NV> param(trans_A, trans_B);
+                    MatMulParam<TargetType_D> param(trans_a, trans_b);
                     testbase.set_param(param);
                     testbase.set_rand_limit(1, 12);
                     testbase.set_input_shape(shapes);
-                    testbase.run_test(mat_mul_cpu_base<float, NV, NVHX86>);
+                    if (std::is_same<TargetType_D, MLU>::value) {
+                        testbase.run_test(mat_mul_cpu_base<dtype, TargetType_D, TargetType_H>, 
+                                          0.005, true);
+                    } else {
+                        testbase.run_test(mat_mul_cpu_base<dtype, TargetType_D, TargetType_H>);
+                    }
                 }
             }
         }
     }
+}
 
+TEST(TestSaberFunc, test_op_mat_mul) {
+#ifdef USE_CUDA
+    test_model<AK_FLOAT, NV, NVHX86>();
 #endif
 
 #ifdef USE_X86_PLACE
-    TestSaberBase<X86, X86, AK_FLOAT, MatMul, MatMulParam> testbase_x86(input_num);
+    test_model<AK_FLOAT, X86, X86>();
+#endif
 
-    for (int w_in : {
-                2, 8, 16
-            }) {
-        for (int h_in : {
-                    2, 8, 32
-                }) {
-            for (int ch_in : {
-                        2, 3, 8, 64
-                    }) {
-                for (int num_in : {
-                            1, 21, 32
-                        }) {
-                    Shape shape0({num_in, ch_in, w_in, h_in});
-                    Shape shape1({num_in, ch_in, w_in, h_in});
-                    std::vector<Shape> shapes;
-                    shapes.push_back(shape0);
-                    shapes.push_back(shape1);
-                    MatMulParam<X86> param(trans_A, trans_B);
-                    testbase_x86.set_param(param);
-                    testbase_x86.set_rand_limit(1, 12);
-                    testbase_x86.set_input_shape(shapes);
-                    testbase_x86.run_test(mat_mul_cpu_base<float, X86, X86>);
-                }
-            }
-        }
-    }
-
+#ifdef USE_MLU
+    test_model<AK_FLOAT, MLU, MLUHX86>();
 #endif
 }
 

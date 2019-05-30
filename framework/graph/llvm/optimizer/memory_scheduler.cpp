@@ -252,22 +252,31 @@ void MemoryScheduler::check_memory(){
                     (in_io->weight().name == out_io->weight().share_from ||
                      in_io->weight().share_from == out_io->weight().share_from)){
                     out_io->weight().shared = false;
-                    LOG(WARNING) << "checked wrong order: " << in_io->weight().name << 
+                    DLOG(WARNING) << "checked wrong order: " << in_io->weight().name << 
                         "-->" << out_io->weight().name;
                     //set all output edge need self shared
                     if (check_self_shared_str((*_vgraph)[out_io->top()].opName)){
+                        //if Gather, we need change another branch
+                        if ((*_vgraph)[out_io->top()].opName == "Gather"){
+                            auto gather_in = _vgraph->get_in_arc_its(out_io->top());
+                            for (int i = 0; i < gather_in.size(); ++i){
+                                if (gather_in[i]->bottom() != out_io->bottom()){
+                                    gather_in[i]->weight().share_from = out_io->weight().name;
+                                }
+                            }
+                        }
                         //for recurisive
                         std::stack<std::string> connect_nodes;
                         connect_nodes.push(out_io->top());
                         while (!connect_nodes.empty()){
-                            auto& curnode = connect_nodes.top();
+                            auto curnode = connect_nodes.top();
                             connect_nodes.pop();
                             auto out_edges = _vgraph -> get_out_arc_its(curnode);
                             for (int i = 0; i < out_edges.size(); ++i){
                                 if (check_self_shared_str((*_vgraph)[out_edges[i]->top()].opName)){
                                     connect_nodes.push(out_edges[i]->top());
                                 }
-                                LOG(ERROR) << "follow correct order: " << out_edges[i]->weight().name;
+                                DLOG(ERROR) << "follow correct order: " << out_edges[i]->weight().name;
                                 out_edges[i]->weight().share_from = out_io->weight().name;
                             }
 

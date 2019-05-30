@@ -399,7 +399,7 @@ SaberStatus JitAvx512Conv<AK_FLOAT>::dispatch_nhwc(
     DLOG(INFO) << "dispatch_nhwc " << jcp.is_1stconv << "," << jcp.output_nhwc;
     #pragma omp parallel
     {
-        int ithr = omp_get_thread_num(), nthr = omp_get_num_threads();
+        int ithr = anakin_get_thread_num(), nthr = anakin_get_num_threads();
         int oc_chunks = jcp.nb_oc / jcp.nb_oc_blocking;
         int start, end, start_copy;
         int work_amount = jcp.mb * jcp.ngroups * jcp.oh;

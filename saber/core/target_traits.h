@@ -17,23 +17,25 @@
 #define ANAKIN_SABER_CORE_TARGET_TRAITS_H
 #include "saber/core/common.h"
 
-namespace anakin{
 
-namespace saber{
+namespace anakin {
 
-struct __host_target{};
-struct __device_target{};
+namespace saber {
 
-struct __cuda_device{};
-struct __arm_device{};
-struct __amd_device{};
-struct __x86_device{};
-struct __bm_device{};
+struct __host_target {};
+struct __device_target {};
 
-struct __HtoD{};
-struct __HtoH{};
-struct __DtoD{};
-struct __DtoH{};
+struct __cuda_device {};
+struct __arm_device {};
+struct __amd_device {};
+struct __x86_device {};
+struct __bm_device {};
+struct __mlu_device {};
+
+struct __HtoD {};
+struct __HtoH {};
+struct __DtoD {};
+struct __DtoH {};
 
 
 template <class TargetType>
@@ -67,22 +69,39 @@ struct TargetTypeTraits<ARM> {
 
 template <>
 struct TargetTypeTraits<AMD> {
-  typedef __device_target target_category;
-  typedef __amd_device target_type;
+    typedef __device_target target_category;
+    typedef __amd_device target_type;
 };
 
 template <>
 struct TargetTypeTraits<BM> {
-  typedef __device_target target_category;
-  typedef __bm_device target_type;
+    typedef __device_target target_category;
+    typedef __bm_device target_type;
+};
+
+template <>
+struct TargetTypeTraits<BMX86> {
+    typedef __host_target target_category;
+    typedef __x86_device target_type;
 };
 
 template <>
 struct TargetTypeTraits<AMDHX86> {
-  typedef __host_target target_category;
-  typedef __x86_device target_type;
+    typedef __host_target target_category;
+    typedef __x86_device target_type;
 };
 
+template <>
+struct TargetTypeTraits<MLUHX86> {
+    typedef __host_target target_category;
+    typedef __x86_device target_type;
+};
+
+template <>
+struct TargetTypeTraits<MLU> {
+    typedef __device_target target_category;
+    typedef __mlu_device target_type;
+};
 } //namespace saber
 
 } //namespace anakin

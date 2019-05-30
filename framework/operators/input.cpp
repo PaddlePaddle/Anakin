@@ -44,6 +44,7 @@ Status InputHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype
         out_shape.push_back(input_shape[i]);
     }
     for (auto& tensor_p : outs) {
+        DLOG(INFO)<<"init input shape "<<out_shape;
         tensor_p->set_shape_without_layout(out_shape);
     }
     if (max_len != 0 && max_batch != 0) {
@@ -69,6 +70,16 @@ INSTANCE_INPUT(NV, Precision::INT8);
 template class InputHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, NV, Precision::INT8);
 #endif
+#ifdef USE_MLU
+INSTANCE_INPUT(MLU, Precision::FP32);
+template class InputHelper<MLU, Precision::FP32>;
+template class InputHelper<MLU, Precision::FP16>;
+template class InputHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, MLU, Precision::FP16);
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, MLU, Precision::INT8);
+#endif
+
 
 #ifdef USE_ARM_PLACE
 INSTANCE_INPUT(ARM, Precision::FP32);
@@ -94,6 +105,9 @@ ANAKIN_REGISTER_OP(Input)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("input")
 #endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("input")
+#endif  // USE_MLU
 #ifdef AMD_GPU
     .__alias__<AMD, Precision::FP32>("input")
 #endif

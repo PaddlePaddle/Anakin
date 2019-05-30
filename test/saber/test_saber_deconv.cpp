@@ -17,26 +17,31 @@ using namespace anakin::saber;
 void fill_bias_relu(float* tensor, const float* bias, int channel, int channel_size,
                     bool flag_relu) {
     float* data = tensor;
+
     for (int j = 0; j < channel; ++j) {
         for (int i = 0; i < channel_size; i++) {
             data[i] += bias[j];
+
             if (flag_relu) {
                 data[i] = data[i] > 0 ? data[i] : 0.f;
             }
         }
+
         data += channel_size;
     }
 }
 
 void fill_relu(float* tensor, int channel, int channel_size,
-                    bool flag_relu) {
+               bool flag_relu) {
     float* data = tensor;
+
     for (int j = 0; j < channel; ++j) {
         for (int i = 0; i < channel_size; i++) {
             if (flag_relu) {
                 data[i] = data[i] > 0 ? data[i] : 0.f;
             }
         }
+
         data += channel_size;
     }
 }
@@ -59,6 +64,7 @@ static void gemm_naive(int m, int n, int k, const float alpha, const Dtype* a, c
                     acc += alpha * a[i * k + inner] * b[j * k + inner];
                 }
             }
+
             c[i * n + j] = acc + beta * c[i * n + j];
         }
     }
@@ -96,10 +102,12 @@ void col2im(const Dtype* data_col, const int channels,
                             if (is_a_ge_zero_and_a_lt_b(input_col, width)) {
                                 data_im[input_row * width + input_col] += *data_col;
                             }
+
                             data_col++;
                             input_col += stride_w;
                         }
                     }
+
                     input_row += stride_h;
                 }
             }
@@ -111,14 +119,18 @@ template<typename dtype, typename TargetType_D, typename TargetType_H>
 void gemm_transpose_conv(const std::vector<Tensor<TargetType_H>*>& inputs,
                          std::vector<Tensor<TargetType_H>*>& outputs,
                          ConvParam<TargetType_D>& param) {
+
+    bool bias_term = param.bias() != nullptr && param.bias()->valid_size() > 0;
     Tensor<TargetType_H> weights_host;
     Tensor<TargetType_H> bias_host;
     weights_host.re_alloc(param.weight()->valid_shape(), AK_FLOAT);
     weights_host.copy_from(*(param.weight()));
-    bias_host.re_alloc(param.bias()->valid_shape(), AK_FLOAT);
-    bias_host.copy_from(*(param.bias()));
 
-    bool bias_term = param.bias() != nullptr && param.bias()->valid_size() > 0;
+    if (bias_term) {
+        bias_host.re_alloc(param.bias()->valid_shape(), AK_FLOAT);
+        bias_host.copy_from(*(param.bias()));
+    }
+
     int win = inputs[0]->width();
     int hin = inputs[0]->height();
     int chin = inputs[0]->channel();
@@ -170,6 +182,7 @@ void gemm_transpose_conv(const std::vector<Tensor<TargetType_H>*>& inputs,
             float* coldata_group = col_data + g * group_size_coldata;
             gemm_naive(_m, _n, _k, 1.f, weights_group, din_group, 0.f, coldata_group, true, false);
         }
+
         col2im(col_data, chout, hout, wout, _kh, _kw, param.pad_h, param.pad_w, \
                param.stride_h, param.stride_w, param.dilation_h, param.dilation_w, \
                dout_batch);
@@ -180,7 +193,7 @@ void gemm_transpose_conv(const std::vector<Tensor<TargetType_H>*>& inputs,
                            with_relu);
         } else {
             fill_relu(dout_batch, chout, wout * hout,
-                           with_relu);
+                      with_relu);
         }
     }
 }
@@ -268,29 +281,29 @@ void deconv_test(int img_n = 1,
 
 template<typename TargetType, typename TargetType_H>
 int test_deconv_results_x86_C8R(int group,
-                              int input_num, int in_channels, int height, int width,
-                              int out_channels, int kernel_h, int kernel_w,
-                              int stride_h, int stride_w, int dilation_h, int dilation_w,
-                              int pad_h, int pad_w, bool bias_term, bool with_relu,
-                              SaberImplStrategy strategy, ImplEnum imp) {
+                                int input_num, int in_channels, int height, int width,
+                                int out_channels, int kernel_h, int kernel_w,
+                                int stride_h, int stride_w, int dilation_h, int dilation_w,
+                                int pad_h, int pad_w, bool bias_term, bool with_relu,
+                                SaberImplStrategy strategy, ImplEnum imp) {
 
-            LOG(INFO) << " conv param: "
-                      << " input_num = " << input_num
-                      << " in_channels = " << in_channels
-                      << " height = " << height
-                      << " width = " << width
-                      << " group = " << group
-                      << " pad_h = " << pad_h
-                      << " pad_w = " << pad_w
-                      << " stride_h = " << stride_h
-                      << " stride_w = " << stride_w
-                      << " dilation_h = " << dilation_h
-                      << " dilation_w = " << dilation_w
-                      << " kernel_h = " << kernel_h
-                      << " kernel_w = " << kernel_w
-                      << " out_channels = " << out_channels
-                      << " bias_term = " << (bias_term ? "true" : "false")
-                      << " with_relu = " << (with_relu ? "true" : "false");
+    LOG(INFO) << " conv param: "
+              << " input_num = " << input_num
+              << " in_channels = " << in_channels
+              << " height = " << height
+              << " width = " << width
+              << " group = " << group
+              << " pad_h = " << pad_h
+              << " pad_w = " << pad_w
+              << " stride_h = " << stride_h
+              << " stride_w = " << stride_w
+              << " dilation_h = " << dilation_h
+              << " dilation_w = " << dilation_w
+              << " kernel_h = " << kernel_h
+              << " kernel_w = " << kernel_w
+              << " out_channels = " << out_channels
+              << " bias_term = " << (bias_term ? "true" : "false")
+              << " with_relu = " << (with_relu ? "true" : "false");
 
     Shape input_s({input_num, in_channels, height, width}, Layout_NCHW_C8R);
     Shape weights_s({out_channels, in_channels / group, kernel_h, kernel_w}, Layout_NCHW);
@@ -311,21 +324,21 @@ int test_deconv_results_x86_C8R(int group,
     Tensor<TargetType_H> input_host;
     input_dev.re_alloc(input_s, AK_FLOAT);
     input_host.re_alloc(input_s, AK_FLOAT);
-//    {
-//        float *tmp= static_cast<float*>(input_dev.mutable_data());
-//        for(int i=0;i<height;i++){
-//            for(int j=0;j<width;j++){
-//                for(int c=0;c<8;c++){
-//                    int index=i*width*8+j*8+c;
-//                    tmp[index]=i*width+j;
-//                }
-//            }
-//
-//        }
-//    }
+    //    {
+    //        float *tmp= static_cast<float*>(input_dev.mutable_data());
+    //        for(int i=0;i<height;i++){
+    //            for(int j=0;j<width;j++){
+    //                for(int c=0;c<8;c++){
+    //                    int index=i*width*8+j*8+c;
+    //                    tmp[index]=i*width+j;
+    //                }
+    //            }
+    //
+    //        }
+    //    }
 
-//        fill_tensor_const(input_dev, 1.f);
-//    fill_tensor_seq(input_dev);
+    //        fill_tensor_const(input_dev, 1.f);
+    //    fill_tensor_seq(input_dev);
     fill_tensor_rand(input_dev, -2.0f, 2.0f);
     input_host.copy_from(input_dev);
 
@@ -335,9 +348,9 @@ int test_deconv_results_x86_C8R(int group,
     Tensor<TargetType_H> weights_host;
     weights_dev.re_alloc(weights_s, AK_FLOAT);
     weights_host.re_alloc(weights_s, AK_FLOAT);
-        fill_tensor_const(weights_dev, 1.f);
+    fill_tensor_const(weights_dev, 1.f);
     //    fill_tensor_seq(weights_dev);
-//    fill_tensor_rand(weights_dev, -2.0f, 2.0f);
+    //    fill_tensor_rand(weights_dev, -2.0f, 2.0f);
     weights_host.copy_from(weights_dev);
 
     Tensor<TargetType> bias_dev;
@@ -346,8 +359,8 @@ int test_deconv_results_x86_C8R(int group,
     if (bias_term) {
         bias_dev.re_alloc(bias_s, AK_FLOAT);
         bias_host.re_alloc(bias_s, AK_FLOAT);
-                fill_tensor_const(bias_dev, -1.f);
-//        fill_tensor_rand(bias_dev, -2.0f, 2.0f);
+        fill_tensor_const(bias_dev, -1.f);
+        //        fill_tensor_rand(bias_dev, -2.0f, 2.0f);
         bias_host.copy_from(bias_dev);
     }
 
@@ -375,8 +388,8 @@ int test_deconv_results_x86_C8R(int group,
     //    output_dev.set_layout_without_shape(Layout_NCHW_C8);
     conv.compute_output_shape(input_v, output_v, param);
     //            LOG(INFO)<<"layout "<<output_dev.get_layout();
-//    output_dev.re_alloc(output_dev.valid_shape(), AK_FLOAT);
-//    output_host.re_alloc()
+    //    output_dev.re_alloc(output_dev.valid_shape(), AK_FLOAT);
+    //    output_host.re_alloc()
     //    output_dev.re_alloc(output_dev_s, AK_FLOAT);
 
     //            LOG(INFO)<<"layout "<<output_dev.get_layout();
@@ -400,10 +413,10 @@ int test_deconv_results_x86_C8R(int group,
     anakin::saber::reorder_nchwc_nchw(input_host, nchwc8_input_check);
     check_host.re_alloc(Shape({input_num, out_channels, out_height, out_width}), AK_FLOAT);
     Tensor<TargetType_H> nchw_output_check(check_host.valid_shape());
-    std::vector<Tensor<TargetType_H>*> check_in_vec{&nchwc8_input_check};
-    std::vector<Tensor<TargetType_H>*> check_out_vec{&check_host};
-    gemm_transpose_conv<TargetType_H>(check_in_vec, check_out_vec,param);
-            LOG(INFO) << "cal check finish";
+    std::vector<Tensor<TargetType_H>*> check_in_vec {&nchwc8_input_check};
+    std::vector<Tensor<TargetType_H>*> check_out_vec {&check_host};
+    gemm_transpose_conv<TargetType_H>(check_in_vec, check_out_vec, param);
+    LOG(INFO) << "cal check finish";
     //    print_tensor_valid(check_host);
 
     //    anakin::saber::input_reorder_nChwc8(check_host,nchw_output_check);
@@ -415,14 +428,14 @@ int test_deconv_results_x86_C8R(int group,
                     check_host.valid_size(), max_ratio, max_diff);
 
     if (max_ratio > 1e-3 && max_diff > 1e-3) {
-//        print_tensor(nchwc8_output_check);
-//        print_tensor(check_host);
+        //        print_tensor(nchwc8_output_check);
+        //        print_tensor(check_host);
 
-//        print_tensor(input_host);
-//        print_tensor(weights_dev);
-                LOG(FATAL) << " max_ratio = " << max_ratio << " max_diff = " << max_diff;
+        //        print_tensor(input_host);
+        //        print_tensor(weights_dev);
+        LOG(FATAL) << " max_ratio = " << max_ratio << " max_diff = " << max_diff;
     } else {
-                LOG(INFO) << "passed";
+        LOG(INFO) << "passed";
     }
 
     return 0;
@@ -433,73 +446,79 @@ void deconv_testbase() {
     Env<DEVICE>::env_init();
     Env<HOST>::env_init();
     TestSaberBase<DEVICE, HOST, AK_FLOAT, Deconv, ConvParam> testbase;
-//    std::vector<int> kernel{3,4,5,6,7};
-//    std::vector<int> pad{0,1,2};
-//    std::vector<int> stride{1,2,3};
-    std::vector<int> kernel{3,4,5,6,7};
-    std::vector<int> pad{0,1};
-    std::vector<int> stride{2};
-    std::vector<int> dilation_v{1};
-    std::vector<int> group_v{1};
-    std::vector<int> in_h_v{22};
-    std::vector<int> in_w_v{23};
-    std::vector<int> input_num_v{1};
-    std::vector<int> input_channels_v{12};
-    std::vector<int> output_channels_v{21};
-    std::vector<bool> bias_term_v{true,false};
-    std::vector<bool> with_relu_v{true,false};
+    //    std::vector<int> kernel{3,4,5,6,7};
+    //    std::vector<int> pad{0,1,2};
+    //    std::vector<int> stride{1,2,3};
+    std::vector<int> kernel {3, 4, 5, 6, 7};
+    std::vector<int> pad {0, 1};
+    std::vector<int> stride {2};
+    std::vector<int> dilation_v {1};
+    std::vector<int> group_v {1};
+    std::vector<int> in_h_v {22};
+    std::vector<int> in_w_v {23};
+    std::vector<int> input_num_v {1};
+    std::vector<int> input_channels_v {12};
+    std::vector<int> output_channels_v {21};
+    std::vector<bool> bias_term_v {true, false};
+    std::vector<bool> with_relu_v {true, false};
 
     for (auto relu_flag : with_relu_v)
-    for (auto kernel_h : kernel)
-    for (auto pad_h : pad)
-    for (auto stride_h : stride)
-    for (auto dilation_h : dilation_v)
-    for (auto bias_term : bias_term_v)
-    for (auto in_channels : input_channels_v)
-    for (auto out_channels : output_channels_v)
-    for (auto group : group_v) {
-        auto kernel_w = kernel_h;
-        auto pad_w = pad_h;
-        auto stride_w = stride_h;
-        int dilation_w = dilation_h;
+        for (auto kernel_h : kernel)
+            for (auto pad_h : pad)
+                for (auto stride_h : stride)
+                    for (auto dilation_h : dilation_v)
+                        for (auto bias_term : bias_term_v)
+                            for (auto in_channels : input_channels_v)
+                                for (auto out_channels : output_channels_v)
+                                    for (auto group : group_v) {
+                                        auto kernel_w = kernel_h;
+                                        auto pad_w = pad_h;
+                                        auto stride_w = stride_h;
+                                        int dilation_w = dilation_h;
 
-        Shape weights_s({out_channels, in_channels, kernel_h, kernel_w}, Layout_NCHW);
-        Shape bias_s({1, out_channels, 1, 1}, Layout_NCHW);
+                                        Shape weights_s({out_channels, in_channels, kernel_h, kernel_w}, Layout_NCHW);
+                                        Shape bias_s({1, out_channels, 1, 1}, Layout_NCHW);
 
-        Tensor<DEVICE> weights_dev;
-        Tensor<DEVICE> bias_dev;
+                                        Tensor<DEVICE> weights_dev;
+                                        Tensor<DEVICE> bias_dev;
 
-        weights_dev.re_alloc(weights_s, AK_FLOAT);
-        fill_tensor_rand(weights_dev, -2.f, 2.0f);
-//        fill_tensor_const(weights_dev,1.f);
+                                        weights_dev.re_alloc(weights_s, AK_FLOAT);
+                                        fill_tensor_rand(weights_dev, -2.f, 2.0f);
+                                        //        fill_tensor_const(weights_dev,1.f);
 
-        if (bias_term) {
-            bias_dev.re_alloc(bias_s, AK_FLOAT);
-            fill_tensor_rand(bias_dev, -1.f, 1.f);
-        }
+                                        if (bias_term) {
+                                            bias_dev.re_alloc(bias_s, AK_FLOAT);
+                                            fill_tensor_rand(bias_dev, -1.f, 1.f);
+                                        }
 
-        ConvParam<DEVICE> param_nv(group, pad_h, pad_w,
-                                   stride_h, stride_w,
-                                   dilation_h, dilation_w,
-                                   &weights_dev, &bias_dev);
+                                        ConvParam<DEVICE> param_nv(group, pad_h, pad_w,
+                                                                   stride_h, stride_w,
+                                                                   dilation_h, dilation_w,
+                                                                   &weights_dev, &bias_dev);
 
-        if (relu_flag) {
-            param_nv.activation_param = ActivationParam<DEVICE>(Active_relu);
-        }
-        for (auto input_num : input_num_v)
-        for (auto height : in_h_v)
-        for (auto width : in_w_v) {
-            testbase.set_param(param_nv);//set param
-            testbase.set_rand_limit(-1.f,1.f);
-//            testbase.set_rand_limit(1.f,1.f);
-            testbase.set_input_shape(Shape({input_num, in_channels, height, width},
-                                           Layout_NCHW));//add some input shape
-            LOG(INFO) << kernel_h << "," << kernel_w << "," << pad_h << "," << pad_w << "," << stride_h << ","
-                      << stride_w << ", [" << input_num << "," << in_channels << "," << height << "," << width << "] ," <<
-                      out_channels << ",bias = " << bias_term;
-            testbase.run_test(gemm_transpose_conv<float, DEVICE, HOST>, 1e-3, true);//run test
-        }
-    }
+                                        if (relu_flag) {
+                                            param_nv.activation_param = ActivationParam<DEVICE>(Active_relu);
+                                        }
+
+                                        for (auto input_num : input_num_v)
+                                            for (auto height : in_h_v)
+                                                for (auto width : in_w_v) {
+                                                    testbase.set_param(param_nv);//set param
+                                                    testbase.set_rand_limit(-1.f, 1.f);
+                                                    //            testbase.set_rand_limit(1.f,1.f);
+                                                    testbase.set_input_shape(Shape({input_num, in_channels, height, width},
+                                                                                   Layout_NCHW));//add some input shape
+                                                    LOG(INFO) << kernel_h << "," << kernel_w << "," << pad_h << "," << pad_w << "," << stride_h << ","
+                                                              << stride_w << ", [" << input_num << "," << in_channels << "," << height << "," << width << "] ," <<
+                                                              out_channels << ",bias = " << bias_term;
+
+                                                    if (std::is_same<DEVICE, MLU>::value) {
+                                                        testbase.run_test(gemm_transpose_conv<float, DEVICE, HOST>, 0.02, true);//run test
+                                                    } else {
+                                                        testbase.run_test(gemm_transpose_conv<float, DEVICE, HOST>, 1e-3, true);//run test}
+                                                    }
+                                                }
+                                    }
 }
 
 TEST(TestSaberFunc, test_func_self_deconv_nv) {
@@ -528,35 +547,44 @@ TEST(TestSaberFunc, test_func_self_deconv_x86) {
     bool bias_term = false;
     bool with_relu = false;
 
-//    int group = 1;
-//    int input_num = 1;
-//    int in_channels = 16;
-//    int height = 15;
-//    int width = 28;
-//    int out_channels = 16;
-//    int kernel_h = 3;
-//    int kernel_w = 3;
-//    int stride_h = 2;
-//    int stride_w = 2;
-//    int dilation_h = 1;
-//    int dilation_w = 1;
-//    int pad_h = 0;
-//    int pad_w = 0;
-//    bool bias_term = true;
-//    bool with_relu = false;
+    //    int group = 1;
+    //    int input_num = 1;
+    //    int in_channels = 16;
+    //    int height = 15;
+    //    int width = 28;
+    //    int out_channels = 16;
+    //    int kernel_h = 3;
+    //    int kernel_w = 3;
+    //    int stride_h = 2;
+    //    int stride_w = 2;
+    //    int dilation_h = 1;
+    //    int dilation_w = 1;
+    //    int pad_h = 0;
+    //    int pad_w = 0;
+    //    bool bias_term = true;
+    //    bool with_relu = false;
     test_deconv_results_x86_C8R<X86, X86>(group,
-                                        input_num, in_channels,
-                                        height, width,
-                                        out_channels, kernel_h,
-                                        kernel_w,
-                                        stride_h, stride_w,
-                                        dilation_h, dilation_w,
-                                        pad_h, pad_w, bias_term,
-                                        with_relu,
-                                        SPECIFY, SABER_IMPL);
+                                          input_num, in_channels,
+                                          height, width,
+                                          out_channels, kernel_h,
+                                          kernel_w,
+                                          stride_h, stride_w,
+                                          dilation_h, dilation_w,
+                                          pad_h, pad_w, bias_term,
+                                          with_relu,
+                                          SPECIFY, SABER_IMPL);
 #endif
 }
 
+TEST(TestSaberFunc, test_func_self_deconv_mlu) {
+#if 0
+#ifdef USE_MLU
+    Env<MLUHX86>::env_init();
+    Env<MLU>::env_init();
+    deconv_testbase<MLUHX86, MLU>();
+#endif
+#endif
+}
 
 
 int main(int argc, const char** argv) {

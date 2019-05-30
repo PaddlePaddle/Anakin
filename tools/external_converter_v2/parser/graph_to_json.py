@@ -221,8 +221,10 @@ class GraphToJson(object):
         """
         create elements of graph for cytoscape
         """
-        elements = CreateJson(nodes=self.create_nodes(),
-                                                  edges=self.create_edges())
+        nodes = self.create_nodes()
+        edges = self.create_edges()
+
+        elements = CreateJson(nodes=nodes, edges=edges)
         return elements()
 
     def create_mem_info(self):
