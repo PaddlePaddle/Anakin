@@ -194,6 +194,7 @@ Net类是Anakin预测库对外的接口。
 
 	参数：
 	* `std::string name`：输入tensor的名称，可以在网络图中获取
+
 	返回：如果存在名字为`name`的tensor，则返回该tensor的指针，否则返回`nullptr`
 
 9. 获取网络输出层的全部输出`std::vector<Tensor<CPU>*> get_output()`：
@@ -225,6 +226,7 @@ Net类是Anakin预测库对外的接口。
 在取数据时，需要注意用`valid_shape`和`valid_size`接口。
 
 1. 构造函数
+
 	Tensor包含4个构造函数：
 	* `Tensor(DataType type = AK_FLOAT)`:声明一个空的tensor，没有分配数据空间，默认type是AK_FLOAT；
 	* `Tensor(Shape shape, DataType type = AK_FLOAT)`：构造一个维度信息为`shape`的tensor，分配`shape`维度信息的数据空间；
@@ -232,95 +234,135 @@ Net类是Anakin预测库对外的接口。
 	* `Tensor(const Tensor<ttype, dtype>& tensor)`：拷贝构造函数，数据为浅拷贝
 
 2. 设置tensor维度信息`set_shape(Shape valid_shape, Shape shape = Shape(), Shape offset = Shape())`:
+
 	说明：设置tensor的维度信息，不分配数据空间。
+
 	参数：
 	* `valid_shape`：当前tensor有效数据维度信息
 	* `shape`：当前tensor真正维度信息。默认为空，表示与valid_shape一致，shape始终要大于等于valid_shape
 	* `offset`：表示valid_shape偏移shape的维度信息，默认为空，只有在share_sub_buffer的情况下用到（该参数暂时没有用）。
+
 	返回：如果成功返回`SaberSuccess`，否则返回错误枚举类型。
 
 3. 重新分配空间`re_alloc(Shape shape, DataType dtype)`:
+
 	说明：重新分配tensor内存空间，如果tensor已经分配了内存空间，则先释放该内存，重新申请一块内存。
 	如果当前tensor是从别的tensor共享的（调用share_from），在调用此接口时会返回错误。
+
 	参数：
 	* `shape`: tensor维度信息，调用该接口后，tensor内部的`valid_shape`和`shape`都变成输入的`shape`.
 	* `dtype`: tensor的数据类型，目前支持AK_FLOAT，AK_INT8
+
 	返回：如果成功返回`SaberSuccess`，否则返回错误枚举类型。
 
 4. 调整内存空间`reshape(Shape valid_shape, Shape shape = Shape(), Shape offset = Shape())`：
+
 	说明：调整tensor内存空间和有效数据维度信息。该接口可以用于对网络(net)输入维度进行调整。如果tensor是通过`share_from`共享的，
 	则输入`shape`的大小不能超过原有tensor的`shape`的大小。
+
 	参数：
 	* `valid_shape`：当前tensor有效数据维度信息
 	* `shape`：当前tensor真正维度信息。默认为空，表示与valid_shape一致，shape始终要大于等于valid_shape
 	* `offset`：表示valid_shape偏移shape的维度信息，默认为空，只有在share_sub_buffer的情况下用到（该参数暂时没有用）。
+
 	返回：如果成功返回`SaberSuccess`，否则返回错误枚举类型。
 
 5. 设置tensor的数据类型`set_dtype(DataType type)`:
+
 	说明：可以自动设置tensor的数据类型，如果该tensor是通过share_from共享的或tensor的已分配空间小于`set_dtype`所需的空间，则不能设置tensor的数据类型
+
 	参数：
 	* `type`：数据类型，目前支持float，int8
+
 	返回：如果成功返回`SaberSuccess`；否则返回错误枚举类型。
 
 6. 获取tensor的数据类型`get_dtype()`:
+
 	说明：获取tensor的数据类型
+
 	返回：tensor的数据类型
 
 7. 设置tensor的量化值`set_scale(const std::vector<float> scale)`:
+
 	说明：在量化模型中，设置tensor的量化值
+
 	参数：
 	* `scale`: 表示tensor的量化值
 
 8. 获取tensor的量化值`get_scale()`:
+
 	说明：获取tensor的量化值
+
 	返回：获取tensor的量化值
 
 9. 获取有效维度信息`valid_shape()`:
+
 	说明：获取当前tensor有效的数据维度信息。
+
 	返回：维度信息Shape
 
 10. 获取真实维度信息`shape()`:
+
 	说明：获取当前tensor真实的数据维度信息。
+
 	返回：维度信息Shape
 
 11. 获取有效数据长度`valid_size()`：
+
 	说明：获取有效数据的长度
+
 	返回：有效数据长度
 
 12. 获取真实数据长度`size()`：
+
 	说明：获取有效数据的长度
+
 	返回：有效数据长度
 
 13. 获取可修改数据的指针`mutable_data(int index = 0)`：
+
 	说明：获取tensor的数据指针，可读写
+
 	参数：
 	* `index`：数据起始地址，默认为0
+
 	返回：数据指针，该指针为void* 类型，如需对数据进行修改，需将改指针强制转换为Tensor的DataType，AK_FLOAT为float*，AK_INT8为signed char*
 
 14. 获取只读数据的指针`data(int index = 0)`：
+
 	说明：获取tensor的数据指针，只读
+
 	参数：
 	* `index`：数据起始地址，默认为0
+
 	返回：该指针为void* 类型，如需对数据进行读取，需将改指针强制转换为Tensor的DataType，AK_FLOAT为float*，AK_INT8为signed char*
 
 15. 数据共享`share_from(const Tensor& tensor)`:
+
 	说明：共享tensor的数据空间，要求被共享的tensor的真实数据长度不小于当前tensor真实数据长度。
+
 	参数：
 	* `tensor`：被共享的数据空间的tensor
+
 	返回：如果成功返回`SaberSuccess`，否则返回相应的错误枚举类型。
 
 16. 数据拷贝`copy_from(const Tensor& tensor)`:
+
 	说明：tensor至今数据拷贝，要求当前tensor和被拷贝的tensor有效数据长度必须一致。
+
 	参数：
 	* `tensor`：被拷贝的数据空间的tensor
+
 	返回：如果成功返回`SaberSuccess`，否则返回相应的错误枚举类型。
 
 17. 获取特定维度信息`num()`, `channel()`, `height()`, `width()`:
+
 	说明：
 	* `num()`获取tensor的batch大小；
 	* `channel()`获取tensor的通道数；
 	* `height()`获取tensor高度大小；
 	* `width()`获取tensor宽度大小；
+
 	返回： 返回对应的维度大小
 
 ### Shape
@@ -337,10 +379,12 @@ Net类是Anakin预测库对外的接口。
 ```bash
 $ python converter.py --framework CAFFE --result_name mobilenet_v1 --caffe_proto_paths    ./model/caffe.proto --caffe_proto_txt_path  ./model/mobilenet_v1.prototxt --caffe_model_path   ./model/mobilenet_v1.caffemodel
 ```
+
 #### `*.anakin.bin` 转换 `*.lite.bin`
 ```bash
 $ sh output/generator/gen_code.sh -n mobilenet_v1 -m ./output/ mobilenet_v1.anakin.bin -a 0 -d 0 -o ./
 ```
+
 #### Net demo
 1. 在Android或IOS工程中，包含Anakin lite的include目录下的头文件和相应ABI的静态库或动态库文件
 2. 建立一个CPP文件，调用Anakin Lite API 接口，demo 示例如下：
