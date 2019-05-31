@@ -1,9 +1,9 @@
 # Anakin Lite
 Anakin Lite是Anakin为移动端打造的轻量化前向计算库，支持AOT和通用两种模式。
 ```
-	- AOT模式是使用模型转换器根据具体一个模型生成与其相关的`*.h`, `*.cpp`和模型文件`*.bin`，然后编译生成模型对应的库。
-	- 通用模式是直接编译生成库，库是通用的，所需的模型文件只需通过模型转换器转换为`*.lite.bin）`(融合模型)或者`*.info, *.bin`(分立模型)即可使用。
-	- 其中`*.info`表示模型的描述文件；`*.bin`表示模型的weights；`*.lite.bin`融合模型包含了模型的weights和模型描述文件。
+- AOT模式是使用模型转换器根据具体一个模型生成与其相关的`*.h`, `*.cpp`和模型文件`*.bin`，然后编译生成模型对应的库。
+- 通用模式是直接编译生成库，库是通用的，所需的模型文件只需通过模型转换器转换为`*.lite.bin）`(融合模型)或者`*.info, *.bin`(分立模型)即可使用。
+- 其中`*.info`表示模型的描述文件；`*.bin`表示模型的weights；`*.lite.bin`融合模型包含了模型的weights和模型描述文件。
 ```
 Anakin Lite 的特性包括：
 * 支持ARMv7/v8架构
@@ -51,7 +51,7 @@ list(APPEND ANDROID_COMPILER_FLAGS
 #### <span id = '0001'> 一、使用模型转换器转换为`*.bin`模型和生成相应`*.h`, `*.cpp` </span> ####
 根据上述描述，生成AOT模式的示例如下：
 ```bash
-	$ sh gen_code.sh -a 1 -m /home/Anakin/mobilenet.anakin.bin -n mobilenet -o ../../tools/anakin-lite -d 0
+$ sh gen_code.sh -a 1 -m /home/Anakin/mobilenet.anakin.bin -n mobilenet -o ../../tools/anakin-lite -d 0
 ```
 如果有多个模型，重复上述操作即可
 
@@ -62,17 +62,17 @@ list(APPEND ANDROID_COMPILER_FLAGS
 #### <span id = '0003'> 三、测试模型(可选)</span> ####
 1. 根据具体的测试模型修改`test/lite/`目录下的`test_lite_aot_model.cpp`，编译完成后，使用adb push将tools/anakin_lite/output/	  unit_test目录下生成的test_lite_aot_model和模型`*.bin`拷贝到手机目录data/local/tmp
 ```bash
-	$ adb push tools/anakin_lite/output/unit_test/test_lite_model data/local/tmp
-	$ adb push tools/anakin_lite/*.bin data/local/tmp
+$ adb push tools/anakin_lite/output/unit_test/test_lite_model data/local/tmp
+$ adb push tools/anakin_lite/*.bin data/local/tmp
 ```
 2. 使用adb shell命令运行test_lite_aot_model，用法为：
     ./test_lite_aot_model <模型文件> <batch_size> <预热次数> <执行次数> <大小核> <线程数>
 	大小核参数：0代表使用大核，1代表使用小核心。
 	如测试model.bin，batch_size=1，预热十次，测试二十次，使用大核，四线程
 ```bash
-	$ adb shell
-	$ cd data/local/tmp
-	$ ./test_lite_aot_model model.bin 1 10 20 0 4
+$ adb shell
+$ cd data/local/tmp
+$ ./test_lite_aot_model model.bin 1 10 20 0 4
 ```
 
 ## 通用模式
@@ -101,17 +101,17 @@ $ sh gen_code.sh -a 0 -m /home/Anakin/mobilenet.anakin.bin -n mobilenet -o ../..
 #### <span id = '0003'> 三、测试模型(可选)</span> ####
 1. 使用adb push将tools/anakin_lite/output/unit_test目录下生成的test_lite_model或者test_lite_merged_model和模型`*.info, *.bin`或者`*.lite.bin`拷贝到手机目录data/local/tmp。内存加载模式可以参考test_lite_model_from_mem或者test_lite_merged_model_from_mem单测。
 ```bash
-	$ adb push tools/anakin_lite/output/unit_test/test_lite_net /data/local/tmp
-	$ adb push tools/anakin_lite/*.lite.bin /data/local/tmp
+$ adb push tools/anakin_lite/output/unit_test/test_lite_net /data/local/tmp
+$ adb push tools/anakin_lite/*.lite.bin /data/local/tmp
 ```
 2. 使用adb shell命令运行test_lite_net，用法为
    ./test_lite_net  <模型文件> <batch_size> <预热次数> <执行次数> <大小核> <线程数>
    大小核参数：0代表使用大核，1代表使用小核心
    如测试model.lite.bin，batch_size=1，预热十次，测试二十次，使用大核，四线程
 ```bash
-	$ adb shell
-	$ cd data/local/tmp
-	$ ./test_lite_model model.lite.bin 1 10 20 0 4
+$ adb shell
+$ cd data/local/tmp
+$ ./test_lite_model model.lite.bin 1 10 20 0 4
 ```
 
 ## API 使用说明
@@ -120,6 +120,7 @@ $ sh gen_code.sh -a 0 -m /home/Anakin/mobilenet.anakin.bin -n mobilenet -o ../..
 Net类是Anakin预测库对外的接口。
 
 1. 构造函数`Net(PowerMode mode = SABER_POWER_HIGH, int threads = 1)`：
+
     说明：构造一个net，net可以加载模型，获取输入输出，并做预测。
 	参数：
 	* `mode`：可以指定Android端大小核调度。默认参数`SABER_POWER_HIGH`：使用大核；
