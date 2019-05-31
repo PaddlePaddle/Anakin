@@ -66,9 +66,10 @@ $ adb push tools/anakin_lite/output/unit_test/test_lite_model data/local/tmp
 $ adb push tools/anakin_lite/*.bin data/local/tmp
 ```
 2. 使用adb shell命令运行test_lite_aot_model，用法为：
-    ./test_lite_aot_model <模型文件> <batch_size> <预热次数> <执行次数> <大小核> <线程数>
-	大小核参数：0代表使用大核，1代表使用小核心。
-	如测试model.bin，batch_size=1，预热十次，测试二十次，使用大核，四线程
+
+    ./test_lite_aot_model <模型文件> <batch_size> <预热次数> <执行次数> <核数> <线程数>
+
+	eg: 测试model.bin，batch_size=1，预热十次，测试二十次，使用大核，四线程
 ```bash
 $ adb shell
 $ cd data/local/tmp
@@ -105,9 +106,10 @@ $ adb push tools/anakin_lite/output/unit_test/test_lite_net /data/local/tmp
 $ adb push tools/anakin_lite/*.lite.bin /data/local/tmp
 ```
 2. 使用adb shell命令运行test_lite_net，用法为
-   ./test_lite_net  <模型文件> <batch_size> <预热次数> <执行次数> <大小核> <线程数>
-   大小核参数：0代表使用大核，1代表使用小核心
-   如测试model.lite.bin，batch_size=1，预热十次，测试二十次，使用大核，四线程
+
+   ./test_lite_net  <模型文件> <batch_size> <预热次数> <执行次数> <核数> <线程数>
+
+   eg: 测试model.lite.bin，batch_size=1，预热十次，测试二十次，使用大核，四线程
 ```bash
 $ adb shell
 $ cd data/local/tmp
