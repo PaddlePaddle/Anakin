@@ -124,6 +124,7 @@ Net类是Anakin预测库对外的接口。
 1. 构造函数`Net(PowerMode mode = SABER_POWER_HIGH, int threads = 1)`：
 
     说明：构造一个net，net可以加载模型，获取输入输出，并做预测。
+
 	参数：
 	* `mode`：可以指定Android端大小核调度。默认参数`SABER_POWER_HIGH`：使用大核；
 		- `SABER_POWER_HIGH`：使用大核，数值为0；
@@ -135,60 +136,85 @@ Net类是Anakin预测库对外的接口。
 		- 当模式是`SABER_POWER_FULL`或者`SABER_POWER_NO_BIND`时，输入线程数若超过总的处理器核数量时，线程数量会被设置为总核数。
 
 2. 运行模式设置`set_run_mode(PowerMode mode, int threads)`：
+
 	说明：设置模型运行模式，支持Android系统，可以指定大小核和线程数量。
+
 	参数：参考构造函数。
 
 3. 从文件路径加载融合模型`load_model(const char* lite_model_path)`：
+
 	说明： 从文件路径加载模型，模型为`*.lite.bin`融合模型，包含网络信息和参数；
+
 	参数：
 	* `const char* lite_model_path`: 模型路径
+
 	返回：若加载成功，则返回`SaberSuccess`，否则返回错误代码；
 
 4. 从文件路径加载分立模型`load_model(const char* info_path, const char* weights_path)`：
+
 	说明： 从文件路径加载分立模型，分别为网络信息和参数信息；
+
 	参数：
 	* `const char* info_path`: 模型网络信息
 	* `const char* weights_path`：网络参数信息
+
 	返回： 若加载成功，则返回`SaberSuccess`，否则返回错误代码；
 
 5. 从内存加载融合模型`load_model(const void* merged_memory, size_t mem_size)`：
+
 	说明： 从内存加载融合模型，包含网络信息和参数；
+
 	参数：
 	* `const void* merged_memory`: 融合模型
 	* `size_t mem_size`：数据长度，单位bytes
+
 	返回： 若加载成功，则返回`SaberSuccess`，否则返回错误代码；
 
 6. 从内存加载分立模型`load_model(const void* info_memory, size_t info_size, const void* weights_memory, size_t weights_size)`：
+
 	说明： 从内存加载分立模型，分别为网络信息和参数信息；
+
 	参数：
 	* `const void* info_memory`: 模型网络信息
 	* `size_t info_size`：数据长度，单位bytes
 	* `const void* weights_memory`：网络参数信息
 	* `size_t weights_size`：数据长度，单位bytes
+
 	返回： 若加载成功，则返回`SaberSuccess`，否则返回错误枚举类型；
 
 7. 获取网络输入`std::vector<Tensor<CPU>*> get_input()`：
+
 	说明：获取net所有的输入tensor的指针，可以进行赋值和reshape操作
+
 	返回：返回一个vector存放所有输入tensor的指针，tensor已经分配好空间。
 
 8. 获取网络指定的输入`Tensor<CPU>* get_input(std::string name)`：
+
 	说明：根据输入的名称，获取指定输入tensor指针
+
 	参数：
 	* `std::string name`：输入tensor的名称，可以在网络图中获取
 	返回：如果存在名字为`name`的tensor，则返回该tensor的指针，否则返回`nullptr`
 
 9. 获取网络输出层的全部输出`std::vector<Tensor<CPU>*> get_output()`：
+
 	说明： 获取网络所有输出tensor的指针
+
 	返回：返回一个vector存放所有输出tensor的指针。
 
 10. 获取网络输出层的指定输出`Tensor<CPU>* get_output(std::string name)`：
+
 	说明：根据输入的名称，获取指定输出tensor指针
+
 	参数：
 	* `std::string name`：输出tensor的名称，可以在网络图中获取
+
 	返回：如果存在名字为`name`的tensor，则返回该tensor的指针，否则返回`nullptr`
 
 11. 网络前向计算`prediction()`：
+
 	说明： 网络前向计算
+
 	返回： 如果成功返回`SaberSuccess`，如果有错误返回相应错误枚举类型。
 
 ### Tensor
