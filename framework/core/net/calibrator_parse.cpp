@@ -84,7 +84,7 @@ saber::DataType CalibratorParser::get_dtype(std::string name0, std::string name1
         std::string top_op_type, std::string dev_name, graph::NodePtr bottom_node) const {
     static std::unordered_set<std::string> layout_pass_op = {"Split", "Gather", "Pooling"};
     static std::unordered_set<std::string> conv_name_set = {"ConvBatchnormScaleRelu", "ConvRelu",
-                                                            "ConvEltwise", "Convolution"};
+                                                            "ConvEltwise", "Convolution", "ConvBatchnormScale"};
     std::string str0 = get_precision(name0);
     std::string str1 = get_precision(name1);
     bool bint8 = ((str0 == "int8") && (str1 == "int8")) || ((str0 == "int8") && (str1 == "uint8"));
@@ -96,13 +96,14 @@ saber::DataType CalibratorParser::get_dtype(std::string name0, std::string name1
     if (dev_name == "X86") {
 #if defined(USE_X86_PLACE)
         bool top_8bit = (str1 == "int8" || str1 == "uint8");
+        bool bottom_8bit = (str0 == "int8" || str0 == "uint8");
 
         if (top_8bit && (conv_name_set.count(bottom_op_type) > 0)) {
             using pblock_type = PBlock<X86>;
             auto conv_weights = bottom_node->template get_attr<pblock_type>("weight_1");
             auto group = bottom_node->template get_attr<int>("group");
-            bool is_inchannel_1_or_3 = conv_weights.shape().channel() == 1
-                                       || conv_weights.shape().channel() == 3;
+            bool is_inchannel_1_or_3 = conv_weights.h_tensor().shape().channel() == 1
+                                       || conv_weights.h_tensor().channel() == 3;
 
             if (is_inchannel_1_or_3 && group == 1) {
                 bint8 = str1 == "int8";
@@ -193,7 +194,8 @@ saber::LayoutType CalibratorParser::get_layout(std::string name0, std::string na
 saber::LayoutType CalibratorParser::get_layout(std::string name0, std::string name1,
         saber::LayoutType old_layout, std::string target_type,
         std::string bottom_op_name, std::string top_op_name, graph::NodePtr bottom_node) const {
-    static std::unordered_set<std::string> conv_name_set = {"ConvBatchnormScaleRelu", "ConvRelu", "ConvEltwise", "Convolution"};
+    static std::unordered_set<std::string> conv_name_set = {"ConvBatchnormScaleRelu", "ConvRelu", "ConvEltwise",
+                                                            "Convolution", "ConvBatchnormScale"};
 
     if (target_type == "x86") {
 #if defined(USE_X86_PLACE)

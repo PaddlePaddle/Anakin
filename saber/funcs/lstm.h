@@ -26,7 +26,9 @@
 #endif
 
 #ifdef USE_X86_PLACE
+#ifndef USE_SGX
 #include "saber/funcs/impl/x86/saber_lstm.h"
+#endif
 #include "saber/funcs/impl/x86/vender_lstm.h"
 #endif
 
@@ -89,12 +91,12 @@ public:
             this->_impl.push_back(new VenderLstm <TargetType,
                                   OpDtype>);
             return SaberSuccess;
-
+#ifndef USE_SGX
         case SABER_IMPL:
             this->_impl.push_back(new SaberLstm <TargetType,
                                   OpDtype>);
             return SaberSuccess;
-
+#endif
         default:
             return SaberUnImplError;
         }

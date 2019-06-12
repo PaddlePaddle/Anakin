@@ -53,7 +53,9 @@ Status PriorBoxHelper<Ttype, Ptype>::InitParam() {
             order_.push_back(PRIOR_COM);
         }
     }
-
+    if (std::is_same<Ttype, MLU>::value) {
+        order_ = {PRIOR_MIN, PRIOR_MAX, PRIOR_COM};
+    }
     //add new parameter
     PTuple<float> fixed_size_;
     if (FIND_PARAMETER(fixed_size)) {
@@ -125,6 +127,16 @@ template class PriorBoxHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, X86, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_PRIORBOX(MLU, Precision::FP32);
+INSTANCE_PRIORBOX(MLU, Precision::FP16);
+template class PriorBoxHelper<MLU, Precision::FP32>;
+template class PriorBoxHelper<MLU, Precision::FP16>;
+template class PriorBoxHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 //! register op
 ANAKIN_REGISTER_OP(PriorBox)
 .Doc("PriorBox operator")
@@ -140,6 +152,9 @@ ANAKIN_REGISTER_OP(PriorBox)
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("priorbox")
 #endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("priorbox")
+#endif  // USE_MLU
 .num_in(1)
 .num_out(1)
 .Args<PTuple<float>>("min_size", " min_size of bbox ")

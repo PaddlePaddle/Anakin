@@ -30,6 +30,10 @@
 #include "saber/funcs/impl/arm/saber_eltwise_act.h"
 #endif
 
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_eltwise.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

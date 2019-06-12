@@ -87,6 +87,9 @@ Status ConvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     if (std::is_same<Ttype, NV>::value && Ptype == Precision::INT8) {
         impl_e = SABER_IMPL;
     }
+    if (std::is_same<Ttype, MLU>::value) {
+        impl_e = SABER_IMPL;
+    }
     bool use_k1s1p0 = (Ptype == Precision::FP32);
     use_k1s1p0 = use_k1s1p0 && (_param_conv.weight()->height() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv.weight()->width() == 1);
@@ -119,6 +122,9 @@ Status ConvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
 #endif
     SABER_CHECK(_funcs_conv.init(ins, outs, _param_conv, SPECIFY, impl_e, ctx));
 
+    if (std::is_same<Ttype, MLU>::value) {
+        return Status::OK();
+    }
     // check if weights have been transposed
     auto is_weights_transed = CHECK_PARAMETER(is_weights_transed);
     if (!is_weights_transed) {
@@ -171,6 +177,16 @@ ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, Precision::INT8);
 
 #endif
 
+#ifdef USE_MLU
+INSTANCE_CONVOLUTION(MLU, Precision::FP32);
+INSTANCE_CONVOLUTION(MLU, Precision::FP16);
+template class ConvolutionHelper<MLU, Precision::FP32>;
+template class ConvolutionHelper<MLU, Precision::FP16>;
+template class ConvolutionHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_CONVOLUTION(X86, Precision::FP32);
 template class ConvolutionHelper<X86, Precision::FP32>;
@@ -203,6 +219,11 @@ ANAKIN_REGISTER_OP(Convolution)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("convolution")
 #endif
+
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("convolution")
+#endif  // USE_MLU
+
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("convolution")
 #endif

@@ -19,9 +19,6 @@
 #include "anakin_config.h"
 #include "framework/core/thread_safe_macros.h"
 #include <mutex>
-#ifdef USE_SGX
-#include <support/sgx/sgx_mutex>
-#endif
 
 namespace anakin {
 

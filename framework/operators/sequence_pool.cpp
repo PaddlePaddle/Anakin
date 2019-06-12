@@ -84,12 +84,25 @@ template class SequencePoolHelper<X86, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, X86, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+template class SequencePoolHelper<MLU, Precision::FP32>;
+template class SequencePoolHelper<MLU, Precision::FP16>;
+template class SequencePoolHelper<MLU, Precision::INT8>;
+INSTANCE_SEQUENCE_POOL(MLU, Precision::FP32);
+INSTANCE_SEQUENCE_POOL(MLU, Precision::FP16);
+ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 //! register op
 ANAKIN_REGISTER_OP(SequencePool)
 .Doc("SequencePool operator")
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("SequencePool")
 #endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("SequencePool")
+#endif  // USE_MLU
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("SequencePool")
 #endif

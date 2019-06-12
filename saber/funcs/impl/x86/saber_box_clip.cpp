@@ -20,9 +20,10 @@ namespace anakin {
 
 namespace saber {
 
-template <DataType OpDtype>
-SaberStatus SaberBoxClip<X86, OpDtype>::dispatch(const std::vector<Tensor<X86>*>& inputs,
-        std::vector<Tensor<X86>*>& outputs, EmptyParam<X86>& param) {
+template<DataType OpDtype>
+SaberStatus SaberBoxClip<X86, OpDtype>::dispatch(const std::vector<Tensor<X86> *>& inputs,
+        std::vector<Tensor<X86> *>& outputs,
+        BoxClipParam<X86>& param) {
 
     static constexpr int im_info_size = 3;
     static constexpr int box_info_size = 4;
@@ -43,27 +44,48 @@ SaberStatus SaberBoxClip<X86, OpDtype>::dispatch(const std::vector<Tensor<X86>*>
         const float img_h = im_info_ptr[batch_id * im_info_size + 0];
         const float img_w = im_info_ptr[batch_id * im_info_size + 1];
         const float scale = im_info_ptr[batch_id * im_info_size + 2];
-        const float img_h_scale = round(img_h / scale) - 1;
-        const float img_w_scale = round(img_w / scale) - 1;
-        const int start_in_batch = offset[batch_id];
-        const int end_in_batch = offset[batch_id + 1];
 
-        for (int im_id = start_in_batch; im_id < end_in_batch; im_id++) {
-            const float* batch_box_ptr_in = &box_ptr_in[im_id * box_info_size];
-            float* batch_box_ptr_out = &box_ptr_out[im_id * box_info_size];
-            batch_box_ptr_out[0] = std::max(std::min(batch_box_ptr_in[0], img_w_scale), 0.f);
-            batch_box_ptr_out[1] = std::max(std::min(batch_box_ptr_in[1], img_h_scale), 0.f);
-            batch_box_ptr_out[2] = std::max(std::min(batch_box_ptr_in[2], img_w_scale), 0.f);
-            batch_box_ptr_out[3] = std::max(std::min(batch_box_ptr_in[3], img_h_scale), 0.f);
+        if (param.is_ori_box) {
+            const float img_h_scale = round(img_h / scale) - 1;
+            const float img_w_scale = round(img_w / scale) - 1;
+            const int start_in_batch = offset[batch_id];
+            const int end_in_batch = offset[batch_id + 1];
+
+            for (int im_id = start_in_batch; im_id < end_in_batch; im_id++) {
+                const float* batch_box_ptr_in = &box_ptr_in[im_id * box_info_size];
+                float* batch_box_ptr_out = &box_ptr_out[im_id * box_info_size];
+                batch_box_ptr_out[0] = std::max(std::min(batch_box_ptr_in[0], img_w_scale), 0.f);
+                batch_box_ptr_out[1] = std::max(std::min(batch_box_ptr_in[1], img_h_scale), 0.f);
+                batch_box_ptr_out[2] = std::max(std::min(batch_box_ptr_in[2], img_w_scale), 0.f);
+                batch_box_ptr_out[3] = std::max(std::min(batch_box_ptr_in[3], img_h_scale), 0.f);
+            }
+        } else {
+            const float scale_rev = 1.f / scale;
+            const float img_h_scale = img_h - 1;
+            const float img_w_scale = img_w - 1;
+            const int start_in_batch = offset[batch_id];
+            const int end_in_batch = offset[batch_id + 1];
+
+            for (int im_id = start_in_batch; im_id < end_in_batch; im_id++) {
+                const float* batch_box_ptr_in = &box_ptr_in[im_id * box_info_size];
+                float* batch_box_ptr_out = &box_ptr_out[im_id * box_info_size];
+                batch_box_ptr_out[0] = std::max(std::min(batch_box_ptr_in[0], img_w_scale), 0.f) * scale_rev;
+                batch_box_ptr_out[1] = std::max(std::min(batch_box_ptr_in[1], img_h_scale), 0.f) * scale_rev;
+                batch_box_ptr_out[2] = std::max(std::min(batch_box_ptr_in[2], img_w_scale), 0.f) * scale_rev;
+                batch_box_ptr_out[3] = std::max(std::min(batch_box_ptr_in[3], img_h_scale), 0.f) * scale_rev;
+            }
         }
     }
 
     return SaberSuccess;
 }
 
-template class SaberBoxClip<X86, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberBoxClip, EmptyParam, X86, AK_HALF);
-DEFINE_OP_TEMPLATE(SaberBoxClip, EmptyParam, X86, AK_INT8);
+template
+class SaberBoxClip<X86, AK_FLOAT>;
+
+DEFINE_OP_TEMPLATE(SaberBoxClip, BoxClipParam, X86, AK_HALF);
+
+DEFINE_OP_TEMPLATE(SaberBoxClip, BoxClipParam, X86, AK_INT8);
 } //namespace anakin
 
 } //namespace anakin

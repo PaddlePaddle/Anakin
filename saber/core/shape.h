@@ -503,12 +503,12 @@ public:
     }
 #ifndef USE_SGX
     friend std::ostream& operator<<(std::ostream& out, const Shape& s) {
-        for (int i = 0; i < s.dims() - 1; i++) {
+        out<<"[ ";
+        for (int i = 0; i <= s.size() - 1; i++) {
             out << s.data()[i] << ", ";
         }
 
-        out << s.data()[s.dims() - 1];
-        out << " , layout_type = " << s.get_layout() << ", size = " << s.count();
+        out << " layout_type = " << s.get_layout() << ", size = " << s.count()<<", dim = "<<s.dims()<<"]";
         return out;
     }
 #endif

@@ -18,7 +18,11 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-   
+#include "saber/funcs/impl/impl_flatten.h"   
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_flatten.h"
+#endif  // USE_MLU
+
 namespace anakin{
 
 namespace saber{
@@ -62,6 +66,14 @@ public:
         for (int i = end_axis + 1; i < shape_in.dims(); ++i) {
             shape_out.push_back(shape_in[i]);
         }
+
+        if (std::is_same<TargetType, MLU>::value) {
+            if (shape_out.size() < 4) {
+                for (int i = shape_out.size(); i < 4; ++i) {
+                    shape_out.push_back(1);
+                }
+            }
+        }
         switch (shape_out.size()) {
             case 1: layout = Layout_W; break;
             case 2: layout = Layout_NW; break;
@@ -72,24 +84,42 @@ public:
     }
     //flatten ops do nothing
     virtual SaberStatus init_impl(ImplEnum implenum) override {
+        if (std::is_same<TargetType, MLU>::value) {
+            switch (implenum) {
+                case VENDER_IMPL:
+                    this->_impl.push_back(new VenderFlatten <TargetType, OpDtype>);
+                    return SaberSuccess;
+                case SABER_IMPL:
+                    this->_impl.push_back(new SaberFlatten <TargetType, OpDtype>);
+                    return SaberSuccess;
+                default:
+                    return SaberUnImplError;
+            }
+        }
         return SaberSuccess;
     }
 
     //flatten ops do nothing
     virtual SaberStatus init(const Input_v& input, Output_v& output, Param_t& param,
             SaberImplStrategy strategy, ImplEnum implenum, Context<TargetType > &ctx) {
+        if (std::is_same<TargetType, MLU>::value) {
+            return BaseFunc<TargetType, OpDtype, ImplBase, FlattenParam>::init(input, output, param, strategy, implenum, ctx); 
+        }
         return SaberSuccess;
     }
     //flatten ops do nothing
     virtual SaberStatus operator()(const Input_v& input, Output_v& output, Param_t& param, \
         Context<TargetType> &ctx) {
-        return SaberSuccess;
+        if (std::is_same<TargetType, MLU>::value) {
+            return BaseFunc<TargetType, OpDtype, ImplBase, FlattenParam>::operator()(input, output, param, ctx);
+	}
+	return SaberSuccess;
     }
 
 private:
 
     virtual void pick_best_static() override {
-        //! flatten only has saber implementation
+	    //! flatten only has saber implementation
         this->_best_impl = this->_impl[0];
     }
 

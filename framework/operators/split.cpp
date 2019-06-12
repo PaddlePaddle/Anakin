@@ -40,9 +40,12 @@ Status SplitHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx, const std::vector<
 template<typename Ttype, Precision Ptype>
 Status SplitHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype>> &ins,
                                std::vector<Tensor4dPtr<Ttype>> &outs) {
-    for (int i = 0; i < split_num; i++) {
+    for (int i = 0; i < outs.size(); i++) {
         outs[i]->set_shape_without_layout(ins[0]->valid_shape());
         outs[i]->set_seq_offset(ins[0]->get_seq_offset());
+        if (std::is_same<Ttype, MLU>::value) {
+            outs[i]->share_from(*ins[0]);
+        }
     }
     return Status::OK();
 }
@@ -62,6 +65,17 @@ INSTANCE_SPLIT(ARM, Precision::FP32);
 template class SplitHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Split, SplitHelper, ARM, Precision::FP32);
 #endif
+
+#ifdef USE_MLU
+INSTANCE_SPLIT(MLU, Precision::FP32);
+INSTANCE_SPLIT(MLU, Precision::FP16);
+template class SplitHelper<MLU, Precision::FP32>;
+template class SplitHelper<MLU, Precision::FP16>;
+template class SplitHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Split, SplitHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Split, SplitHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_SPLIT(X86, Precision::FP32);
@@ -90,6 +104,9 @@ ANAKIN_REGISTER_OP(Split)
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("split")
 #endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("split")
+#endif  // USE_MLU
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("split")
 #endif

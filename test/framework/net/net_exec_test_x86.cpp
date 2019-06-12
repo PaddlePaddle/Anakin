@@ -53,14 +53,14 @@ void  instance_run() {
 #if USE_FROZEN_INT8
 
 #else
-    graph->load_calibrator_config("net_pt_config", "cal_file");
-    graph->load_layout_config("model_layout_config");
+    graph->load_calibrator_config("net_pt_config", "calibrate_file.txt");
+//    graph->load_layout_config("model_layout_config");
 #endif
     //    graph->Reshape("input_0",Shape({1,3,400,600},Layout_NCHW));
     std::vector<std::string>& vin_name = graph->get_ins();
 
-    for (int j = 0; j < vin_name.size(); ++j) {
-        graph->ResetBatchSize("input_0", g_batch_size);
+    for (auto& in : graph->get_ins()) {
+        graph->ResetBatchSize(in, g_batch_size);
     }
 
 #if USE_FROZEN_INT8
@@ -105,7 +105,16 @@ void  instance_run() {
 
     // warm up
     for (int i = 0; i < g_warm_up; i++) {
-        net_executer.prediction();
+        for (int j = 0; j < vin_name.size(); ++j) {
+            Tensor<X86>* d_tensor_in_p = net_executer.get_in(vin_name[j]);
+            if (g_random) {
+                fill_tensor_rand(*d_tensor_in_p);
+            } else {
+                fill_tensor_const(*d_tensor_in_p, 1.f);
+            }
+            d_tensor_in_p->set_seq_offset(seq_offset);
+       }
+       net_executer.prediction();
     }
 
     my_time.start(ctx);
@@ -126,8 +135,16 @@ void  instance_run() {
                 }
             }
         }
-
-        net_executer.prediction();
+        for (int j = 0; j < vin_name.size(); ++j) {
+            Tensor<X86>* d_tensor_in_p = net_executer.get_in(vin_name[j]);
+            if (g_random) {
+                fill_tensor_rand(*d_tensor_in_p);
+            } else {
+                fill_tensor_const(*d_tensor_in_p, 1.f);
+            }
+            d_tensor_in_p->set_seq_offset(seq_offset);
+       }
+       net_executer.prediction();
     }
 
     my_time.end(ctx);
@@ -138,15 +155,16 @@ void  instance_run() {
 
     for (int j = 0; j < out_name.size(); ++j) {
         LOG(INFO) << "output tensor : " << out_name[j]<<","<<net_executer.get_out(out_name[j])->valid_shape();
-        write_tensorfile(*net_executer.get_out(out_name[j]), out_name[j].c_str());
+        write_tensorfile(*net_executer.get_out(out_name[j]), replace_all(out_name[j], "/", "_").c_str());
     }
 
 #ifdef ENABLE_OP_TIMER
     net_executer.print_and_reset_optime_summary(g_warm_up + g_epoch);
 #endif
 
-    //    std::string save_g_model_path = g_model_path + std::string(".saved");
-    //    status = graph->save(save_g_model_path);
+
+//    std::string save_g_model_path = g_model_path + std::string(".saved");
+//    status = graph->save(save_g_model_path);
     delete graph;
 }
 #endif

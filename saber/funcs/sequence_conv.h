@@ -28,6 +28,9 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_sequence_conv.h"
 #endif
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_sequence_conv.h"
+#endif
 namespace anakin {
 namespace saber {
 
@@ -59,11 +62,13 @@ public:
             Output_v& output, Param_t& param) override {
         
         InDataTensor* input_tensor = input[0];
+        OutDataTensor* output_tensor = output[0];
         Shape new_shape = input_tensor->valid_shape();
         new_shape.set_num(input_tensor->num());
         new_shape.set_channel(param.filter_tensor->width());
         new_shape.set_height(1);
         new_shape.set_width(1);
+        output_tensor->set_seq_offset(input_tensor->get_seq_offset());
         return output[0]->set_shape(new_shape);
     }
 

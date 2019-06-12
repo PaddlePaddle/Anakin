@@ -102,11 +102,11 @@ NCHW_C4 | 5-D | YES | YES
   //create a null tensor. A null tensor holds for nothing.
   //tensor's buffer  is resident at CPU and its datatype is AK_FLOAT.
   //tensor's Layout is NCHW(default)
-   Tensor<X86, AK_FLOAT> mytensor;
+   Tensor<X86> mytensor;
 
    //1. using shape object to create a tensor.
    Shape shape1(NUM); //1-D shape. NUM is the number of dimention.
-   Tensor<X86, AK_FLOAT, W> mytensor1(shape1); //1-D tensor.
+   Tensor<X86> mytensor1(shape1); //1-D tensor.
 
   // A 4-D shape
    Shape shape2(N, C, H, W); // batch x channel x height x width
@@ -117,13 +117,10 @@ NCHW_C4 | 5-D | YES | YES
 
 ```c++
    // A 4-D tensor.
-   Tensor<X86, AK_FLOAT> mytensor2(shape2);  //right
+   Tensor<X86> mytensor2(shape2);  //right
 
    //A 4-D tensor which is resident at GPU and its datatype is AK_INT8
-   Tensor<NV, AK_INT8> mytensor3(shape2);   //right
-   
-   Tensor<X86, AK_FLOAT, NHW> mytensor4(shape2); //wrong!! shape's dimetion must be equal to tensor's Layout.
-   Tensor<NV, AK_FLOAT, NCHW_C4> mytensor5(shape2); //wrong!!!!
+   Tensor<NV> mytensor3(shape2);   //right
 
 ```
 
@@ -141,18 +138,18 @@ NCHW_C4 | 5-D | YES | YES
    Tensor(Dtype* data_ptr, TargetType_t target, int id, Shape shape);
 
    //using existing data feed to a tensor
-   Tensor<X86, AK_FLOAT> mytensor(data_ptr, TargetType, device_id, shape); //shape must has dimention (N, C, H, W).
+   Tensor<X86> mytensor(data_ptr, TargetType, device_id, shape); //shape must has dimention (N, C, H, W).
 
 ```
 
 > 3. 使用tensor初始化tensor
 
 ```c++
-   Tensor<NV, AK_FLOAT> tensor(exist_tensor);
+   Tensor<NV> tensor(exist_tensor);
 ```
 
 
-> 提示： 你可以用` typedef Tensor<X86, AK_FLOAT> Tensor4d_X86 `方便定义tensor
+> 提示： 你可以用` typedef Tensor<X86> Tensor4d_X86 `方便定义tensor
 
 
 #### 填充tensor数据区
@@ -163,10 +160,10 @@ NCHW_C4 | 5-D | YES | YES
 ```c++
 首先来看看tensor的四种声明方式：
 
-1. Tensor<X86, AK_FLOAT> mytensor;
-2. Tensor<X86, AK_FLOAT, W> mytensor1(shape1);
-3. Tensor<X86, AK_FLOAT> mytensor(data_ptr, TargetType, device_id, shape);
-4. Tensor<NV, AK_FLOAT> tensor(exist_tensor);
+1. Tensor<X86> mytensor;
+2. Tensor<X86> mytensor1(shape1);
+3. Tensor<X86> mytensor(data_ptr, TargetType, device_id, shape);
+4. Tensor<NV> tensor(exist_tensor);
 
 
 相关的声明方式的数据填充方法如下：
@@ -320,7 +317,7 @@ mytensor.reshape(valid_shape, shape, offset);
 
 ```c++
 
-template<typename TargetType, DataType Dtype, Precision Ptype>
+template<typename TargetType, Precision Ptype>
 class Graph ... /* inherit other class*/{
   
   //some implements
@@ -335,13 +332,13 @@ class Graph ... /* inherit other class*/{
 ```c++
 
 //Create a empty graph object.
-Graph graph = Graph<NV, AK_FLOAT, Precision::FP32> tmp();
+Graph graph = Graph<NV, Precision::FP32> tmp();
 
 //Create a pointer to a empty graph.
-Graph *graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+Graph *graph = new Graph<NV, Precision::FP32>();
 
 //Create a pointer to a empty graph.
-auto graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+auto graph = new Graph<NV, Precision::FP32>();
 
 ```
 
@@ -350,7 +347,7 @@ auto graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
 ```c++
 //some declarations
 ...
-auto graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+auto graph = new Graph<NV, Precision::FP32>();
 std::string model_path = "the/path/to/where/your/models/are";
 const char *model_path1 = "the/path/to/where/your/models/are";
 
@@ -476,12 +473,12 @@ OpRunType::ASYNC | Asynchronization | multi-stream on GPU
 //some declarations
 ...
 //Create a pointer to a graph.
-auto graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+auto graph = new Graph<NV, Precision::FP32>();
 //do something...
 ...
 
 //create a executor
-Net<NV, AK_FLOAT, Precision::FP32> executor(*graph);
+Net<NV, Precision::FP32> executor(*graph);
 
 ```
 
@@ -496,16 +493,16 @@ Net<NV, AK_FLOAT, Precision::FP32> executor(*graph);
 
 //create a executor
 //TargetType is NV [NVIDIA GPU]
-Net<NV, AK_FLOAT, Precision::FP32> executor(*graph);
+Net<NV, Precision::FP32> executor(*graph);
 
 //Get the first input tensor.
 //The following tensors(tensor_in0, tensor_in2 ...) are resident at GPU.
 //Note: Member function get_in returns an pointer to tensor.
-Tensor<NV, AK_FLOAT>* tensor_in0 = executor.get_in("input_0");
+Tensor<NV>* tensor_in0 = executor.get_in("input_0");
 
 //If you have multiple input tensors
 //You just type this code below.
-Tensor<NV, AK_FLOAT>* tensor_in1 = executor.get_in("input_1");
+Tensor<NV>* tensor_in1 = executor.get_in("input_1");
 ...
 auto tensor_inn = executor.get_in("input_n");
 ```
@@ -519,8 +516,8 @@ auto tensor_d_in = executor.get_in("input_0");
 //If we want to feed above tensor, we must feed the tensor which is resident at host. And then copy the host tensor to the device's one.
 
 //using Tensor4d = Tensor<Ttype, Dtype>;
-Tensor4d<X86, AK_FLOAT> tensor_h_in; //host tensor;
-//Tensor<X86, AK_FLOAT> tensor_h_in; 
+Tensor4d<X86> tensor_h_in; //host tensor;
+//Tensor<X86> tensor_h_in; 
 
 //Allocate memory for host tensor.
 tensor_h_in.re_alloc(tensor_d_in->valid_shape());
@@ -543,7 +540,7 @@ tensor_d_in->copy_from(tensor_h_in);
 类似的，我们可以利用成员函数get_out来获得输出tensor。但与获得输入tensor不同的是， 我们需要指定输入tensor结点的名字，这个可以从dash board中看到，请从[Anakin Parser](Converter_ch.md)中查看dash board的使用方法。假如有个输出结点叫pred_out, 那么我们可以通过如下代码获得相应的输出tensor：
 ```c++
 //Note: this tensor are resident at GPU.
-Tensor<NV, AK_FLOAT>* tensor_out_d = executor.get_out("pred_out");
+Tensor<NV>* tensor_out_d = executor.get_out("pred_out");
 
 ```
 
@@ -570,7 +567,7 @@ executor.prediction();
 
 std::string model_path = "your_Anakin_models/xxxxx.anakin.bin";
 // Create an empty graph object.
-auto graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+auto graph = new Graph<NV, Precision::FP32>();
 // Load Anakin model.
 auto status = graph->load(model_path);
 if(!status ) {
@@ -581,14 +578,14 @@ graph->Reshape("input_0", {10, 384, 960, 10});
 // You must optimize graph for the first time.
 graph->Optimize();
 // Create a executer.
-Net<NV, AK_FLOAT, Precision::FP32> net_executer(*graph);
+Net<NV, Precision::FP32> net_executer(*graph);
 
 //Get your input tensors through some specific string such as "input_0", "input_1", and 
 //so on. 
 //And then, feed the input tensor.
 //If you don't know Which input do these specific string ("input_0", "input_1") correspond with, you can launch dash board to find out.
 auto d_tensor_in_p = net_executer.get_in("input_0");
-Tensor4d<X86, AK_FLOAT> h_tensor_in;
+Tensor4d<X86> h_tensor_in;
 auto valid_shape_in = d_tensor_in_p->valid_shape();
 for (int i=0; i<valid_shape_in.size(); i++) {
     LOG(INFO) << "detect input dims[" << i << "]" << valid_shape_in[i]; //see tensor's dimentions

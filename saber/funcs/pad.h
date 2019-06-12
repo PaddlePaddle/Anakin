@@ -32,6 +32,9 @@
 #include "saber/funcs/impl/amd/include/saber_pad.h" 
 #endif
 
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_pad.h"
+#endif
 
 namespace anakin {
 namespace saber {

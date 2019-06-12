@@ -21,8 +21,9 @@ namespace ops {
 template<typename Ttype, Precision Ptype>
 Status BoxClipHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing BoxClip op parameter.";
-    EmptyParam<Ttype> param_concat;
-    _param_concat = param_concat;
+    auto is_ori_box=GET_PARAMETER_WITH_DEFAULT(bool,is_ori_box,true);
+    BoxClipParam<Ttype> param_box_clip(is_ori_box);
+    _param_box_clip = param_box_clip;
     return Status::OK();
 }
 
@@ -30,14 +31,14 @@ template<typename Ttype, Precision Ptype>
 Status BoxClipHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
                                         const std::vector<Tensor4dPtr<Ttype> >& ins,
                                         std::vector<Tensor4dPtr<Ttype> >& outs) {
-    SABER_CHECK(_funcs_concat.init(ins, outs, _param_concat, SPECIFY, SABER_IMPL, ctx));
+    SABER_CHECK(_funcs_concat.init(ins, outs, _param_box_clip, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
 template<typename Ttype, Precision Ptype>
 Status BoxClipHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype>>& ins,
         std::vector<Tensor4dPtr<Ttype>>& outs) {
-    SABER_CHECK(_funcs_concat.compute_output_shape(ins, outs, _param_concat));
+    SABER_CHECK(_funcs_concat.compute_output_shape(ins, outs, _param_box_clip));
     return Status::OK();
 }
 
@@ -49,7 +50,7 @@ void BoxClip<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
                 std::vector<Tensor4dPtr<Ttype> >& outs) { \
     auto* impl = static_cast<BoxClipHelper<Ttype, Ptype>*>(this->_helper); \
     auto& param = \
-        static_cast<BoxClipHelper<Ttype, Ptype>*>(this->_helper)->_param_concat; \
+        static_cast<BoxClipHelper<Ttype, Ptype>*>(this->_helper)->_param_box_clip; \
     impl->_funcs_concat(ins, outs, param, ctx); \
 }
 

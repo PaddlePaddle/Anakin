@@ -30,6 +30,11 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_permute_power.h"
 #endif
+
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_permute_power.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

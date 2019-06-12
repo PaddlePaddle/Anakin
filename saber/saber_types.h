@@ -29,13 +29,19 @@ enum TargetTypeEnum {
     eARMGPU = 7,
     eARMDSP = 8,
     eBM = 9,
-    eAMDHX86 = 10,
+    eBMX86 = 10,
+    eAMDHX86 = 11,
+    eMLU = 12,
+    eMLUHX86 = 13,
 };
+
+
 template <TargetTypeEnum T>
 struct TargetType {};
 // NV device without pinned memory
 typedef TargetType<eNV> NV;
 typedef TargetType<eBM> BM;
+typedef TargetType<eBMX86> BMX86;
 typedef TargetType<eARM> ARM;
 typedef TargetType<eARMGPU> ARMGPU;
 typedef TargetType<eAMD> AMD;
@@ -46,6 +52,20 @@ typedef TargetType<eNVHX86> NVHX86;
 // invalid target type, for target has only one memory block
 typedef TargetType<eAMDHX86> AMDHX86;
 typedef TargetType<eINVALID> INVLD;
+typedef TargetType<eMLU> MLU;
+typedef TargetType<eMLUHX86> MLUHX86;
+template <typename Target_Type>
+struct DefaultHostType {
+    typedef X86 Host_type;
+};
+template <>
+struct DefaultHostType<NV> {
+    typedef NVHX86 Host_type;
+};
+template <>
+struct DefaultHostType<ARM> {
+    typedef ARM Host_type;
+};
 enum LayoutType {
     Layout_invalid = 0,
     Layout_W = 1,

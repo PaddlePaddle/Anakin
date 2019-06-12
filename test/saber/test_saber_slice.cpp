@@ -1,3 +1,19 @@
+/* Copyright (c) 2019 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+#include <vector>
 
 #include "saber/core/context.h"
 #include "saber/funcs/slice.h"
@@ -5,7 +21,6 @@
 #include "test_saber_base.h"
 #include "saber/core/tensor_op.h"
 #include "saber_types.h"
-#include <vector>
 
 using namespace anakin::saber;
 
@@ -38,181 +53,68 @@ void slice_cpu(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tenso
 
 }
 
-TEST(TestSaberFunc, test_func_slice){
+struct TestCase {
+    int n;
+    int c;
+    int h;
+    int w;
+    int slice_axis;
+    std::vector<int> slice_points;
+};
+
+template <typename dtype,typename TargetD,typename TargetH>
+void test_slice(
+        const TestCase& t
+        , double succ_ratio = 0.00001) {
+    TestSaberBase<TargetD, TargetH, AK_FLOAT, Slice, SliceParam> testbase(
+        1, t.slice_points.size() + 1);
+
+    SliceParam<TargetD> param(t.slice_axis, t.slice_points);
+    testbase.set_param(param);
+    testbase.set_input_shape(Shape({t.n, t.c, t.h, t.w}));
+    testbase.run_test(slice_cpu<dtype, TargetD, TargetH>, succ_ratio);
+}
+
+TEST(TestSaberFunc, test_func_slice) {
+    std::vector<TestCase> test_cases{
+        {3, 9, 12, 12, 1, {1, 3, 6}},
+        {10, 3, 2, 3, 0, {4, 6, 8}},
+        {6, 4, 19, 2, 2, {5}},
+        {10, 11, 1, 11, 3, {1, 9}},
+    };
+
 #ifdef USE_CUDA
     LOG(INFO)<<"NV test......";
-    //test 0
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Slice, SliceParam> testbase(1,4);
-    int num_in = 4;
-    int c_in = 9;
-    int h_in = 12;
-    int w_in = 12;
-    int slice_axis = 1;
-    std::vector<int> slice_points = {1,3,6};
-    SliceParam<NV> param(slice_axis, slice_points);
-    testbase.set_param(param);
-    testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-    testbase.run_test(slice_cpu<float, NV, NVHX86>);
-
-    //test1
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Slice, SliceParam> testbase1(1,4);
-    num_in = 10;
-    c_in = 3;
-    h_in = 2;
-    w_in = 3;
-    slice_axis = 0;
-    slice_points = {4,6,8};
-    SliceParam<NV> param1(slice_axis, slice_points);
-    testbase1.set_param(param1);
-    testbase1.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-    testbase1.run_test(slice_cpu<float, NV, NVHX86>);
-    //test2
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Slice, SliceParam> testbase2(1,2);
-    num_in = 6;
-    c_in = 4;
-    h_in = 10;
-    w_in = 2;
-    slice_axis = 2;
-    slice_points = {5};
-    SliceParam<NV> param2(slice_axis, slice_points);
-    testbase2.set_param(param2);
-    testbase2.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-    testbase2.run_test(slice_cpu<float, NV, NVHX86>);
-    //test3
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Slice, SliceParam> testbase3(1,3);
-    num_in = 10;
-    c_in = 11;
-    h_in = 1;
-    w_in = 11;
-    slice_axis = 3;
-    slice_points = {1,9};
-    SliceParam<NV> param3(slice_axis, slice_points);
-    testbase3.set_param(param3);
-    testbase3.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-    testbase3.run_test(slice_cpu<float, NV, NVHX86>);
-#endif
+    for (const auto& t : test_cases) {
+        test_slice<float, NV, NVHX86>(t);
+    }
+#endif // ifdef USE_CUDA
 
 #ifdef USE_X86_PLACE
     LOG(INFO)<<"x86 test......";
-    do
-    {
-        //test 0
-        TestSaberBase<X86, X86, AK_FLOAT, Slice, SliceParam> testbase(1,4);
-        int num_in = 4;
-        int c_in = 9;
-        int h_in = 12;
-        int w_in = 12;
-        int slice_axis = 1;
-        std::vector<int> slice_points = {1,3,6};
-        SliceParam<X86> param(slice_axis, slice_points);
-        testbase.set_param(param);
-        testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-        testbase.run_test(slice_cpu<float, X86, X86>);
+    for (const auto& t : test_cases) {
+        test_slice<float, X86, X86>(t);
+    }
+#endif // ifdef USE_X86_PLACE
 
-        //test1
-        TestSaberBase<X86, X86, AK_FLOAT, Slice, SliceParam> testbase1(1,4);
-        num_in = 10;
-        c_in = 3;
-        h_in = 2;
-        w_in = 3;
-        slice_axis = 0;
-        slice_points = {4,6,8};
-        SliceParam<X86> param1(slice_axis, slice_points);
-        testbase1.set_param(param1);
-        testbase1.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-        testbase1.run_test(slice_cpu<float, X86, X86>);
-
-        //test2
-        TestSaberBase<X86, X86, AK_FLOAT, Slice, SliceParam> testbase2(1,2);
-        num_in = 6;
-        c_in = 4;
-        h_in = 10;
-        w_in = 2;
-        slice_axis = 2;
-        slice_points = {5};
-        SliceParam<X86> param2(slice_axis, slice_points);
-        testbase2.set_param(param2);
-        testbase2.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-        testbase2.run_test(slice_cpu<float, X86, X86>);
-        //test3
-        TestSaberBase<X86, X86, AK_FLOAT, Slice, SliceParam> testbase3(1,3);
-        num_in = 10;
-        c_in = 11;
-        h_in = 1;
-        w_in = 11;
-        slice_axis = 3;
-        slice_points = {1,9};
-        SliceParam<X86> param3(slice_axis, slice_points);
-        testbase3.set_param(param3);
-        testbase3.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-        testbase3.run_test(slice_cpu<float, X86, X86>);
-
-    }while(0);
-#endif
 #ifdef USE_ARM_PLACE
     LOG(INFO)<<"ARM test......";
-    do
-    {
-        //test 0
-        TestSaberBase<ARM, ARM, AK_FLOAT, Slice, SliceParam> testbase(1,4);
-        int num_in = 4;
-        int c_in = 9;
-        int h_in = 12;
-        int w_in = 12;
-        int slice_axis = 1;
-        std::vector<int> slice_points = {1,3,6};
-        SliceParam<ARM> param(slice_axis, slice_points);
-        testbase.set_param(param);
-        testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-        testbase.run_test(slice_cpu<float, ARM, ARM>);
+    for (const auto& t : test_cases) {
+        test_slice<float, ARM, ARM>(t);
+    }
+#endif // ifdef USE_ARM_PLACE
 
-        //test1
-        TestSaberBase<ARM, ARM, AK_FLOAT, Slice, SliceParam> testbase1(1,4);
-        num_in = 10;
-        c_in = 3;
-        h_in = 2;
-        w_in = 3;
-        slice_axis = 0;
-        slice_points = {4,6,8};
-        SliceParam<ARM> param1(slice_axis, slice_points);
-        testbase1.set_param(param1);
-        testbase1.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-        testbase1.run_test(slice_cpu<float, ARM, ARM>);
-
-        //test2
-        TestSaberBase<ARM, ARM, AK_FLOAT, Slice, SliceParam> testbase2(1,2);
-        num_in = 6;
-        c_in = 4;
-        h_in = 10;
-        w_in = 2;
-        slice_axis = 2;
-        slice_points = {5};
-        SliceParam<ARM> param2(slice_axis, slice_points);
-        testbase2.set_param(param2);
-        testbase2.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-        testbase2.run_test(slice_cpu<float, ARM, ARM>);
-        //test3
-        TestSaberBase<ARM, ARM, AK_FLOAT, Slice, SliceParam> testbase3(1,3);
-        num_in = 10;
-        c_in = 11;
-        h_in = 1;
-        w_in = 11;
-        slice_axis = 3;
-        slice_points = {1,9};
-        SliceParam<ARM> param3(slice_axis, slice_points);
-        testbase3.set_param(param3);
-        testbase3.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-        testbase3.run_test(slice_cpu<float, ARM, ARM>);
-
-    }while(0);
-#endif
+#ifdef USE_MLU
+    LOG(INFO)<<"MLU test......";
+    for (const auto& t : test_cases) {
+        test_slice<float, MLU, MLUHX86>(t, 0.02);
+    }
+#endif // ifdef USE_MLU
 }
 
 int main(int argc, const char** argv) {
-    // initial logger
-    //logger::init(argv[0]);
     InitTest();
     RUN_ALL_TESTS(argv[0]);
+
     return 0;
 }
-

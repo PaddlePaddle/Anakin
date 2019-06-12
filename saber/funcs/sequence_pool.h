@@ -29,6 +29,12 @@
 #include "saber/funcs/impl/x86/saber_sequence_pool.h"
 #endif
 
+#ifdef USE_MLU_PLACE
+#ifdef USE_BANG
+#include "saber/funcs/impl/mlu/saber_sequence_pool.h"
+#endif // ifdef USE_BANG
+#endif // ifdef USE_MLU_PLACE
+
 namespace anakin {
 namespace saber {
 

@@ -7,6 +7,7 @@
 #include "enclave_t.h"
 
 struct _FILE {
+    unsigned mode;
     uintptr_t untrusted;
     size_t bytes_left;
     unsigned char *buffer;
@@ -60,6 +61,7 @@ FILE *fopen(const char *name, const char *mode) {
 
     FILE *ret = malloc(sizeof(FILE));
 
+    ret->mode = fmode;
     ret->untrusted = f;
     ret->buffer = malloc(SGX_FILE_IO_BUFSIZE);
     ret->curp = ret->buffer;
@@ -73,14 +75,56 @@ FILE *fopen(const char *name, const char *mode) {
 }
 
 size_t fwrite(const void *buf, size_t size, size_t count, FILE *f) {
-    size_t bytes_written = 0;
-    sgx_status_t ec = ocall_fwrite(&bytes_written, buf, size, count, f->untrusted);
+    const size_t total = size * count;
+    size_t left = total;
 
-    if (ec != SGX_SUCCESS)
-        return 0;
+    // If the write buffer is large enough to hold the request,
+    // simply buffer it without ocall
+    if (f->bytes_left > total) {
+        memcpy(f->curp, buf, total);
+        f->curp += total;
+        f->bytes_left -= total;
+        return total;
+    }
 
-    return bytes_written;
-}
+    // The write buffer is not large enough to hold the request.
+    const unsigned char *_buf = buf;
+    size_t written = 0;
+    
+    // Flush the previously bufferred content first
+    const size_t bufferred_size = SGX_FILE_IO_BUFSIZE - f->bytes_left;
+    if (bufferred_size > 0) {
+        ocall_fwrite(&written, f->buffer, 1, bufferred_size, f->untrusted);
+        if (written != bufferred_size) {
+            // It may occur that not all buffer content is successfully flushed.
+            // In this case, we have to abort the program since there is no way
+            // to notify the caller of fwrite that some of the previous calls
+            // failed or partially failed. 
+            // FIXME: the standard library fwrite uses buffering too. How does it
+            // handle such cases? Should we provide a fflush call? 
+            abort();
+        }
+        f->curp = f->buffer;
+        f->bytes_left = SGX_FILE_IO_BUFSIZE;
+    }
+
+    // Do ocall write until what is left is smaller then the write
+    // buffer size
+    while (left >= SGX_FILE_IO_BUFSIZE) {
+        ocall_fwrite(&written, _buf, 1, SGX_FILE_IO_BUFSIZE, f->untrusted);
+        left -= written;
+        if (written != SGX_FILE_IO_BUFSIZE) {
+            return total - left;
+        }
+        _buf += written;
+    }
+
+    // Buffer the trailing part to save some ocalls
+    memcpy(f->curp, _buf, left);
+    f->curp += left;
+    f->bytes_left -= left;
+    return total;
+};
 
 size_t fread(void *buf, size_t size, size_t count, FILE *f) {
     const size_t total = size * count;
@@ -148,6 +192,15 @@ size_t fsize(FILE *f) {
 }
 
 int fclose(FILE *f) {
+    if (f->mode == FILE_MODE_WRITE && f->buffer != f->curp) {
+        size_t written = 0;
+        const size_t left = f->curp - f->buffer;
+        ocall_fwrite(&written, f->buffer, 1, left, f->untrusted);
+        if (written != left) {
+            abort();
+        }
+    }
+
     int r = EOF;
 
     sgx_status_t ec = ocall_fclose(&r, f->untrusted);

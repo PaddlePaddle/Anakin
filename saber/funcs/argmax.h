@@ -35,6 +35,10 @@
 #include "saber/funcs/impl/amd/include/saber_argmax.h"
 #endif
 
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_argmax.h"
+#endif  // USE_MLU
+
 namespace anakin {
 namespace saber {
 
@@ -77,7 +81,7 @@ public:
            CHECK_LE(axis, input[0]->dims()) << "axis must be less than or equal to the number od dims.";
            CHECK_LE(top_k, input[0]->valid_shape()[axis]) << "top_k must be less than or equal to the dimension of the axis.";
         } else{
-           CHECK_LE(top_k, input[0]->count(1, input[0]->dims())) << "top_k must be less than or equal to the dimension of input.";
+           CHECK_LE(top_k, input[0]->count_valid(1, input[0]->dims())) << "top_k must be less than or equal to the dimension of input.";
         }
         //int num_top_axes = input[0]->dims();
        // if(num_top_axes < 3) num_top_axes = 3;

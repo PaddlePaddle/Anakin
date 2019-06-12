@@ -77,12 +77,22 @@ ANAKIN_REGISTER_OP_HELPER(MatMul, MatMulHelper, ARM, Precision::FP32);
 #endif//arm
 
 #ifdef AMD_GPU
-INSTANCE_MAT_MUL(AMD, Precision::FP32);
-template class MatMulHelper<AMD, Precision::FP32>;
-template class MatMulHelper<AMD, Precision::FP16>;
-template class MatMulHelper<AMD, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(MatMul, MatMulHelper, AMD, Precision::FP32);
+//INSTANCE_MAT_MUL(AMD, Precision::FP32);
+//template class MatMulHelper<AMD, Precision::FP32>;
+//template class MatMulHelper<AMD, Precision::FP16>;
+//template class MatMulHelper<AMD, Precision::INT8>;
+//ANAKIN_REGISTER_OP_HELPER(MatMul, MatMulHelper, AMD, Precision::FP32);
 #endif
+
+#ifdef USE_MLU
+INSTANCE_MAT_MUL(MLU, Precision::FP32);
+INSTANCE_MAT_MUL(MLU, Precision::FP16);
+template class MatMulHelper<MLU, Precision::FP32>;
+template class MatMulHelper<MLU, Precision::FP16>;
+ANAKIN_REGISTER_OP_HELPER(MatMul, MatMulHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(MatMul, MatMulHelper, MLU, Precision::FP16);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(MatMul)
 .Doc("MatMul operator")
@@ -96,7 +106,10 @@ ANAKIN_REGISTER_OP(MatMul)
 .__alias__<X86, Precision::FP32>("mat_mul")
 #endif
 #ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("mat_mul")
+//.__alias__<AMD, Precision::FP32>("mat_mul")
+#endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("mat_mul")
 #endif
 .num_in(1)
 .num_out(1)

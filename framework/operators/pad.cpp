@@ -67,6 +67,12 @@ template class PadHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Pad, PadHelper, ARM, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_PAD(MLU, Precision::FP32);
+template class PadHelper<MLU, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Pad, PadHelper, MLU, Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(Pad)
 .Doc("Pad operator")
@@ -81,6 +87,9 @@ ANAKIN_REGISTER_OP(Pad)
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("Pad")
+#endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("Pad")
 #endif
 .num_in(1)
 .num_out(1)

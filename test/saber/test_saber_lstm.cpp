@@ -669,7 +669,7 @@ void lstmp_ut(int word_size ,
     double maxdiff = 0;
     double maxratio = 0;
     double mlu_ration = 0.0;
-    tensor_cmp_host_mlu((const float*)host_hidden_out.data(), (const float*)compare_g.data(), host_hidden_out.valid_size(), mlu_ration);
+    tensor_cmp_host((const float*)host_hidden_out.data(), (const float*)compare_g.data(), host_hidden_out.valid_size(), mlu_ration);
     tensor_cmp_host((const float*)host_hidden_out.data(), (const float*)compare_g.data(), host_hidden_out.valid_size(), maxratio, maxdiff);
     LOG(INFO)<<"ratios :: "<< maxratio<<","<<maxdiff<<","<<mlu_ration;
     if (abs(maxratio) <= 0.01||abs(maxdiff)<0.01 || (precise==AK_INT8&&mlu_ration<0.05)) {

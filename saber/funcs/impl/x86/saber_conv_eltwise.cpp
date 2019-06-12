@@ -171,7 +171,15 @@ init(const std::vector<Tensor<X86> *>& inputs,
     int kernel_w = conv_param->weight()->width();
     Shape src_shape(inputs[0]->valid_shape());
     Shape dst_shape(outputs[0]->valid_shape());
-    int ic = src_shape[3], oc = dst_shape[3];
+    int ic = src_shape[3];
+    int oc = dst_shape[3];
+    const int group = conv_param->group;
+    const int pad_h = conv_param->pad_h;
+    const int pad_w = conv_param->pad_w;
+    const int stride_h = conv_param->stride_h;
+    const int stride_w = conv_param->stride_w;
+    const int dilation_h = conv_param->dilation_h;
+    const int dilation_w = conv_param->dilation_w;
 
     LOG(INFO)<<"conv eltwise conv "<<param.conv_param.alpha<<","<<param.conv_param.beta<<","<<outputs[0]->get_scale()[0];
 //    exit(0);
@@ -188,11 +196,13 @@ init(const std::vector<Tensor<X86> *>& inputs,
 #if 0
     this->_impl = new JitAvx512X8S8S32XConv();
 #else
-
+    bool is_dw = (group > 1 && group == oc && group == ic);
     if (kernel_h == 1 && kernel_w == 1 && conv_param->pad_h == 0 && conv_param->pad_w == 0 && conv_param->stride_h == 1 && conv_param->stride_w == 1 && conv_param->group == 1) {
         this->_impl = new JitAvx512x8s8s32xConv1x1();
-    } else {
+    } else if((is_dw || group == 1) && pad_w <= 14){
         this->_impl = new JitAvx512X8S8S32XConv();
+    } else{
+        LOG(FATAL)<<"not support ";
     }
 #endif
     return this->_impl->init(inputs, outputs, param, ctx);

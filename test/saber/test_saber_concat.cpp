@@ -83,19 +83,22 @@ void test_model(){
             shape_v.push_back(shin);
             Shape shin2 = shape;
             shin2[axis] = 4;
-            shape_v.push_back(shin2);
-            testbase.set_input_shape(shape_v);//add some input shape
-            testbase.run_test(concat_nv_basic<float, TargetType_D, TargetType_H>);//run test
-           // LOG(INFO) << "NV run end";
-	    }
-    }
+			shape_v.push_back(shin2);
+			testbase.set_input_shape(shape_v);//add some input shape
+			if (std::is_same<TargetType_D, MLU>::value) {
+				testbase.run_test(concat_nv_basic<float, TargetType_D, TargetType_H>, 0.02);//run test
+			}else {
+				testbase.run_test(concat_nv_basic<float, TargetType_D, TargetType_H>);//run test
+			}
+		}
+	}
 }
 
 TEST(TestSaberFunc, test_func_concat) {
 
 #ifdef USE_CUDA
-   //Init the test_base
-   test_model<AK_FLOAT, NV, NVHX86>();
+	//Init the test_base
+	test_model<AK_FLOAT, NV, NVHX86>();
 #endif
 #ifdef USE_X86_PLACE
     test_model<AK_FLOAT, X86, X86>();
@@ -104,6 +107,12 @@ TEST(TestSaberFunc, test_func_concat) {
 #ifdef USE_ARM_PLACE
    //Init the test_base
     test_model<AK_FLOAT, ARM, ARM>();
+#endif
+
+#ifdef USE_MLU
+    Env<MLUHX86>::env_init();
+    Env<MLU>::env_init();
+    test_model<AK_FLOAT, MLU, MLUHX86>();
 #endif
 }
 

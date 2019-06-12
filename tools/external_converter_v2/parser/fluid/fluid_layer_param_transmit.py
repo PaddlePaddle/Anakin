@@ -3,6 +3,7 @@ from ..logger import *
 from ..proto import *
 from ..proto import helper
 from fluid_helper import *
+import numpy as np
 
 
 def ParserFeedDecorator(OpName):
@@ -23,13 +24,23 @@ def NotNeededInInference(args):
 
 @ParserFeedDecorator("Input")
 def Parser_feed(args):
+    op = args[1]
+    private_data = args[4]
+
     layout_dict = {
         2: "NC",
         3: "NHW",
         4: "NCHW",
     }
     private_data = args[4]
-    input_shape = private_data['input_shape']
+    # content_dnn hard decode
+    if private_data['net_type'] == 'content_dnn':
+        input_shape = [10240, 1, 1, 1]
+        OpsRegister()["Input"].max_len = 256
+        OpsRegister()["Input"].max_batch = 40
+    else:
+        input_shape = private_data['input_shape']
+
     alias = private_data['alias']
     OpsRegister()["Input"].input_shape = input_shape
     OpsRegister()["Input"].alias = alias
@@ -83,19 +94,27 @@ def Parser_conv2d_transpose(args):
     else:
         node.set_bit_type(FLOAT)
         [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
+    ## trans weights shape layout   
+    ## fluid deconv weights shape layout is (chin, chout/group, h, w)
+    ## anakin deconv weights shape layout is (chout/group, chin, h, w)
+    tmp = weights_shape[0]
+    weights_shape[0] = weights_shape[1]
+    weights_shape[1] = tmp
+    weights_tensor.set_shape(weights_shape)
     OpsRegister()["Deconvolution"].weight_1 = weights_tensor
-    OpsRegister()["Deconvolution"].filter_num = weights_shape[1]
+    OpsRegister()["Deconvolution"].group = helper.attr_data(op, 'groups')
+    OpsRegister()["Deconvolution"].filter_num = weights_shape[0] * OpsRegister()["Deconvolution"].group
     OpsRegister()["Deconvolution"].kernel_size = weights_shape[-2:]
     OpsRegister()["Deconvolution"].strides = helper.attr_data(op, 'strides')
     OpsRegister()["Deconvolution"].padding = helper.attr_data(op, 'paddings')
     OpsRegister()["Deconvolution"].dilation_rate = helper.attr_data(op, 'dilations')
-    OpsRegister()["Deconvolution"].group = helper.attr_data(op, 'groups')
     OpsRegister()["Deconvolution"].axis = 1
     if 'bias' in private_data.keys():
         OpsRegister()["Deconvolution"].bias_term = True
         OpsRegister()["Deconvolution"].weight_2 = private_data['bias']
     else:
         OpsRegister()["Deconvolution"].bias_term = False
+
 
 @ParserFeedDecorator("ReLU")
 def Parser_relu(args):
@@ -469,11 +488,34 @@ def Parser_lstm(args):
 
 ############### RNN ###############
 
+word_embedding_tensor = None
+word_embedding_owner_op_name = None
+
 @ParserFeedDecorator("Embedding")
 def Parser_lookup_table(args):
     op = args[1]
     helper = args[3]
-    [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'W')
+
+    global word_embedding_tensor
+    global word_embedding_owner_op_name
+
+    def _NameNodeMid(op):
+        first_outparam = op.output_names[0]
+        arg_name = str(op.output(first_outparam)[0]).split('.')[0]
+        new_name = op.type + '#' + bytes(op.idx) + '(' + arg_name + ')'
+        return new_name
+
+    if word_embedding_tensor is None:
+        [weights_tensor, _] = helper.param_tensor_sh(op, 'W')
+        word_embedding_owner_op_name = str(_NameNodeMid(op))
+        word_embedding_tensor = weights_tensor
+    else:
+        weights_tensor = TensorProtoIO()
+        weights_tensor.set_shared(True)
+        weights_tensor.set_shared_from(word_embedding_owner_op_name)
+
+    weights_shape = word_embedding_tensor.get_shape()
+
     OpsRegister()["Embedding"].weight_1 = weights_tensor
     OpsRegister()["Embedding"].padding_idx = helper.attr_data(op, 'padding_idx')
     OpsRegister()["Embedding"].word_num = weights_shape[2]
@@ -494,6 +536,7 @@ def Parser_sequence_conv(args):
     op = args[1]
     helper = args[3]
     private_data = args[4]
+
     [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
     OpsRegister()["SequenceConv"].weight_1 = weights_tensor
     OpsRegister()["SequenceConv"].filter_num = weights_shape[0]
@@ -538,7 +581,6 @@ def Parser_scale(args):
     OpsRegister()["Scale"].num_axes = 0
     OpsRegister()["Scale"].bias_term = False
     OpsRegister()["Scale"].weight_1 = helper.create_tensor([scale_val], [1, 1, 1, 1], FLOAT)
-    OpsRegister()["Scale"].weight_2 = helper.create_tensor([], [0, 0, 0, 0], FLOAT)
 
 
 @ParserFeedDecorator("LayerNorm")
@@ -559,6 +601,7 @@ def Parser_dropout(args):
     OpsRegister()["Scale"].num_axes = 0
     OpsRegister()["Scale"].bias_term = False
     OpsRegister()["Scale"].weight_1 = helper.create_tensor([scale_val], [1, 1, 1, 1], FLOAT)
+
 
 @ParserFeedDecorator("Scale")
 def Parser_elementwise_mul(args):
@@ -742,8 +785,20 @@ def Parser_norm(args):
 def Parser_bilinear_interp(args):
     op = args[1]
     helper = args[3]
-    OpsRegister()["Resize"].out_width = helper.attr_data(op, 'out_w')
-    OpsRegister()["Resize"].out_height = helper.attr_data(op, 'out_h')
+
+    scale = helper.attr_data(op, 'scale', None)
+    out_w = helper.attr_data(op, 'out_w', -1)
+    out_h = helper.attr_data(op, 'out_h', -1)
+
+    if scale is not None:
+        OpsRegister()["Resize"].width_scale = scale
+        OpsRegister()["Resize"].height_scale = scale
+        OpsRegister()["Resize"].out_width = -1
+        OpsRegister()["Resize"].out_height = -1
+    else:
+        OpsRegister()["Resize"].out_width = out_w
+        OpsRegister()["Resize"].out_height = out_h
+
     OpsRegister()["Resize"].method = "BILINEAR_ALIGN"
 
 
@@ -1021,6 +1076,223 @@ def Parser_swish(args):
     OpsRegister()['Activation'].clip_relu_num = beta
 
 
+@ParserFeedDecorator('reverse_sequence')
+def Parser_sequence_reverse(args):
+    """paddle.fluid.layers.sequence_reverse parser
+    """
+    pass
+
+
+@ParserFeedDecorator('arithmetic')
+def Parser_search_seq_arithmetic(args):
+    """search_seq_arithmetic parser
+    """
+    op = args[1]
+    helper = args[3]
+
+    op_type = helper.attr_data(op, 'op_type', 0)
+
+    OpsRegister()['arithmetic'].op_type = op_type
+
+
+@ParserFeedDecorator("Convolution")
+def Parser_var_conv_2d(args):
+    op = args[1]
+    helper = args[3]
+
+    input_channel = helper.attr_data(op, 'InputChannel')
+    output_channel = helper.attr_data(op, 'OutputChannel')
+    kernel_h = helper.attr_data(op, 'KernelH')
+    kernel_w = helper.attr_data(op, 'KernelW')
+    stride_h = helper.attr_data(op, 'StrideH')
+    stride_w = helper.attr_data(op, 'StrideW')
+
+    [weights_tensor, _] = helper.param_tensor_sh(op, 'W')
+    weights_tensor.set_shape([output_channel, input_channel, kernel_h, kernel_w])
+    # assert weights_shape == [output_channel, input_channel, kernel_h, kernel_w], \
+    #     "weights_shape={0}, output_channel={1}, input_channel={2}, kernel_h={3}, kernel_w={4}".format(
+    #         weights_shape, output_channel, input_channel, kernel_h, kernel_w)
+
+    OpsRegister()["Convolution"].weight_1 = weights_tensor
+    OpsRegister()["Convolution"].filter_num = output_channel
+    OpsRegister()["Convolution"].kernel_size = [kernel_h, kernel_w]
+    OpsRegister()["Convolution"].strides = [stride_h, stride_w]
+    OpsRegister()["Convolution"].padding = [kernel_h / 2, kernel_w / 2]
+    OpsRegister()["Convolution"].dilation_rate = [1, 1]
+    OpsRegister()["Convolution"].group = 1
+    OpsRegister()["Convolution"].axis = 0
+    # TODO: support var_conv_2d has bias condition
+    OpsRegister()["Convolution"].bias_term = False
+    OpsRegister()["Convolution"].input_channel = input_channel
+
+
+@ParserFeedDecorator("sequence_depadding")
+def Parser_search_seq_depadding(args):
+    pass
+
+
+
+@ParserFeedDecorator("Gru")
+def Parser_search_grnn(args):
+    op = args[1]
+    helper = args[3]
+
+    [Wi_tensor, _] = helper.param_tensor_sh(op, 'Wi')
+    [Wh_tensor, _] = helper.param_tensor_sh(op, 'Wh')
+    num_hidden = helper.attr_data(op, 'num_hidden')
+    num_input = helper.attr_data(op, 'num_input')
+
+    assert list(Wi_tensor.get_shape()) == [1, 3, num_hidden, num_input], \
+        'Wi_tensor.get_shape()={}'.format(Wi_tensor.get_shape())
+    assert list(Wh_tensor.get_shape()) == [1, 3, num_hidden, num_hidden], \
+        'Wh_tensor.get_shape()={}'.format(Wh_tensor.get_shape())
+
+    # Wi_tensor [1, 3, num_hidden, num_input] => [1, 3, num_input, num_hidden]
+    Wi_np_array = np.array(Wi_tensor.get_data())\
+        .reshape(Wi_tensor.get_shape())
+    Wh_np_array = np.array(Wh_tensor.get_data())\
+        .reshape(Wh_tensor.get_shape())
+
+    def gru(weights_wx, weights_wh, word_size, hidden_size):
+        weights_wx = weights_wx.flatten().reshape(3, hidden_size, word_size)
+        weights_i2h = np.concatenate([weights_wx[0].T, weights_wx[1].T, weights_wx[2].T], axis=1)
+        weights_wh = weights_wh.flatten().reshape(3, hidden_size, hidden_size)
+        weights_h2h = np.concatenate([weights_wh[1].T, weights_wh[2].T], axis=1)
+        weights_h2h = np.concatenate([weights_wh[0].T.flatten(), weights_h2h.flatten()]).reshape(3, hidden_size, hidden_size)
+        weights = np.concatenate([weights_i2h.flatten(), weights_h2h.flatten()])
+        weights = weights.reshape(1, 1, 1, len(weights))
+        return weights
+
+    tensor_tmp2 = gru(Wi_np_array, Wh_np_array, num_input, num_hidden)
+    Wi_tensor.set_data(tensor_tmp2.flatten(), 'float')
+    Wi_tensor.set_shape(tensor_tmp2.shape)
+    tensor_tmp3 = np.zeros([1, 1, 1, 3 * num_hidden])
+    Wh_tensor.set_data(tensor_tmp3.flatten(), 'float')
+    Wh_tensor.set_shape(tensor_tmp3.shape)
+    OpsRegister()["Gru"].weight_1 = Wi_tensor
+    OpsRegister()["Gru"].weight_2 = Wh_tensor
+    OpsRegister()["Gru"].is_reverse = False
+    OpsRegister()["Gru"].gate_activation = "sigmoid"
+    OpsRegister()["Gru"].activation = "tanh"
+    OpsRegister()["Gru"].gru_formula = "gru_cudnn"
+
+
+@ParserFeedDecorator('Softmax')
+def Parser_search_seq_softmax(args):
+    private_data = args[4]
+
+    axis = private_data.get('axis', 1)
+    OpsRegister()["Softmax"].axis = axis
+
+
+@ParserFeedDecorator('aligned_mat_mul')
+def Parser_search_aligned_mat_mul(args):
+    op = args[1]
+    helper = args[3]
+
+    alpha = helper.attr_data(op, 'alpha')
+    transpose_X = helper.attr_data(op, 'transpose_X')
+    transpose_Y = helper.attr_data(op, 'transpose_Y')
+
+    OpsRegister()["aligned_mat_mul"].coeff = alpha
+    OpsRegister()["aligned_mat_mul"].transpose_x = transpose_X
+    OpsRegister()["aligned_mat_mul"].transpose_y = transpose_Y
+
+
+@ParserFeedDecorator('attention_padding_mask')
+def Parser_search_attention_padding_mask(args):
+    op = args[1]
+    helper = args[3]
+
+    pad_id = helper.attr_data(op, 'pad_id')
+    mask = helper.attr_data(op, 'mask')
+
+    OpsRegister()['attention_padding_mask'].pad_id = pad_id
+    OpsRegister()['attention_padding_mask'].mask = mask
+
+
+@ParserFeedDecorator('sequence_padding')
+def Parser_search_group_padding(args):
+    pass
+
+
+@ParserFeedDecorator('topk_avg_pooling')
+def Parser_sequence_topk_avg_pooling(args):
+    op = args[1]
+    helper = args[3]
+
+    topks = helper.attr_data(op, 'topks')
+    channel_num = helper.attr_data(op, 'channel_num')
+
+    OpsRegister()['topk_avg_pooling'].top_ks = topks
+    OpsRegister()['topk_avg_pooling'].feat_map_num = channel_num
+    OpsRegister()['topk_avg_pooling'].is_pooling_by_row = True
+
+
+@ParserFeedDecorator('Dense')
+def Parser_search_fc(args):
+    op = args[1]
+    helper = args[3]
+
+    out_size = helper.attr_data(op, 'out_size')
+    [weight1_tensor, _] = helper.param_tensor_sh(op, 'W')
+    [bias_tensor, _] = helper.param_tensor_sh(op, 'b')
+
+    OpsRegister()['Dense'].weight_1 = weight1_tensor
+    if bias_tensor is not None:
+        OpsRegister()['Dense'].bias_term = True
+        OpsRegister()['Dense'].weight_2 = bias_tensor
+    else:
+        OpsRegister()['Dense'].bias_term = False
+    OpsRegister()["Dense"].out_dim = out_size
+    OpsRegister()["Dense"].axis = 1
+
+
+@ParserFeedDecorator("MatchMatrix")
+def Parser_match_matrix_tensor(args):
+    op = args[1]
+    helper = args[3]
+
+    [weight1_tensor, _] = helper.param_tensor_sh(op, 'W')
+    [weight1_n, dim_in, dim_t, dim_in] = weight1_tensor.get_shape()
+    assert weight1_n == 1, 'weight1_n={}'.format(weight1_n)
+    assert helper.attr_data(op, 'dim_t') == dim_t, \
+        'op.dim_t={}'.format(helper.attr_data(op, 'dim_t'))
+
+    OpsRegister()["MatchMatrix"].weight_1 = weight1_tensor
+    OpsRegister()["MatchMatrix"].dim_in = dim_in
+    OpsRegister()["MatchMatrix"].dim_t = dim_t
+    OpsRegister()["MatchMatrix"].linear_term = False
+    OpsRegister()["MatchMatrix"].bias_term = False
+
+
+@ParserFeedDecorator('Dense')
+def Parser_search_seq_fc(args):
+    op = args[1]
+    helper = args[3]
+
+    out_size = helper.attr_data(op, 'out_size')
+    has_bias = helper.attr_data(op, 'has_bias', False)
+    [weight1_tensor, _] = helper.param_tensor_sh(op, 'W')
+    if has_bias:
+        [bias_tensor, _] = helper.param_tensor_sh(op, 'b')
+
+    OpsRegister()['Dense'].weight_1 = weight1_tensor
+    OpsRegister()['Dense'].bias_term = has_bias
+    if has_bias:
+        OpsRegister()['Dense'].weight_2 = bias_tensor
+    OpsRegister()["Dense"].out_dim = out_size
+    OpsRegister()["Dense"].axis = 1
+
+
+@ParserFeedDecorator('Concat')
+def Parser_sequence_concat(args):
+    op = args[1]
+    helper = args[3]
+
+    OpsRegister()["Concat"].axis = 1
+
+
 FLUID_NODE_FILLER = {
     "feed":OpsParam().set_parser(Parser_feed),
     "conv2d":OpsParam().set_parser(Parser_conv2d),
@@ -1122,4 +1394,18 @@ FLUID_NODE_FILLER = {
     'group_norm': OpsParam().set_parser(Parser_group_norm),
     'fake_quantize_moving_average_abs_max': OpsParam().set_parser(Parser_fake_quantize_moving_average_abs_max),
     'swish': OpsParam().set_parser(Parser_swish),
+    'sequence_reverse': OpsParam().set_parser(Parser_sequence_reverse),
+    'search_seq_arithmetic': OpsParam().set_parser(Parser_search_seq_arithmetic),
+    'search_seq_depadding': OpsParam().set_parser(Parser_search_seq_depadding),
+    'search_grnn': OpsParam().set_parser(Parser_search_grnn),
+    'search_seq_softmax': OpsParam().set_parser(Parser_search_seq_softmax),
+    'search_aligned_mat_mul': OpsParam().set_parser(Parser_search_aligned_mat_mul),
+    'search_attention_padding_mask': OpsParam().set_parser(Parser_search_attention_padding_mask),
+    'search_group_padding': OpsParam().set_parser(Parser_search_group_padding),
+    'sequence_topk_avg_pooling': OpsParam().set_parser(Parser_sequence_topk_avg_pooling),
+    'search_fc': OpsParam().set_parser(Parser_search_fc),
+    'match_matrix_tensor': OpsParam().set_parser(Parser_match_matrix_tensor),
+    'search_seq_fc': OpsParam().set_parser(Parser_search_seq_fc),
+    'var_conv_2d': OpsParam().set_parser(Parser_var_conv_2d),
+    'sequence_concat': OpsParam().set_parser(Parser_sequence_concat),
 }

@@ -29,13 +29,14 @@ cmake .. \
 	-DENABLE_VERBOSE_MSG=NO \
 	-DDISABLE_ALL_WARNINGS=YES \
 	-DENABLE_NOISY_WARNINGS=NO \
-    -DUSE_OPENMP=YES\
+        -DUSE_OPENMP=YES\
 	-DBUILD_SHARED=YES\
-	-DBUILD_WITH_FRAMEWORK=NO
+	-DBUILD_WITH_FRAMEWORK=YES
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then
     make "-j$(sysctl -n hw.ncpu)" && make install
+    #make  && make install
 else
     make "-j$(nproc)"   && make install
 fi

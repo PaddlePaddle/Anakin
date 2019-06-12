@@ -279,7 +279,7 @@ void jit_avx512_core_8bit_pooling_kernel::compute_avg_step(int ur_c,
                 vcvtdq2ps(vreg_dst_f32(jj, ll), vreg_dst_s32(jj, ll));
             }
             vfmadd132ps(vreg_dst_f32(jj, ll), vreg_zeros, vreg_tmp);
-            if (jpp.dst_dt == AK_UINT8) {
+            if (jpp.dst_dt == AK_UINT8 || jpp.dst_dt == AK_INT8) {
                 vcvtps2dq(vreg_dst_s32(jj, ll) | T_rn_sae, vreg_dst_f32(jj, ll));
             }
             store_dst(jj, ll, c_tail);
@@ -420,11 +420,6 @@ SaberStatus jit_avx512_core_8bit_pooling_kernel::init_conf(jit_pool_conf_t &jpp)
         jpp.ur_w = 16;
     } else {
         jpp.ur_w = 24;
-    }
-
-    if ((jpp.dst_dt != AK_UINT8) && (jpp.dst_dt != AK_FLOAT)) {
-        LOG(FATAL) << "dst format: " <<jpp.dst_dt<< " is not supported!" ;
-        return SaberUnImplError;
     }
 
     if ((jpp.alg == Pooling_max) && (jpp.dst_dt == AK_FLOAT)) {

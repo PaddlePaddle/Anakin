@@ -22,22 +22,31 @@ void compute_mean(const float* input, Tensor<ARM>& mean, int num, int channel, i
             //! improve float summation precision
             //! https://en.wikipedia.org/wiki/Kahan_summation_algorithm
 #ifdef  __aarch64__
-            for (; i < cnt; i++){//
-                float32x4_t vin1 = vld1q_f32(in_channel);
-                float32x4_t vy = vsubq_f32(vin1, vc);
-                float32x4_t vt = vaddq_f32(vsum, vy);
-                vc = vsubq_f32(vt, vsum);
-                vc = vsubq_f32(vc, vy);
-                vsum = vt;
+            int loop = cnt;
+            if (loop > 0) {
+                asm volatile(
+                "1:                                         \n"
+                "ld1   {v0.4s}, [%[in_channel]], #16        \n"
+                "ld1   {v1.4s}, [%[in_channel]], #16        \n"
+                "fsub   v6.4s, v0.4s, %[c].4s               \n" // y
+                "fadd   v7.4s, %[vsum].4s, v6.4s            \n" // t
+                "fsub   %[c].4s, v7.4s, %[vsum].4s          \n"
+                "fsub   %[c].4s, %[c].4s, v6.4s             \n"
+                "mov    %[vsum].16b, v7.16b                 \n"
 
-                float32x4_t vin2 = vld1q_f32(in_channel + 4);
-                vy = vsubq_f32(vin2, vc);
-                vt = vaddq_f32(vsum, vy);
-                vc = vsubq_f32(vt, vsum);
-                vc = vsubq_f32(vc, vy);
-                vsum = vt;
-                in_channel += 8;
-            }
+                "fsub   v4.4s, v1.4s, %[c].4s               \n" // y
+                "fadd   v5.4s, %[vsum].4s, v4.4s            \n" // t
+                "fsub   %[c].4s, v5.4s, %[vsum].4s          \n"
+                "fsub   %[c].4s, %[c].4s, v4.4s             \n"
+                "mov    %[vsum].16b, v5.16b                 \n"
+                "subs       %w[loop], %w[loop], #1          \n"
+                "bne        1b                              \n"
+                :[in_channel] "+r" (in_channel), [loop] "+r" (loop), [vsum] "+w" (vsum), \
+                 [c] "+w" (vc)
+                : "r" (in_channel), "r" (num), "w" (vsum)
+                : "cc", "memory", "v0", "v1", "v4", "v5", "v6", "v7"
+                );
+            } 
 #else
             int loop = cnt;
             if (loop > 0) {
@@ -59,7 +68,7 @@ void compute_mean(const float* input, Tensor<ARM>& mean, int num, int channel, i
                 "bne        1b                          \n"
                 :[in_channel] "+r" (in_channel), [loop] "+r" (loop), [vsum] "+w" (vsum), \
                  [c] "+w" (vc)
-                :"r" (in_channel), "r" (num), "w" (vsum)
+                : "r" (in_channel), "r" (num), "w" (vsum)
                 : "cc", "memory", "q0", "q1", "q4", "q5", "q6", "q7"
                 );
             }
@@ -103,22 +112,31 @@ void compute_variance(const float* input, Tensor<ARM>& mean, Tensor<ARM>& varian
             float32x4_t vsum = vdupq_n_f32(0.0f);
             float32x4_t vc = vdupq_n_f32(0.f);
 #ifdef  __aarch64__
-            for (; i < cnt; i++){//
-                float32x4_t in_data0 = vld1q_f32(in_channel);
-                in_data0 = vsubq_f32(in_data0, vdupq_n_f32(mean_val));
-                in_data0 = vmulq_f32(in_data0, in_data0);
+            int loop = cnt;
+            if (loop > 0) {
+                asm volatile(
+                "1:                                        \n"
+                "ld1   {v0.4s}, [%[in_channel]], #16       \n"
+                "ld1   {v3.4s}, [%[in_channel]], #16       \n"
+                "dup   v10.4s, %w[mean]                    \n"
+                "fsub   v1.4s, v0.4s, v10.4s               \n"
+                "fmul   v2.4s, v1.4s, v1.4s                \n"
+                "fsub   v4.4s, v3.4s, v10.4s               \n"
+                "fmul   v5.4s, v4.4s, v4.4s                \n"
 
-                float32x4_t in_data1 = vld1q_f32(in_channel + 4);
-                in_data1 = vsubq_f32(in_data1, vdupq_n_f32(mean_val));
-                in_data1 = vmulq_f32(in_data1, in_data1);
-
-                float32x4_t vy = vsubq_f32(vpaddq_f32(in_data0, in_data1), vc);
-                float32x4_t vt = vaddq_f32(vsum, vy);
-                vc = vsubq_f32(vt, vsum);
-                vc = vsubq_f32(vc, vy);
-                vsum = vt;
-
-                in_channel += 8;
+                "faddp  v6.4s, v2.4s, v5.4s                \n"
+                "fsub   v7.4s, v6.4s, %[c].4s              \n" // y
+                "fadd   v8.4s, %[vsum].4s, v7.4s           \n" // t
+                "fsub   %[c].4s, v8.4s, %[vsum].4s         \n"
+                "fsub   %[c].4s, %[c].4s, v7.4s            \n"
+                "mov    %[vsum].16b, v8.16b                \n"
+                "subs       %w[loop], %w[loop], #1         \n"
+                "bne        1b                             \n"
+                :[in_channel] "+r" (in_channel), [loop] "+r" (loop), [vsum] "+w" (vsum), \
+                 [mean] "+r" (mean_val), [c] "+w" (vc)
+                : "r" (in_channel), "r" (loop), "w" (vsum)
+                : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v10"
+                );
             }
 #else
             int loop = cnt;
@@ -145,7 +163,7 @@ void compute_variance(const float* input, Tensor<ARM>& mean, Tensor<ARM>& varian
                 "bne        1b                          \n"
                 :[in_channel] "+r" (in_channel), [loop] "+r" (loop), [vsum] "+w" (vsum), \
                  [mean] "+r" (mean_val), [c] "+w" (vc)
-                :"r" (in_channel), "r" (loop), "w" (vsum)
+                : "r" (in_channel), "r" (loop), "w" (vsum)
                 : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q10"
                 );
             }
@@ -239,7 +257,7 @@ SaberStatus SaberNormalize<ARM, AK_FLOAT>::dispatch(\
                 "bne        1b                            \n"
                 :[in_channel] "+r" (input_channel), [out_channel] "+r" (output_channel), [loop] "+r" (loop),\
                  [mean] "+w" (vmean_val), [std] "+w" (vstd_val)
-                :"r" (input_channel), "r" (loop)
+                : "r" (input_channel), "r" (loop)
                 : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5"
                 );
             }

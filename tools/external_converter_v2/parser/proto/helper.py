@@ -2,6 +2,30 @@
 """
 
 import tensor_pb2
+import numpy as np
+
+
+def tensor_data_to_np_array(t): # type: tensor_pb2.TensorProto
+    """tensor data to np.array
+    """
+    if t.data.type is tensor_pb2.STR:
+        A = np.array(t.data.s[:])
+    elif t.data.type is tensor_pb2.INT32:
+        A = np.array(t.data.i[:])
+    elif t.data.type is tensor_pb2.INT8:
+        assert type(t.data.c) is bytes
+        A = np.frombuffer(t.data.c, dtype=np.uint8)
+    elif t.data.type in [tensor_pb2.FLOAT16, tensor_pb2.FLOAT, tensor_pb2.DOUBLE]:
+        A = np.array(t.data.f[:])
+    elif t.data.type is tensor_pb2.BOOLEN:
+        A = np.array(t.data.b[:])
+    else:
+        raise Exception('unsupported data_type={}'.format(t.data.type))
+
+    A.reshape(t.shape.dim.value)
+
+    return A
+
 
 def make_tensor(
         dims, # type: list(int)
@@ -58,3 +82,33 @@ def reverse_cache_data(data):  # type: tensor_pb2.CacheDate -> None
             reverse_cache_data(x)
     else:
         raise Exception('unsupported data.type={}'.format(data.type))
+
+
+def reshape_tensor(
+        tensor, # tensor_pb2.TensorProto
+        shape, # target shape
+):
+    """reshape tensor_pb2.TensorProto
+    """
+    np_data = tensor_data_to_np_array(tensor)
+    np_data.reshape(shape)
+
+    if np_data.dtype is np.int8:
+        data = np_data.flatten().tobytes()
+    else:
+        data = np_data.flatten().tolist()
+
+    return make_tensor(
+        dims=shape,
+        data_type=np_data.dtype,
+        vals=data,
+        layout=tensor.shape.dim.layout,
+        scale=tensor.scale.f[:])
+
+
+NUMPY_DTYPE_TO_ANAKIN_DATA_TYPE = {
+    np.int8: tensor_pb2.INT8,
+    np.int32: tensor_pb2.INT32,
+    np.float: tensor_pb2.FLOAT,
+    np.bool: tensor_pb2.BOOLEN,
+}

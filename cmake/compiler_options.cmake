@@ -127,7 +127,7 @@ if(X86_COMPILE_482)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-	anakin_add_compile_option(-fabi-version=6)
+    anakin_add_compile_option(-fabi-version=6)
     anakin_add_compile_option(-fabi-compat-version=2) #add compat
     anakin_add_compile_option(-march=${BUILD_X86_ARCH})
 endif()

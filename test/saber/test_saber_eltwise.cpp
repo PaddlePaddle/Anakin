@@ -67,6 +67,18 @@ void eltwise_cpu(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Ten
             }
             break;
            
+        case Eltwise_mul:
+            for (int e = 0; e < in_size; e++) {
+                dst[e] =  src[e];
+            }
+            for (int a = 1; a < num_arrs; a++) {
+                src = (const dtype*)input[a]->data();
+                for (int e = 0; e < in_size; e++) {
+                    dst[e] =  dst[e] * src[e];
+                }
+            }
+            break;
+
         default:
            break;
     }
@@ -93,7 +105,11 @@ void test_eltwise() {
             for (int c_in:{1, 3, 32}) {
                 for (int h_in:{2, 3, 32}) {
                     for (int w_in:{2, 3, 32}) {
-                    	for (EltwiseType type:{Eltwise_prod, Eltwise_sum, Eltwise_max, Eltwise_div}) {
+#ifdef USE_MLU
+						for (EltwiseType type:{Eltwise_prod, Eltwise_sum, Eltwise_max}) {
+#else
+						for (EltwiseType type:{Eltwise_prod, Eltwise_sum, Eltwise_max, Eltwise_div, Eltwise_mul}) {
+#endif
                     	    LOG(INFO)<<"input = "<<num_in<<", type = "<<type;
                     	    std::vector<float> coeff(inputs_num, 1);
                             ActivationParam<TargetType_D> activationparam(Active_relu);
@@ -108,13 +124,22 @@ void test_eltwise() {
                                 inputs.push_back(input);
                             }
                             testbase.add_custom_input(inputs);
-                            testbase.run_test(eltwise_cpu<float, TargetType_D, TargetType_H>);
+							if (std::is_same<TargetType_D, MLU>::value) {
+                                testbase.run_test(eltwise_cpu<float, TargetType_D, TargetType_H>, 0.02);
+							}else {
+                                testbase.run_test(eltwise_cpu<float, TargetType_D, TargetType_H>);
+							}
 
                             ActivationParam<TargetType_D> activationparam_no;
                             EltwiseParam<TargetType_D> param_noactivate(type, coeff, activationparam_no);
                             testbase.set_param(param_noactivate);
+                            testbase.set_rand_limit(-5.0, 5.0);
                             testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-                            testbase.run_test(eltwise_cpu<float, TargetType_D, TargetType_H>);
+							if (std::is_same<TargetType_D, MLU>::value) {
+                                testbase.run_test(eltwise_cpu<float, TargetType_D, TargetType_H>, 0.02);
+							}else {
+                                testbase.run_test(eltwise_cpu<float, TargetType_D, TargetType_H>);
+							}
                             for (int i = 0; i < inputs_num; i++) {
                                 delete inputs[i];
                             }
@@ -136,6 +161,12 @@ TEST(TestSaberFunc, test_func_eltwise){
 #ifdef USE_X86_PLACE
     test_eltwise<AK_FLOAT, X86, X86>();
 #endif        
+#ifdef USE_MLU
+    //Init the test_base
+    Env<MLUHX86>::env_init();
+    Env<MLU>::env_init();
+    test_eltwise<AK_FLOAT, MLU, MLUHX86>();
+#endif  // USE_MLU
 }
 
 int main(int argc, const char** argv) {

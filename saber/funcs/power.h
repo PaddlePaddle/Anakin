@@ -32,6 +32,10 @@
 #include "saber/funcs/impl/amd/include/saber_power.h"
 #endif
 
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_power.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

@@ -105,7 +105,7 @@ ANAKIN_REGISTER_OP(SequencePoolConcat)
 .__alias__<X86, Precision::FP32>("SequencePoolConcat")
 #endif
 #ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("SequencePoolConcat")
+//.__alias__<AMD, Precision::FP32>("SequencePoolConcat")
 #endif
 .num_in(1)
 .num_out(1)

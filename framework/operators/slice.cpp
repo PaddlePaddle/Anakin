@@ -96,6 +96,16 @@ template class SliceHelper<AMD, Precision::FP16>;
 template class SliceHelper<AMD, Precision::INT8>;
 #endif
 
+#ifdef USE_MLU
+INSTANCE_SLICE(MLU, Precision::FP32);
+INSTANCE_SLICE(MLU, Precision::FP16);
+template class SliceHelper<MLU, Precision::FP32>;
+template class SliceHelper<MLU, Precision::FP16>;
+template class SliceHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, MLU, Precision::FP16);
+#endif
+
 #if defined USE_X86_PLACE || defined(BUILD_LITE)
 INSTANCE_SLICE(X86, Precision::FP32);
 template class SliceHelper<X86, Precision::FP32>;
@@ -114,6 +124,10 @@ ANAKIN_REGISTER_OP(Slice)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("slice")
 #endif
+
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("slice")
+#endif  // USE_MLU
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("slice")
 #endif

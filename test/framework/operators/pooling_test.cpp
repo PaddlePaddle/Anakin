@@ -7,6 +7,10 @@ using Target = NV;
 using Target = AMD;
 #elif defined(USE_X86_PLACE)
 using Target = X86;
+#elif defined(USE_MLU)
+using Target = MLU;
+#elif defined(USE_BM_PLACE)
+using Target = BM;
 #else
 using Target = ARM;
 #endif

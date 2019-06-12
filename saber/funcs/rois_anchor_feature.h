@@ -44,7 +44,7 @@ public:
 
         int num_rois = input[0]->num();
         CHECK_GT(num_rois, 0);
-        int rois_dim = input[0]->count(1, input[0]->dims());
+        int rois_dim = input[0]->count_valid(1, input[0]->dims());
         CHECK_GE(rois_dim, 5);
         int num_anchor_scales = param.num_anchor_scales;
         int num_anchors_ = num_anchor_scales * param.anchor_wph_ratios.size();

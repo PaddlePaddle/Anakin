@@ -17,15 +17,9 @@
 #define ANAKIN_SABER_CORE_DATA_TRAITS_H
 
 #include "saber/saber_types.h"
-
-#ifdef USE_BM_PLACE 
-#include "bmlib_runtime.h"
-#include "bmdnn_api.h"
-#include "bmlib_utils.h"
-#endif
+#include "saber/core/common.h"
 
 namespace anakin {
-
 namespace saber {
 
 template <typename Ttype>
@@ -152,7 +146,7 @@ struct DataTrait<Ttype, AK_UINT64> {
 };
 
 #ifdef USE_BM_PLACE
-
+#if 0
 struct BM_mem_addr: bm_mem_desc {
 
     BM_mem_addr() {};
@@ -228,7 +222,7 @@ template <>
 struct DataTraitBase<BM> {
     typedef BM_mem_addr PtrDtype;
 };
-
+#endif
 
 #endif
 
@@ -257,9 +251,14 @@ struct DataTrait<AMD, AK_HALF> {
     typedef short Dtype;
     typedef cl_mem PtrDtype;
 };
-#endif //USE_OPENCL
-} //namespace saber
 
-} //namespace anakin
+#endif  // USE_OPENCL
 
-#endif //ANAKIN_SABER_CORE_DATA_TRAITS_H
+}  // namespace saber
+}  // namespace anakin
+
+#ifdef USE_MLU
+#include "saber/core/impl/mlu/mlu_data_traits.h"
+#endif
+
+#endif  // ANAKIN_SABER_CORE_DATA_TRAITS_H

@@ -611,9 +611,12 @@ public:
         CHECK_EQ(device_id(), API::get_device_id()) << \
             "tensor is not declared in current device";
         if (_buf->get_capacity() == 0){
-            return nullptr;
+            if (std::is_same<TargetType, MLU>::value) {
+                reshape(_valid_shape);
+            } else {
+                return nullptr;
+            }
         }
-
         return static_cast<BaseDtype >(_buf->get_data_mutable());
     }
 

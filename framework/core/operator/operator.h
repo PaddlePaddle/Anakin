@@ -164,6 +164,12 @@ private:
 /**
  *  \brief Call get_attr from derived class.
  */
+#define GET_PARAMETER_BYSTR(type, name) \
+    this->template get_attr<type>(name)
+
+/**
+ *  \brief Call get_attr from derived class.
+ */
 #define GET_PARAMETER_WITH_DEFAULT(type, name,default_data) \
     this->template get_attr<type>(#name,default_data)
 
@@ -178,11 +184,18 @@ private:
 #define SET_PARAMETER(name, val, type) \
     this->template set_sttr<type>(#name, val)
 
+#define SET_PARAMETER_BYSTR(name, val, type) \
+    this->template set_sttr<type>(name, val)
+
 /**
  *  \brief Call check_attr from derived class.
  */
 #define CHECK_PARAMETER(name) \
     this->check_attr(#name)
+
+#define CHECK_PARAMETER_BYSTR(name) \
+    this->check_attr(name)
+
 
 /**
  *  \brief Call remove_attr from derived class.

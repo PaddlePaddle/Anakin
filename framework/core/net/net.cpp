@@ -14,6 +14,10 @@ Net<Ttype, Ptype, RunType>::~Net() {
         delete _graph_p;
         _graph_p = nullptr;
     }
+    if (_fusion) {
+        delete _fusion;
+        _fusion = nullptr;
+    }
 }
 template<typename Ttype, Precision Ptype, OpRunType RunType>
 Net<Ttype, Ptype, RunType>::Net(bool need_summary) {
@@ -504,6 +508,16 @@ void Net<Ttype, Ptype, RunType>::prediction() {
     } // for
 }
 
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+void Net<Ttype, Ptype, RunType>::fusion_prediction() {
+//	ASIC_CHECK(Ttype);
+    if (!std::is_same<Ttype, MLU>::value && !std::is_same<Ttype, BM>::value) {
+        LOG(FATAL) << "only support bm and mlu right now!";
+    }
+    if (_fusion->ctx_p->fusion()) {
+        _fusion->launch();
+    }
+}
 
 template<typename Ttype, Precision Ptype, OpRunType RunType>
 std::unique_ptr<Net<Ttype, Ptype, RunType> > Net<Ttype, Ptype, RunType>::Clone() {
@@ -520,7 +534,9 @@ void Net<Ttype, Ptype, RunType>::init() {
 
     auto node_names_in_exec_order = _graph_p->get_nodes_in_order();
 
+#ifndef USE_SGX
     load_calibrator_config(*_graph_p,!_has_loaded_layout_from_file);
+#endif
 
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
@@ -806,6 +822,7 @@ Status Net<Ttype, Ptype, RunType>::init_memory() {
 
         return 0;
     };
+    
     _graph_p->Scanner->BFS_Edge(alloc_memory);
 
     auto share_memory = [this](graph::Edge<Ttype>& edge) {
@@ -888,6 +905,139 @@ Status Net<Ttype, Ptype, RunType>::init_env(graph::Graph<Ttype, Ptype>& graph) {
     return Status::OK();
 }
 
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+void Net<Ttype, Ptype, RunType>::fusion_init(graph::Graph<Ttype, Ptype>& graph, OpContextPtr<Ttype> ctx, bool auto_config_layout) {
+    
+//	ASIC_CHECK(Ttype);
+    if (!std::is_same<Ttype, MLU>::value && !std::is_same<Ttype, BM>::value) {
+        LOG(FATAL) << "only support mlu and bm right now!";
+    }
+
+    init_env(graph);
+    // shallow copy
+    _graph_p->CopyFrom(graph);
+    auto node_names_in_exec_order = graph.get_nodes_in_order();
+    load_calibrator_config(graph,!_has_loaded_layout_from_file,auto_config_layout);
+#ifndef USE_BM_PLACE // anbl add 
+    // infer basic shape and parsing parameter from graph
+    for (auto& node_name : node_names_in_exec_order) {
+        auto node_ptr = (*_graph_p)[node_name];
+        // create operations
+        //auto* op_pointer = OpFactory<Ttype, Ptype>::Global()[node_ptr->get_op_name()];
+        auto* op_pointer = calibrator_op<Ttype>(node_ptr->get_op_name(), node_ptr->name(), _calibrator_parser);
+
+        if (op_pointer == nullptr) {
+            LOG(FATAL) << node_name << ", type " << node_ptr->get_op_name() << " is null";
+        }
+
+        node_ptr->set_op(op_pointer);
+        op_pointer = nullptr;
+
+        static_cast<Operator<Ttype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
+        // parsing parameter
+        static_cast<Operator<Ttype, Ptype>*>(node_ptr->Op())->_helper->InitParam();
+    }
+
+    // remove null op node
+    for (auto it = node_names_in_exec_order.begin(); it != node_names_in_exec_order.end();) {
+        if (!(*_graph_p)[*it]->Op()) {
+            it = node_names_in_exec_order.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    _exec_funcs.resize(node_names_in_exec_order.size());
+
+    std::vector<std::string> tensor_names;
+    std::vector<saber::LayoutType> layouts;
+
+    for (int i = 0; i < node_names_in_exec_order.size(); i++) {
+        auto& node_name = node_names_in_exec_order[i];
+        auto& op_func = _exec_funcs[i];
+        op_func.name = node_name;
+        auto& edge_in_its = _graph_p->get_in_arc_its(node_name);
+        DLOG(WARNING) << " node : " << op_func.name << " (" << (*_graph_p)[node_name]->get_op_name() << ") ";
+        for (auto& edge_it : edge_in_its) {
+            DLOG(INFO) << "  => find in arc : " << edge_it->bottom() << "  -->  " << edge_it->top();
+            DLOG(INFO)<<"set "<<edge_it->name()<<" scale :"<< _calibrator_parser.get_calibrator(edge_it->name());
+            edge_it->weight()->set_dtype(_calibrator_parser.get_dtype(edge_it->bottom(), edge_it->top()));//set tensor precision
+            op_func.ins.push_back(edge_it->weight().get());
+            op_func.in_lanes.push_back(edge_it->lane());
+            _tensor_name_list.push_back(edge_it->name());
+        }
+
+        auto& edge_out_its = _graph_p->get_out_arc_its(node_name);
+        for (auto& edge_it : edge_out_its) {
+            DLOG(INFO) << "  <= find out arc : " << edge_it->bottom() << "  -->  " << edge_it->top();
+
+            tensor_names.push_back(edge_it->name());
+            layouts.push_back(edge_it->weight()->get_layout());
+            set_calibrator_info(edge_it);
+            op_func.outs.push_back(edge_it->weight().get());
+            op_func.out_lanes.push_back(edge_it->lane());
+        }
+
+        op_func.current_lane = (*_graph_p)[node_name]->lane();
+        op_func.need_sync = (*_graph_p)[node_name]->need_wait();
+        op_func.op = static_cast<Operator<Ttype, Ptype>* >((*_graph_p)[node_name]->Op());
+        op_func.op_name = (*_graph_p)[node_name]->get_op_name();
+        op_func.ctx_p = ctx;
+        // call init of operator
+        CHECK_NOTNULL(op_func.op) << "Node(node_name) doesn't have op pointer! ";
+
+        op_func.op->_helper->InferShape(op_func.ins, op_func.outs);
+        op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
+    }
+#else
+    
+    auto ins_list = _graph_p->get_ins();
+    auto outs_list = _graph_p->get_outs();
+    
+    auto in_tensor_list = get_in_list();
+    auto out_tensor_list = get_out_list();
+
+    for (int i = 0; i < ins_list.size(); ++i) {
+        auto& node_name = ins_list[i];
+        auto node_ptr = (*_graph_p)[node_name];
+         
+        auto vec_shape = node_ptr->template get_attr<PTuple<int>>("input_shape");
+        Shape input_s({vec_shape[0], vec_shape[1], vec_shape[2], vec_shape[3]}, Layout_NCHW);
+        in_tensor_list[i]->re_alloc(input_s, AK_FLOAT);
+    }
+#endif
+
+    // init memory of _graph_p
+    // there's bug when a network has split op and need to be fixed.
+    // init_memory();
+    if (ctx->fusion()) {
+        if (!_fusion) {
+            _fusion = new OperatorFunc<Ttype, Ptype>();
+            _fusion->op = OpFactory<Ttype, Ptype>::Global()["Fusion"];
+        }
+        std::vector<Tensor4dPtr<Ttype>> in_list;
+        std::vector<Tensor4dPtr<Ttype>> out_list;
+        auto in_tensor_list = get_in_list();
+        auto out_tensor_list = get_out_list();
+
+        for (int i = 0; i < in_tensor_list.size(); ++i) {
+            in_list.push_back(in_tensor_list[i]);
+        }
+        for (int i = 0; i < out_tensor_list.size(); ++i) {
+            out_list.push_back(out_tensor_list[i]);
+        }
+        _fusion->ins = in_list;
+        _fusion->outs = out_list;
+        _fusion->ctx_p = ctx;
+        _fusion->op->_helper->Init(*ctx, in_list, out_list);
+
+#ifdef USE_BM_PLACE // anbl add
+        for (int i = 0; i < out_list.size(); ++i) {
+            out_tensor_list[i]->re_alloc(out_list[i]->valid_shape(), AK_FLOAT);
+        }
+#endif
+    }
+}
 
 #ifdef USE_CUDA
 template class Net<NV, Precision::FP32, OpRunType::ASYNC>;
@@ -899,6 +1049,15 @@ template class Net<NV, Precision::FP16, OpRunType::SYNC>;
 template class Net<NV, Precision::INT8, OpRunType::SYNC>;
 #endif
 
+#ifdef USE_MLU
+template class Net<MLU, Precision::FP32, OpRunType::ASYNC>;
+template class Net<MLU, Precision::FP16, OpRunType::ASYNC>;
+template class Net<MLU, Precision::INT8, OpRunType::ASYNC>;
+
+template class Net<MLU, Precision::FP32, OpRunType::SYNC>;
+template class Net<MLU, Precision::FP16, OpRunType::SYNC>;
+template class Net<MLU, Precision::INT8, OpRunType::SYNC>;
+#endif  // USE_MLU
 #ifdef USE_X86_PLACE
 template class Net<X86, Precision::FP32, OpRunType::ASYNC>;
 template class Net<X86, Precision::FP16, OpRunType::ASYNC>;
@@ -928,5 +1087,15 @@ template class Net<ARM, Precision::FP32, OpRunType::SYNC>;
 template class Net<ARM, Precision::FP16, OpRunType::SYNC>;
 template class Net<ARM, Precision::INT8, OpRunType::SYNC>;
 #endif //arm
+
+#ifdef USE_BM_PLACE
+template class Net<BM, Precision::FP32, OpRunType::ASYNC>;
+template class Net<BM, Precision::FP16, OpRunType::ASYNC>;
+template class Net<BM, Precision::INT8, OpRunType::ASYNC>;
+
+template class Net<BM, Precision::FP32, OpRunType::SYNC>;
+template class Net<BM, Precision::FP16, OpRunType::SYNC>;
+template class Net<BM, Precision::INT8, OpRunType::SYNC>;
+#endif //bm
 
 } /* namespace anakin */

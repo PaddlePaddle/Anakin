@@ -55,10 +55,9 @@ cmake .. \
     -Dprotobuf_BUILD_STATIC_LIBS=ON \
     -Dprotobuf_BUILD_SHARED_LIBS=OFF \
     -DCMAKE_INSTALL_PREFIX=$BUILD_ROOT \
-    -DANDROID_STL=c++_shared \
     -DANDROID_LINKER_FLAGS="-landroid -llog" \
     -DANDROID_CPP_FEATURES="rtti exceptions" \
-    
+
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then

@@ -96,6 +96,12 @@ template class BatchNormHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, AMD, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_BATCH_NORM(MLU, Precision::FP32);
+template class BatchNormHelper<MLU, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, MLU, Precision::FP32);
+#endif  // USE_MLU
+
 //! register op
 ANAKIN_REGISTER_OP(BatchNorm)
 .Doc("BatchNorm operator")
@@ -111,6 +117,10 @@ ANAKIN_REGISTER_OP(BatchNorm)
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("eps")
 #endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("eps")
+#endif  // USE_MLU
+
 .num_in(1)
 .num_out(1);
 

@@ -25,8 +25,9 @@
 #endif
 
 #ifdef USE_X86_PLACE
+#ifndef USE_SGX
 #include "saber/funcs/impl/x86/saber_lstmp.h"
-
+#endif
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -77,15 +78,16 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
         case VENDER_IMPL:
-            //this->_impl.push_back(new VenderLstmp <TargetType,
             this->_impl.push_back(new VenderLstmp <TargetType,
                                   OpDtype>);
             return SaberSuccess;
 
+#ifndef USE_SGX
         case SABER_IMPL:
             this->_impl.push_back(new SaberLstmp <TargetType,
                                   OpDtype>);
             return SaberSuccess;
+#endif
 
         default:
             return SaberUnImplError;

@@ -33,6 +33,10 @@
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_axpy.h"
 #endif
+   
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_axpy.h"
+#endif
 
 namespace anakin {
 namespace saber {

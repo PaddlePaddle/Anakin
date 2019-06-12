@@ -16,6 +16,7 @@
 #ifndef ANAKIN_THREAD_POOL_H
 #define ANAKIN_THREAD_POOL_H 
 
+#include "anakin_config.h"
 #include <vector>
 #include <thread>
 #include <queue>
@@ -26,10 +27,6 @@
 #include "framework/core/thread_safe_macros.h"
 #include "framework/core/type_traits_extend.h"
 #include "utils/logger/logger.h"
-#include "anakin_config.h"
-#ifdef USE_SGX
-#include <support/sgx/sgx_mutex>
-#endif
 
 namespace anakin {
 

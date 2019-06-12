@@ -1,12 +1,12 @@
 # 模型转换指南
 
-paddle模型转换inference模型指南。
+Anakin 支持不同框架的模型预测。但由于格式的差别，Anakin 需要您预先转换模型。本文档介绍如何转换模型。
 
 ## 简介
 
-该转换器支持将 Fluid 预测模型转为专有预测模型，以提升预测性能。   
+Anakin 模型转换器输入支持 Caffe 和 Fluid 两种格式的预测模型，模型包含网络结构（model 或 prototxt）和权重参数（param 或 caffemodel）。   
 
-模型转换的输出是一个 bin 文件，它作为 paddle预测 框架的 graph 参数导入。   
+模型转换的输出是一个 bin 文件，它作为 Anakin 框架的 graph 参数导入。   
 
 您还可以使用模型转换器的 launch board 功能生成网络结构的 HTML 预览。   
 
@@ -31,27 +31,35 @@ paddle模型转换inference模型指南。
 #### config.yaml
 ```bash
 OPTIONS:
-    Framework: FLUID
-    SavePath: ./output
-    ResultName: googlenet
+    Framework: CAFFE       # 依框架类型填写 CAFFE 或 FLUID
+    SavePath: ./output     # 转换结束后模型的保存位置
+    ResultName: googlenet  # 输出模型的名字
     Config:
-        LaunchBoard: ON
+        LaunchBoard: ON    # 是否生成网络结构预览页面
         Server:
             ip: 0.0.0.0
-            port: 8888
-        OptimizedGraph:
+            port: 8888     # 从一个可用端口访问预览页面
+        OptimizedGraph:    # 仅当您执行完预测并使用 Optimized 功能时，才应打开此项
             enable: OFF
-            path: /path/to/paddle_inference_model_optimized/googlenet.paddle_inference_model.bin.saved
+            path: /path/to/anakin_optimized_anakin_model/googlenet.anakin.bin.saved
     LOGGER:
-        LogToPath: ./log/
-        WithColor: ON 
+        LogToPath: ./log/  # 生成日志的路径
+        WithColor: ON
 
 TARGET:
+    CAFFE:
+        # 当 Framework 为 CAFFE 时需填写
+        ProtoPaths:
+            - /path/to/caffe/src/caffe/proto/caffe.proto
+        PrototxtPath: /path/to/your/googlenet.prototxt
+        ModelPath: /path/to/your/googlenet.caffemodel
+
     FLUID:
-        # path of fluid inference model
-        Debug: NULL                            # Generally no need to modify.
-        ModelPath: /path/to/your/model/        # The upper path of a fluid inference model.
-        NetType:                               # Generally no need to modify.
+        # 当 Framework 为 FLUID 时需填写
+        Debug: NULL                                # 不需要更改
+        ModelPath: /path/to/fluid/inference_model  # 此路径通常包括 model 和 params 两个文件
+        NetType:                                   # 填写网络类型，如 OCR、SSD
+    # ...
 ```
 
 ### 3、转换

@@ -201,6 +201,31 @@ TEST(TestSaberFunc, test_func_softmax) {
 #endif
 
 #if 0
+#ifdef USE_MLU
+    LOG(INFO) << "mlu test......";
+    Env<MLUHX86>::env_init();
+    Env<MLU>::env_init();
+    TestSaberBase<MLU, MLUHX86, AK_FLOAT, Softmax, SoftmaxParam> testbase;
+
+    for (auto num : {1, 3, 4, 12}) {
+        for (auto c : {1, 3, 11, 3}) {
+            for (auto h : {3, 1, 11, 2}) {
+                for (auto w : {1, 3, 4, 11}) {
+                    for (auto axis : {0, 1, 2, 3}) {
+                        SoftmaxParam<MLU> param(axis);
+                        testbase.set_param(param);
+                        testbase.set_input_shape(Shape({num, c, h, w}));
+                        testbase.run_test(softmax_cpu<float, MLU, MLUHX86>, 0.02, true);
+                    }
+                }
+            }
+        }
+    }
+    LOG(INFO) << "mlu test end.";
+#endif  // USE_MLU
+#endif // if 0
+
+#if 0
     Env<AMD>::env_init();
     TestSaberBase<AMD, AMDHX86, AK_FLOAT, Softmax, SoftmaxParam> testbase3;
 

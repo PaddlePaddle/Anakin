@@ -81,6 +81,15 @@ template class DetectionOutputHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, NV, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_DETECTIONOUTPUT(MLU, Precision::FP32);
+INSTANCE_DETECTIONOUTPUT(MLU, Precision::FP16);
+template class DetectionOutputHelper<MLU, Precision::FP32>;
+template class DetectionOutputHelper<MLU, Precision::FP16>;
+ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 #ifdef AMD_GPU
 INSTANCE_DETECTIONOUTPUT(AMD, Precision::FP32);
 template class DetectionOutputHelper<AMD, Precision::FP32>;
@@ -104,6 +113,10 @@ ANAKIN_REGISTER_OP(DetectionOutput)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("detectionoutput")
 #endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("detectionoutput")
+.__alias__<MLU, Precision::FP16>("detectionoutput")
+#endif  // USE_MLU
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("detectionoutput")
 #endif

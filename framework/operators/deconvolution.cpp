@@ -109,6 +109,16 @@ template class DeconvolutionHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, NV, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_DECONV(MLU, Precision::FP32);
+INSTANCE_DECONV(MLU, Precision::FP16);
+template class DeconvolutionHelper<MLU, Precision::FP32>;
+template class DeconvolutionHelper<MLU, Precision::FP16>;
+template class DeconvolutionHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 #ifdef USE_X86_PLACE
 INSTANCE_DECONV(X86, Precision::FP32);
 template class DeconvolutionHelper<X86, Precision::FP32>;
@@ -134,6 +144,11 @@ ANAKIN_REGISTER_OP(Deconvolution)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("deconvolution")
 #endif
+
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("deconvolution")
+#endif  // USE_MLU
+
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("deconvolution")
 #endif

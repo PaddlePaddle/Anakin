@@ -96,6 +96,13 @@ template class DeformConvolutionHelper<ARM, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(DeformConvolution, DeformConvolutionHelper, ARM, Precision::FP32);
 #endif
 
+#ifdef  USE_X86_PLACE
+template class DeformConvolutionHelper<X86, Precision::FP32>;
+template class DeformConvolutionHelper<X86, Precision::FP16>;
+template class DeformConvolutionHelper<X86, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(DeformConvolution, DeformConvolutionHelper, X86, Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(DeformConvolution)
 .Doc("DeformConvolution operator")
@@ -107,6 +114,9 @@ ANAKIN_REGISTER_OP(DeformConvolution)
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("deformable_convolution")
+#endif
+#ifdef  USE_X86_PLACE
+.__alias__<X86, Precision::FP32>("deformable_convolution")
 #endif
 .num_in(1)
 .num_out(1)

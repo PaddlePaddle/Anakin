@@ -61,7 +61,7 @@ SaberStatus SaberRCNNProposal<NV, AK_FLOAT>::dispatch(
     std::vector<float> im_height_scale = std::vector<float>(1, this->read_height_scale_);
     std::vector<float> cords_offset_x = std::vector<float>(1, float(0));
     std::vector<float> cords_offset_y = std::vector<float>(1, this->read_height_offset_);
-    CHECK_EQ(inputs.back()->count(1, inputs.back()->dims()), 6);
+    CHECK_EQ(inputs.back()->count_valid(1, inputs.back()->dims()), 6);
 
     _img_info_glue.set_extern_tensor(inputs.back());
     const float* img_info_data = (const float*)_img_info_glue.host_data(_ctx);

@@ -65,6 +65,16 @@ template class FlattenHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Flatten, FlattenHelper, AMD, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_FLATTEN(MLU, Precision::FP32);
+INSTANCE_FLATTEN(MLU, Precision::FP16);
+template class FlattenHelper<MLU, Precision::FP32>;
+template class FlattenHelper<MLU, Precision::FP16>;
+template class FlattenHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Flatten, FlattenHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Flatten, FlattenHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_FLATTEN(X86, Precision::FP32);
 template class FlattenHelper<X86, Precision::FP32>;
@@ -83,6 +93,9 @@ ANAKIN_REGISTER_OP(Flatten)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("flatten")
 #endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("flatten")
+#endif  // USE_MLU
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("flatten")
 #endif

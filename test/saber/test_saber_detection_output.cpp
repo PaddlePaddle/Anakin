@@ -7,6 +7,13 @@
 #include "saber/funcs/detection_output.h"
 #include <vector>
 #include <string>
+
+#if defined(AMD_GPU)
+int main() {
+    return 0;
+}
+#else // if defined(AMD_GPU)
+
 using namespace anakin::saber;
 #if defined(USE_CUDA)
 using Target = NV;
@@ -20,6 +27,12 @@ using Target_H = ARM;
 #elif defined(AMD_GPU)
 using Target = AMD;
 using Target_H = X86;
+#elif defined(USE_BM_PLACE)
+using Target = BM;
+using Target_H = X86;
+#elif defined(USE_MLU)
+using Target = MLU;
+using Target_H = MLUHX86;
 #endif
 
 std::string g_bbox_file = "/home/public/multiclass_nms/result_box_clip_0.tmp_0.txt";
@@ -27,6 +40,7 @@ std::string g_conf_file = "/home/public/multiclass_nms/result_softmax_0.tmp_0.tx
 std::string g_priorbox_file = "";
 std::string g_result_file = "/home/public/multiclass_nms/result_multiclass_nms_0.tmp_0.txt";
 std::string g_img_file = "/home/public/000000000139.jpg";
+
 
 #ifdef USE_OPENCV
 #include "opencv2/opencv.hpp"
@@ -254,6 +268,7 @@ TEST(TestSaberFunc, test_func_detection_output) {
 #endif
 }
 
+
 int main(int argc, const char** argv) {
     // initial logger
     logger::init(argv[0]);
@@ -264,3 +279,4 @@ int main(int argc, const char** argv) {
     return 0;
 }
 
+#endif // ifdefine(AMD_GPU)

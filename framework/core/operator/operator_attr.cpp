@@ -23,6 +23,15 @@ OpAttrWarpper& OpAttrWarpper::__alias__<NV, Precision::FP16>(const std::string& 
 template
 OpAttrWarpper& OpAttrWarpper::__alias__<NV, Precision::INT8>(const std::string& op_name);
 //#endif
+//#ifdef USE_MLU
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<MLU, Precision::FP32>(const std::string& op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<MLU, Precision::FP16>(const std::string& op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<MLU, Precision::INT8>(const std::string& op_name);
+//#endif // USE_MLU
+
 
 //#ifdef USE_X86_PLACE
 template
@@ -31,6 +40,15 @@ template
 OpAttrWarpper& OpAttrWarpper::__alias__<X86, Precision::FP16>(const std::string& op_name);
 template
 OpAttrWarpper& OpAttrWarpper::__alias__<X86, Precision::INT8>(const std::string& op_name);
+//#endif
+
+//#ifdef USE_BM_PLACE
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<BM, Precision::FP32>(const std::string& op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<BM, Precision::FP16>(const std::string& op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<BM, Precision::INT8>(const std::string& op_name);
 //#endif
 
 //#ifdef USE_ARM_PLACE

@@ -18,6 +18,11 @@ template class OperatorFunc<NV, Precision::FP16>;
 template class OperatorFunc<NV, Precision::INT8>;
 #endif
 
+#ifdef USE_MLU
+template class OperatorFunc<MLU, Precision::FP32>;
+template class OperatorFunc<MLU, Precision::FP16>;
+template class OperatorFunc<MLU, Precision::INT8>;
+#endif  // USE_MLU
 #ifdef USE_X86_PLACE
 template class OperatorFunc<X86, Precision::FP32>;
 template class OperatorFunc<X86, Precision::FP16>;
@@ -36,5 +41,13 @@ template class OperatorFunc<ARM, Precision::FP16>;
 template class OperatorFunc<ARM, Precision::INT8>;
 
 #endif //arm
+
+#ifdef USE_BM_PLACE
+template class OperatorFunc<BM, Precision::FP32>;
+template class OperatorFunc<BM, Precision::FP16>;
+template class OperatorFunc<BM, Precision::INT8>;
+
+#endif //bm
+
 } /* namespace */
 

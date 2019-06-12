@@ -5,6 +5,9 @@
 #include "mkl_cblas.h"
 #include "saber/funcs/impl/x86/saber_avx2_funcs.h"
 #include "saber/funcs/impl/x86/saber_normal_activation.h"
+#ifdef USE_SGX
+extern "C" void mkl_free_buffers();
+#endif
 
 namespace anakin {
 
@@ -21,6 +24,9 @@ static void gemm(const bool TransA, const bool TransB, int m, int n, int k, cons
     CBLAS_TRANSPOSE cuTransB =
         (!TransB/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
     cblas_sgemm(CblasRowMajor, cuTransA, cuTransB, m, n, k, alpha, a, k, b, n, beta, c, n);
+#ifdef USE_SGX
+    mkl_free_buffers();
+#endif
 };
 
 template <typename Dtype>

@@ -6,6 +6,7 @@
 #include "framework/graph/llvm/optimizer/memory_scheduler.h"
 #include "framework/graph/llvm/fusion/graph_pattern.h"
 #include "framework/core/operator/operator.h"
+#include "framework/graph/llvm/optimizer/optimize_strategy.h"
 
 namespace anakin {
 
@@ -38,7 +39,6 @@ Status Graph<Ttype, Ptype>::load(const char* buffer, size_t len) EXCLUSIVE_LOCKS
     return ret;
 }
 
-#ifndef USE_NANOPB
 template<typename Ttype, Precision Ptype>
 Status Graph<Ttype, Ptype>::save(std::string model_path) {
     return parser::save<Ttype>(this, model_path);
@@ -48,7 +48,6 @@ template<typename Ttype, Precision Ptype>
 Status Graph<Ttype, Ptype>::save(const char* model_path) {
     return parser::save<Ttype>(this, model_path);
 }
-#endif
 
 template<typename Ttype, Precision Ptype>
 std::vector<std::string>& Graph<Ttype, Ptype>::get_nodes_in_order() {
@@ -268,10 +267,9 @@ Status Graph<Ttype, Ptype>::Freeze() {
                 std::vector<std::string> outputs;
                 inputs.push_back(out);
                 int split_num = in_to_op_map[out].size();
+                std::string output_name_base = out + std::string("_split_");
                 for(int i=0; i < split_num; i++) {
-                    std::ostringstream oss;
-                    oss << out << "_split_" << i;
-                    outputs.push_back(oss.str());
+                    outputs.push_back(output_name_base + std::to_string(i));
                 }
                 std::string split_name = out + std::string("split");
                 split_map_ins[split_name] = inputs;
@@ -395,6 +393,21 @@ Status Graph<Ttype, Ptype>::Optimize(bool with_fusion) EXCLUSIVE_LOCKS_REQUIRED(
 
                 }
             }
+
+            ///*
+            restore_from_vgraph(_vgraph);
+            graph_strategy<Ttype, Ptype> _strategy;
+            if (std::is_same<Ttype,X86>::value) {
+                LOG(INFO)<<"x86 close horizontal_combine";
+            }else if (std::is_same<Ttype, ARM>::value){
+                LOG(INFO)<<"arm close horizontal_combine";
+            } else {
+                _strategy.apply_horizontal_combine(this);
+            }
+            _strategy.apply_stride_up(this);
+            *_vgraph = this->get_vgraph();
+            //*/
+
             DLOG(WARNING) <<
                           "Schedule the vgraph for memory optimization and exec lanes ,as well as sync flags.";
 
@@ -556,6 +569,8 @@ void Graph<Ttype, Ptype>::load_calibrator_config(
     };
     this->Scanner->BFS_Edge(set_edge_scale);
 }
+
+#ifndef USE_SGX
 template <typename Ttype, Precision Ptype>
 void Graph<Ttype, Ptype>::load_layout_config(std::string config_file){
     CalibratorParser cal_parser;
@@ -567,6 +582,7 @@ void Graph<Ttype, Ptype>::load_layout_config(std::string config_file){
     };
     this->Scanner->BFS_Edge(set_edge_info);
 }
+#endif
 
 template<typename Ttype, Precision Ptype>
 Status Graph<Ttype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
@@ -668,7 +684,7 @@ Status Graph<Ttype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
     vgraph->Scanner->BFS(interpreter_node);
 
     //! merge the attr of nodes which need to merge
-    auto merge_node_attrs = [this](NodePtr& node_p) -> Status {
+    auto merge_node_attrs = [&, this](NodePtr& node_p) -> Status {
         auto& target_node_name = node_p->name();
 
         if (this->_node_merges.count(target_node_name) > 0 && this->_node_merges[target_node_name].size()) {
@@ -684,6 +700,26 @@ Status Graph<Ttype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
                 if (ret == this->_node_merges_keep[target_node_name].end()) {
                     this->remove(this->_node_merges[target_node_name][i]); // remove merge node which is useless
                 }
+            }
+        }
+        //here: we insert merged node slice info
+        PTuple<int> slice_info;
+        auto arc_out_its = vgraph -> get_out_arc_its(target_node_name);
+        if (arc_out_its.size() > 1){
+            for (int i = 0;i < arc_out_its.size(); ++i){
+                auto name = arc_out_its[i]->top();
+                auto v_vertex = (*vgraph)[name];
+                slice_info.push_back(v_vertex.mergeNodes.size() + 1);
+            }
+            int sum = 0;
+            for (int i = 0; i < slice_info.size(); ++i){
+                sum += slice_info[i];
+            }
+            //LOG(INFO) << "nodename:" << target_node_name;
+            //LOG(WARNING) << "sum:" << sum;
+            //LOG(WARNING) << this->_node_merges[target_node_name].size(); 
+            if (sum == this->_node_merges[target_node_name].size() + 1){
+                node_p->set_attr<PTuple<int>>("slice_info", slice_info);
             }
         }
 
@@ -821,6 +857,42 @@ Status Graph<Ttype, Ptype>::Clean() {
 
     return Status::OK();
 }
+template<typename Ttype, Precision Ptype>
+Status Graph<Ttype, Ptype>::fusion_optimize(bool with_fusion) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+    
+    if (!std::is_same<Ttype, MLU>::value && !std::is_same<Ttype, BM>::value) {
+        LOG(FATAL) << "only support bm and mlu right now!";
+    }
+    std::unique_lock<std::mutex> lock(this->_mut);
+    if (!_has_graph_optimized) {
+        DLOG(WARNING) << "Get virtual graph of graph ... ";
+        get_vgraph();
+        DLOG(INFO) << _vgraph->to_string();
+
+        auto is_optimized = statistics.get_info<IS_OPTIMIZED>();
+
+        Scheduler scheduler;
+        scheduler.RegIOResource(_vgraph);
+        scheduler.Run();
+        _nodes_exec_order = scheduler.get_exec_node_in_order();
+
+        _has_graph_optimized = true;
+    }
+
+#ifdef ENABLE_DEBUG
+    auto print_edge_debug_string = [](Edge<Ttype>& edge) {
+        DLOG(INFO) << "Real Graph Edge : " << edge.ToString();
+        return Status::OK();
+    };
+    this->Scanner->BFS_Edge(print_edge_debug_string);
+    auto print_Node_debug_string = [](NodePtr& target_node) {
+        DLOG(INFO) << "Real Graph Node : " << target_node->ToString();
+        return Status::OK();
+    };
+    this->Scanner->BFS(print_Node_debug_string);
+#endif
+    return Status::OK();
+}
 
 #ifdef USE_CUDA
 template class Graph<NV, Precision::FP32>;
@@ -828,6 +900,17 @@ template class Graph<NV, Precision::FP16>;
 template class Graph<NV, Precision::INT8>;
 #endif
 
+#ifdef USE_BM_PLACE
+template class Graph<BM, Precision::FP32>;
+template class Graph<BM, Precision::FP16>;
+template class Graph<BM, Precision::INT8>;
+#endif
+
+#ifdef USE_MLU
+template class Graph<MLU, Precision::FP32>;
+template class Graph<MLU, Precision::FP16>;
+template class Graph<MLU, Precision::INT8>;
+#endif  // USE_MLU
 #if defined USE_X86_PLACE || defined BUILD_LITE
 template class Graph<X86, Precision::FP32>;
 template class Graph<X86, Precision::FP16>;

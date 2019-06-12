@@ -145,6 +145,11 @@ class Fluid_edger:
                 targets.append(edge.target)
         return targets
 
+    def del_targets(self, param):
+        """delete specific targets
+        """
+        self.edges = filter(lambda x: x.param != param, self.edges)
+
     def target(self, param, idx = 0):
         '''
         '''
@@ -287,7 +292,6 @@ class Fluid_helper:
         if var.shape != np_data.shape:
             logger(verbose.INFO).feed('NOTICE: var.shape != np_data.shape, var.shape={0}, np_data.shape={1}'.format(
                 var.shape, np_data.shape))
-            # np_data need reshape to var.shape
             size = reduce(lambda x, y: x * y, var.shape)
             np_data = np_data.flatten()[:size].reshape(var.shape)
 

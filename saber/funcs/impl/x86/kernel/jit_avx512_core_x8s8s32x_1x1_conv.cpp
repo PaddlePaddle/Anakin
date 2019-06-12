@@ -281,7 +281,7 @@ SaberStatus JitAvx512x8s8s32xConv1x1::create(const std::vector<Tensor<X86>*>& in
     conv_d.stride_h = conv_param->stride_h;
     conv_d.stride_w = conv_param->stride_w;
 
-    status = jit_avx512_core_x8s8s32x_conv1x1_kernel::init_conf(conf, conv_d, omp_get_max_threads(),
+    status = jit_avx512_core_x8s8s32x_conv1x1_kernel::init_conf(conf, conv_d, anakin_get_max_threads(),
              reduce_src);
 
     if (status == SaberSuccess) {

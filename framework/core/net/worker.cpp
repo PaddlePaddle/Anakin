@@ -238,6 +238,16 @@ template class Worker<AMD, Precision::FP32, OpRunType::SYNC>;
 template class Worker<AMD, Precision::FP16, OpRunType::SYNC>;
 template class Worker<AMD, Precision::INT8, OpRunType::SYNC>;
 #endif
+#ifdef USE_MLU
+template class Worker<MLU, Precision::FP32, OpRunType::ASYNC>;
+template class Worker<MLU, Precision::FP16, OpRunType::ASYNC>;
+template class Worker<MLU, Precision::INT8, OpRunType::ASYNC>;
+
+template class Worker<MLU, Precision::FP32, OpRunType::SYNC>;
+template class Worker<MLU, Precision::FP16, OpRunType::SYNC>;
+template class Worker<MLU, Precision::INT8, OpRunType::SYNC>;
+#endif  // USE_MLU
+
 
 #ifdef USE_X86_PLACE
 template class Worker<X86, Precision::FP32, OpRunType::ASYNC>;

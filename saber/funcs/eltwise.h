@@ -32,6 +32,12 @@
 #ifdef AMD_GPU
 #include "saber/funcs/impl/amd/include/saber_eltwise.h"
 #endif
+
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_eltwise.h"
+#endif  // USE_MLU
+
+
 namespace anakin {
 namespace saber {
 
@@ -62,7 +68,7 @@ public:
 
     virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
         Param_t& param) override {
-        if (param.operation != Eltwise_div) {
+        if (param.operation != Eltwise_div && param.operation != Eltwise_mul) {
            for (int i = 1; i < input.size(); ++i) {
                CHECK_EQ(input[0]->num(), input[i]->num());
                CHECK_EQ(input[0]->channel(), input[i]->channel());

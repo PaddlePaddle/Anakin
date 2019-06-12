@@ -243,7 +243,7 @@ SaberStatus SaberProposalImgScaleToCamCoords<NV, AK_FLOAT>::create(
     CHECK_EQ(inputs[0]->count_valid(1, inputs[1]->dims()), 6 + num_class_);
     CHECK_GT(inputs[0]->num(), 0);
     //[im_info]
-    CHECK_GE(inputs[1]->count(1, inputs[1]->dims()), cam_info_idx_st_in_im_info_ + 6);
+    CHECK_GE(inputs[1]->count_valid(1, inputs[1]->dims()), cam_info_idx_st_in_im_info_ + 6);
     //[cam_ctr_pt]
     CHECK_EQ(inputs[2]->num(), inputs[0]->num());
     CHECK_GE(inputs[2]->count_valid(1, inputs[2]->dims()), total_sub_class_num_ * 2);
@@ -270,36 +270,36 @@ SaberStatus SaberProposalImgScaleToCamCoords<NV, AK_FLOAT>::create(
 
         int sub_cls_top_idx = sub_class_bottom_idx_[k];
         CHECK_EQ(inputs[sub_cls_top_idx]->num(), inputs[0]->num());
-        CHECK_EQ(inputs[sub_cls_top_idx]->count(1,
+        CHECK_EQ(inputs[sub_cls_top_idx]->count_valid(1,
                 inputs[sub_cls_top_idx]->dims()), sub_class_num_class_[k]);
     }
 
     if (has_size3d_and_orien3d_) {
         //[size3d_h]
         CHECK_EQ(inputs[size3d_h_bottom_idx_]->num(), inputs[0]->num());
-        CHECK_EQ(inputs[size3d_h_bottom_idx_]->count(1,
+        CHECK_EQ(inputs[size3d_h_bottom_idx_]->count_valid(1,
                 inputs[size3d_h_bottom_idx_]->dims()), total_sub_class_num_);
         //[size3d_w]
         CHECK_EQ(inputs[size3d_w_bottom_idx_]->num(), inputs[0]->num());
-        CHECK_EQ(inputs[size3d_w_bottom_idx_]->count(1,
+        CHECK_EQ(inputs[size3d_w_bottom_idx_]->count_valid(1,
                 inputs[size3d_w_bottom_idx_]->dims()), total_sub_class_num_);
         //[size3d_l]
         CHECK_EQ(inputs[size3d_l_bottom_idx_]->num(), inputs[0]->num());
-        CHECK_EQ(inputs[size3d_l_bottom_idx_]->count(1,
+        CHECK_EQ(inputs[size3d_l_bottom_idx_]->count_valid(1,
                 inputs[size3d_l_bottom_idx_]->dims()), total_sub_class_num_);
         //[orien3d_sin]
         CHECK_EQ(inputs[orien3d_sin_bottom_idx_]->num(), inputs[0]->num());
-        CHECK_EQ(inputs[orien3d_sin_bottom_idx_]->count(1,
+        CHECK_EQ(inputs[orien3d_sin_bottom_idx_]->count_valid(1,
                 inputs[orien3d_sin_bottom_idx_]->dims()), total_sub_class_num_);
         //[orien3d_cos]
         CHECK_EQ(inputs[orien3d_cos_bottom_idx_]->num(), inputs[0]->num());
-        CHECK_EQ(inputs[orien3d_cos_bottom_idx_]->count(1,
+        CHECK_EQ(inputs[orien3d_cos_bottom_idx_]->count_valid(1,
                 inputs[orien3d_cos_bottom_idx_]->dims()), total_sub_class_num_);
 
         //[trunc_ratio]
         if (with_trunc_ratio_) {
             CHECK_EQ(inputs[trunc_ratio_bottom_idx_]->num(), inputs[0]->num());
-            CHECK_EQ(inputs[trunc_ratio_bottom_idx_]->count(1,
+            CHECK_EQ(inputs[trunc_ratio_bottom_idx_]->count_valid(1,
                     inputs[trunc_ratio_bottom_idx_]->dims()), total_sub_class_num_);
         }
     }
@@ -387,7 +387,7 @@ SaberStatus SaberProposalImgScaleToCamCoords<NV, AK_FLOAT>::dispatch(const std::
     const float* rois_boxes_data = (const float*)_rois_boxes_data_host_tensor->data();
     //num_img x [..., cam_xpz, cam_xct, cam_ypz, cam_yct, cam_hgrd, cam_pitch, ...]
     const int num_img = inputs[1]->num();
-    const int im_info_dim = inputs[1]->count(1, inputs[1]->dims());
+    const int im_info_dim = inputs[1]->count_valid(1, inputs[1]->dims());
     const float* im_info_data = (const float*)_im_info_data_host_tensor->data();
     //[ctr_x_sub_c1, ctr_y_sub_c1, ctr_x_sub_c2, ctr_y_sub_c2, ...]
     const float* cam2d_data = (const float*)_cam2d_data_host_tensor->data();
@@ -468,7 +468,7 @@ SaberStatus SaberProposalImgScaleToCamCoords<NV, AK_FLOAT>::dispatch(const std::
     float cords_offset_y = cords_offset_y_;
     if (has_scale_offset_info_) {
         CHECK_EQ(inputs.back()->num(), num_img);
-        CHECK_EQ(inputs.back()->count(1, inputs.back()->dims()), 6);
+        CHECK_EQ(inputs.back()->count_valid(1, inputs.back()->dims()), 6);
     }
 
     float bsz01 = bbox_size_add_one_ ? float(1.0) : float(0.0);

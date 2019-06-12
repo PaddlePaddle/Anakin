@@ -53,8 +53,13 @@ foreach(SRC_NAME ${ANAKIN_TEST_CASE_SRC})
 	add_executable(${TEST_CASE_NAME}  ${SRC_NAME})
     if(USE_ARM_PLACE)
         if (USE_OPENCV)
-            target_link_libraries(${TEST_CASE_NAME} -lopencv_core -lopencv_highgui -lopencv_imgproc
+            if(${ANDROID_ABI} STREQUAL "arm64-v8a")
+                target_link_libraries(${TEST_CASE_NAME} -lopencv_core -lopencv_highgui -lopencv_imgproc
+                    -llibtiff -llibpng -llibjpeg -llibjasper -lIlmImf -lc -lz -llog -ldl)
+            else()
+                target_link_libraries(${TEST_CASE_NAME} -lopencv_core -lopencv_highgui -lopencv_imgproc
                     -ltbb -llibtiff -llibpng -llibjpeg -llibjasper -lIlmImf -lc -lz -llog -ldl)
+            endif()
         endif()
     endif()
 	if(BUILD_SHARED)

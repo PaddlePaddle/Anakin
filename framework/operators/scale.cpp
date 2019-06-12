@@ -94,6 +94,16 @@ template class ScaleHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Scale, ScaleHelper, ARM, Precision::FP32);
 #endif//arm
 
+#ifdef USE_MLU
+INSTANCE_SCALE(MLU, Precision::FP32);
+INSTANCE_SCALE(MLU, Precision::FP16);
+template class ScaleHelper<MLU, Precision::FP32>;
+template class ScaleHelper<MLU, Precision::FP16>;
+template class ScaleHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Scale, ScaleHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Scale, ScaleHelper, MLU, Precision::FP16);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(Scale)
 .Doc("Scale operator")
@@ -108,6 +118,9 @@ ANAKIN_REGISTER_OP(Scale)
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("Scale")
+#endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("Scale")
 #endif
 .num_in(1)
 .num_out(1)

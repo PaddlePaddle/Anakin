@@ -223,7 +223,7 @@ SaberStatus VenderFc<X86, AK_FLOAT>
 }
 template class VenderFc<X86, AK_FLOAT>;
 
-
+#ifndef USE_SGX
 template <>
 void VenderFc<X86, AK_INT8>::clean() {
     if (ws_) {
@@ -444,6 +444,7 @@ SaberStatus VenderFc<X86, AK_INT8>::dispatch(const std::vector<Tensor<X86> *>& i
 }
 
 template class VenderFc<X86, AK_INT8>;
+#endif
 
 DEFINE_OP_TEMPLATE(VenderFc, FcParam, X86, AK_HALF);
 

@@ -179,40 +179,25 @@ SaberStatus SaberConvEltwise<NV, AK_FLOAT>::trans_weights(
         Tensor<NV> &target_weights, Tensor<NV> &target_bias,
         int pad_h, int pad_w, int dilation_h, int dilation_w,
         int stride_h, int stride_w, int group) {
+
     int generate_arch = Env<NV>::cur_env()[_ctx->get_device_id()]._info._generate_arch;
     bool arch_check = (generate_arch == 50) || (generate_arch == 61);
+
     if (!arch_check) {
         return SaberSuccess;
     }
-
     if (_extern_trans || target_weights.valid_size() == 0) {
         return SaberSuccess;
     }
-    bool use_k1s1p0 = true;
-    use_k1s1p0 = use_k1s1p0 && (target_weights.height() == 1);
-    use_k1s1p0 = use_k1s1p0 && (target_weights.width() == 1);
-    use_k1s1p0 = use_k1s1p0 && (pad_h == 0);
-    use_k1s1p0 = use_k1s1p0 && (pad_w == 0);
-    use_k1s1p0 = use_k1s1p0 && (stride_h == 1);
-    use_k1s1p0 = use_k1s1p0 && (stride_w == 1);
-    use_k1s1p0 = use_k1s1p0 && (dilation_h == 1);
-    use_k1s1p0 = use_k1s1p0 && (dilation_w == 1);
-    use_k1s1p0 = use_k1s1p0 && (group == 1);
-    use_k1s1p0 = use_k1s1p0 && (target_bias.valid_size() > 0);
-    if (use_k1s1p0) {
+    if (_use_k1s1p0) {
         _extern_trans = true;
         return SaberSuccess;
-    }
-    if (_use_vender) {
+    } else {
         _extern_trans = true;
-        return SaberSuccess;
+        return _conv.trans_weights(target_weights, target_bias,
+                                   pad_h, pad_w, dilation_h, dilation_w,
+                                   stride_h, stride_w, group);
     }
-    if (target_weights.valid_size() > 0) {
-        conv_trans_weights<NV, NVHX86>(target_weights,
-                stride_h, stride_w, group, true, nullptr, dilation_h, dilation_w);
-    }
-    _extern_trans = true;
-    return SaberSuccess;
 }
 template <>
 SaberStatus SaberConvEltwise<NV, AK_INT8>::\

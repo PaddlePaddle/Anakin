@@ -32,6 +32,8 @@ class Configuration:
                 if data['OPTIONS']['SavePath'][-1] == '/' \
                 else data['OPTIONS']['SavePath'] + '/'
         self.ResultName = data['OPTIONS']['ResultName']
+        #self.intermediateModelPath = data['OPTIONS']['SavePath'] \
+        #        + data['OPTIONS']['ResultName'] + "anakin.bin"
         self.LaunchBoard = True if data['OPTIONS']['Config']['LaunchBoard'] else False
         self.ip = data['OPTIONS']['Config']['Server']['ip']
         self.port = data['OPTIONS']['Config']['Server']['port']
@@ -44,7 +46,7 @@ class Configuration:
         if 'ProtoPaths' in data['TARGET'][self.framework].keys():
             proto_list = data['TARGET'][self.framework]['ProtoPaths']
             self.__refresh_pbs(proto_list)
-        self.generate_pbs_of_paddle_inference_graph()
+        self.generate_pbs_of_anakin()
 
     def fill_config_from_args(self, args, data):
         """Fill config from args
@@ -74,6 +76,16 @@ class Configuration:
             data['OPTIONS']['LOGGER']['WithColor'] = args.log_with_color
 
         # set framwork specific args
+        # caffe
+        if args.caffe_proto_paths is not None:
+            data['TARGET']['CAFFE']['ProtoPaths'] = args.caffe_proto_paths
+        if args.caffe_proto_txt_path is not None:
+            data['TARGET']['CAFFE']['PrototxtPath'] = args.caffe_proto_txt_path
+        if args.caffe_model_path is not None:
+            data['TARGET']['CAFFE']['ModelPath'] = args.caffe_model_path
+        if args.caffe_remark is not None:
+            data['TARGET']['CAFFE']['Remark'] = args.caffe_remark
+
         # fluid
         if args.fluid_debug is not None:
             data['TARGET']['FLUID']['Debug'] = args.fluid_debug
@@ -81,6 +93,30 @@ class Configuration:
             data['TARGET']['FLUID']['ModelPath'] = args.fluid_model_path
         if args.fluid_net_type is not None:
             data['TARGET']['FLUID']['NetType'] = args.fluid_net_type
+
+        # lego
+        if args.lego_proto_path is not None:
+            data['TARGET']['LEGO']['ProtoPath'] = args.lego_proto_path
+        if args.lego_prototxt_path is not None:
+            data['TARGET']['LEGO']['PrototxtPath'] = args.lego_prototxt_path
+        if args.lego_model_path is not None:
+            data['TARGET']['LEGO']['ModelPath'] = args.lego_model_path
+
+        # tensorflow
+        if args.tensorflow_model_path is not None:
+            data['TARGET']['TENSORFLOW']['ModelPath'] = args.tensorflow_model_path
+        if args.tensorflow_outputs is not None:
+            data['TARGET']['TENSORFLOW']['OutPuts'] = args.tensorflow_outputs
+
+        # onnx
+        if args.onnx_model_path is not None:
+            data['TARGET']['ONNX']['ModelPath'] = args.onnx_model_path
+
+        # houyi
+        if args.houyi_model_path is not None:
+            data['TARGET']['HOUYI']['ModelPath'] = args.houyi_model_path
+        if args.houyi_weights_path is not None:
+            data['TARGET']['HOUYI']['WeightsPath'] = args.houyi_weights_path
 
     def check_protobuf_version(self):
         """
@@ -105,12 +141,12 @@ class Configuration:
         sys_versions = map(int, protoc_out.split('.'))
         pip_versions = map(int, __version__.split('.'))
         assert sys_versions[0] >= 3 and pip_versions[0] >= 3, \
-            "Protobuf version must be greater than 3.0."
+            "Protobuf version must be greater than 3.0. Please refer to the Anakin Docs."
         assert pip_versions[1] >= sys_versions[1], \
             "ERROR: Protobuf must be the same.\nSystem Protobuf %s\nPython Protobuf %s\n" \
             % (protoc_out, __version__) + "Try to execute pip install protobuf==%s" % (protoc_out)
 
-    def generate_pbs_of_paddle_inference_graph(self):
+    def generate_pbs_of_anakin(self):
         protoFilesStr = subprocess.check_output(["ls", "parser/proto/"])
         filesList = protoFilesStr.split('\n')
         protoFilesList = []

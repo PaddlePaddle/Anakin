@@ -514,7 +514,7 @@ SaberStatus JitAvx512X8S8S32XConv::init_conf(jit_conv_conf_t& jcp,
     }
 
 
-    const int nthreads = omp_get_max_threads();
+    const int nthreads = anakin_get_max_threads();
     ws_per_thread_ = jcp.oh * jcp.ow * jcp.oc;
     ws_ = (int*)zmalloc(nthreads * ws_per_thread_ * sizeof(int), 4096);
 

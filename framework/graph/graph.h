@@ -24,6 +24,7 @@
 #include "framework/graph/graph_global_mem.h"
 #include "framework/core/net/calibrator_parse.h"
 
+
 namespace anakin {
 
 namespace graph {
@@ -160,6 +161,8 @@ public:
 
     /// optimization for graph
     Status Optimize(bool with_fusion = true);
+    /// optimization for fusion graph
+    Status fusion_optimize(bool with_fusion = true);
     /// Get virtual graph.
     VGraph& get_vgraph();
     /// Restore real Graph from optimized virtual graph.
@@ -207,6 +210,8 @@ private:
 
     ///< _registed_outs:outs that needs to be exported
     std::vector<std::pair<std::string, std::string>> _registed_outs;
+    //
+    
 
     ///< temporary map for node inputs and outputs
     std::unordered_map<std::string, std::vector<std::string> > node_ins;

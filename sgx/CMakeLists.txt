@@ -35,6 +35,7 @@ set(ENCLAVE_CONFIG ${ANAKIN_SGX}/enclave/config.xml)
 set(ECALL_EDL ${ANAKIN_SGX}/enclave/ecall.edl)
 set(ECALL_SRC ${ANAKIN_SGX}/enclave/ecall.cpp)
 set(APP_SRC ${ANAKIN_SGX}/app/app.cpp)
+set(INIT_SRC ${ANAKIN_SGX}/app/init.c)
 set(OCALL_SRC ${ANAKIN_SGX}/app/ocall.c)
 
 add_custom_command(
@@ -151,7 +152,7 @@ add_custom_target(anakin_enclave_signed ALL
   DEPENDS anakin_enclave.signed
 )
 
-add_executable(anakin_app ${APP_SRC} ${OCALL_SRC})
+add_executable(anakin_app ${APP_SRC} ${OCALL_SRC} ${INIT_SRC})
 target_compile_options(anakin_app PUBLIC -UNDEBUG)
 target_link_libraries(anakin_app
   anakin_untrusted
@@ -160,3 +161,15 @@ target_link_libraries(anakin_app
   -lsgx_uae_service${SGX_LIB_TYPE}
   -lpthread
 )
+
+set(CLI11_SRC ${UNTRUSTED_DIR}/CLI11.hpp)
+add_custom_command(
+  OUTPUT ${CLI11_SRC}
+  WORKING_DIRECTORY ${UNTRUSTED_DIR}
+  COMMAND wget ARGS -q https://github.com/CLIUtils/CLI11/releases/download/v1.7.1/CLI11.hpp
+  COMMENT "Downloading CLI11.hpp..."
+)
+add_custom_target(cli11 ALL
+  DEPENDS ${CLI11_SRC}
+)
+add_dependencies(anakin_app cli11)

@@ -73,6 +73,8 @@ SaberStatus SaberConv2D<X86, AK_FLOAT>::init(const std::vector<Tensor<X86> *>& i
     LayoutType input_layout = inputs[0]->get_layout();
     LayoutType out_layout = outputs[0]->get_layout();
 
+    this->impl = nullptr;
+
     bool conv_1x1_flag = (kh == 1 && kw == 1) && (pad_h == 0 && pad_w == 0) && (stride_h == 1
                          && stride_w == 1) && group == 1;
     bool is_c16 = (input_layout == Layout_NCHW_C16R) && (out_layout == Layout_NCHW_C16R) ;
@@ -89,44 +91,46 @@ SaberStatus SaberConv2D<X86, AK_FLOAT>::init(const std::vector<Tensor<X86> *>& i
     bool is_winorgrad = (kh == 3 && kw == 3) && (stride_h == 1 && stride_w == 1) && (dilation_h == 1
                         && dilation_w == 1) && group == 1;
 #ifndef USE_SGX
-
     if (is_winorgrad && (oc >= 16 && ic >= 16 && ih >= 12 && iw >= 12)
             && (((input_layout == Layout_NCHW) && (out_layout == Layout_NCHW)))) {
         this->impl = new SaberConvWinograd<AK_FLOAT>;
     } else
 #endif
-        if (conv_1x1_flag && (input_layout == Layout_NCHW) && (out_layout == Layout_NCHW)) {
-            this->impl = new SaberConv1X1<AK_FLOAT>;
-        } else if ((use_avx2 || use_avx512) && (oc == group && ic == group) && (is_strict_c8_out
-                   || is_strict_c16)) {
-            if (is_strict_c8_out && input_layout != Layout_NCHW_C8R) {
-                _input_trans = true;
-                _input_trans_tensor.re_alloc(Shape({in, ic, ih, iw}, Layout_NCHW_C8R));
-                _input_trans_tensor.set_seq_offset(inputs[0]->get_seq_offset());
-            }
+    if (conv_1x1_flag && (input_layout == Layout_NCHW) && (out_layout == Layout_NCHW)) {
+        this->impl = new SaberConv1X1<AK_FLOAT>;
+    } else if ((use_avx2 || use_avx512) && (oc == group && ic == group) && (is_strict_c8_out
+               || is_strict_c16)) {
+        if (is_strict_c8_out && input_layout != Layout_NCHW_C8R) {
+            _input_trans = true;
+            _input_trans_tensor.re_alloc(Shape({in, ic, ih, iw}, Layout_NCHW_C8R));
+            _input_trans_tensor.set_seq_offset(inputs[0]->get_seq_offset());
+        }
 
-            this->impl = new JitUniDWConv<AK_FLOAT>;
-        } else if (use_avx512  && conv_1x1_flag && is_strict_c16) {
-            this->impl = new JitAvx512Conv1x1<AK_FLOAT>;
-        } else if (use_avx512 && param.group == 1 && (is_strict_c16 || is_first_c16)) {
-            this->impl = new JitAvx512Conv<AK_FLOAT>;
-        } else if (use_avx2 && param.group == 1 && pad_w <= 3) {
-            this->impl = new JitAvx2Conv<AK_FLOAT>;
-        } else if (use_avx2 && param.group != 1 && is_strict_c8_in && pad_w <= 3) {
-            this->impl = new JitAvx2GroupConv<AK_FLOAT>;
-        } else if (input_layout == Layout_NCHW && out_layout == Layout_NCHW) {
+        this->impl = new JitUniDWConv<AK_FLOAT>;
+    } else if (use_avx512  && conv_1x1_flag && is_strict_c16) {
+        this->impl = new JitAvx512Conv1x1<AK_FLOAT>;
+    } else if (use_avx512 && param.group == 1 && (is_strict_c16 || is_first_c16)) {
+        this->impl = new JitAvx512Conv<AK_FLOAT>;
+    } else if (use_avx2 && param.group == 1 && pad_w <=3) {
+        this->impl = new JitAvx2Conv<AK_FLOAT>;
+    } else if (use_avx2 && param.group != 1 && is_strict_c8 && pad_w <=3) {
+        this->impl = new JitAvx2GroupConv<AK_FLOAT>;
+    }
+
+    _fake_input_vec.push_back(&_input_trans_tensor);
+
+    const std::vector<Tensor<X86> *> &maybe_trans = _input_trans ? _fake_input_vec : inputs;
+
+    // sometimes the kernels above cannot be successfully intialized. In those cases,
+    // test if we can fall back to SaberIm2colConv
+    if (!(this->impl && this->impl->init(maybe_trans, outputs, conv_elt_param, ctx) == SaberSuccess)) {
+        if (input_layout == Layout_NCHW && out_layout == Layout_NCHW) {
             this->impl = new SaberIm2colConv<AK_FLOAT>;
         } else {
             LOG(FATAL) << "not support conv for in shape = " << inputs[0]->valid_shape() << ", out shape "
                        << outputs[0]->valid_shape() << ", group = " << group;
         }
-
-    _fake_input_vec.push_back(&_input_trans_tensor);
-
-    if (_input_trans) {
-        return this->impl->init(_fake_input_vec, outputs, conv_elt_param, ctx);
-    } else {
-        return this->impl->init(inputs, outputs, conv_elt_param, ctx);
+        return this->impl->init(maybe_trans, outputs, conv_elt_param, ctx);
     }
 
     return SaberSuccess;
@@ -162,6 +166,17 @@ create(const std::vector<Tensor<X86> *>& inputs,
     EltwiseParam<X86> elt_param(Eltwise_sum);
     elt_param.has_eltwise = false;
     ConvEltwiseParam<X86> conv_elt_param(param, elt_param);
+
+    if (inputs[0]->get_dtype() == AK_FLOAT || inputs[0]->get_layout() != Layout_NHWC) {
+        _input_scale.reshape(
+                Shape({inputs[0]->num(), inputs[0]->height(), inputs[0]->width(), inputs[0]->channel()},
+                      Layout_NHWC));
+    }
+
+    if (outputs[0]->get_layout() == Layout_NCHW) {
+        _output_scale.reshape(Shape({outputs[0]->num(), outputs[0]->height(), outputs[0]->width(),
+                                      outputs[0]->channel()}, Layout_NHWC));
+    }
 
     if (_input_vec.size() == 0 && _output_vec.size() == 0) {
         return this->impl->create(inputs, outputs, conv_elt_param, ctx);
@@ -229,7 +244,7 @@ init(const std::vector<Tensor<X86> *>& inputs,
     if (outputs[0]->get_layout() == Layout_NCHW) {
         _output_scale.re_alloc(Shape({outputs[0]->num(), outputs[0]->height(), outputs[0]->width(),
                                       outputs[0]->channel()}, Layout_NHWC), outputs[0]->get_dtype());
-        _output_scale.set_scale(inputs[0]->get_scale());
+        _output_scale.set_scale(outputs[0]->get_scale());
         _output_vec.push_back(&_output_scale);
     } else if (outputs[0]->get_layout() != Layout_NHWC) {
         LOG(FATAL) << "not support output layout " << outputs[0]->get_layout();

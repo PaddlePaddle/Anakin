@@ -74,11 +74,11 @@ ANAKIN_REGISTER_OP_HELPER(RoiPool, RoiPoolHelper, ARM, Precision::FP32);
 #endif//arm
 
 #ifdef AMD_GPU
-INSTANCE_ROI_POOL(AMD, Precision::FP32);
-template class RoiPoolHelper<AMD, Precision::FP32>;
-template class RoiPoolHelper<AMD, Precision::FP16>;
-template class RoiPoolHelper<AMD, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(RoiPool, RoiPoolHelper, AMD, Precision::FP32);
+//INSTANCE_ROI_POOL(AMD, Precision::FP32);
+//template class RoiPoolHelper<AMD, Precision::FP32>;
+//template class RoiPoolHelper<AMD, Precision::FP16>;
+//template class RoiPoolHelper<AMD, Precision::INT8>;
+//ANAKIN_REGISTER_OP_HELPER(RoiPool, RoiPoolHelper, AMD, Precision::FP32);
 #endif
 //! register op
 ANAKIN_REGISTER_OP(RoiPool)
@@ -93,7 +93,7 @@ ANAKIN_REGISTER_OP(RoiPool)
 .__alias__<X86, Precision::FP32>("roi_pool")
 #endif
 #ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("roi_pool")
+//.__alias__<AMD, Precision::FP32>("roi_pool")
 #endif
 .num_in(1)
 .num_out(1)

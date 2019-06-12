@@ -32,6 +32,11 @@
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_slice.h"
 #endif
+
+#ifdef USE_MLU_PLACE
+#include "saber/funcs/impl/mlu/saber_slice.h"
+#endif // ifdef USE_MLU_PLACE
+
 namespace anakin{
 
 namespace saber{

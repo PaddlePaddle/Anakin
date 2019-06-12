@@ -76,6 +76,16 @@ template class AxpyHelper<AMD, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Axpy, AxpyHelper, AMD, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_AXPY(MLU, Precision::FP32);
+INSTANCE_AXPY(MLU, Precision::FP16);
+template class AxpyHelper<MLU, Precision::FP32>;
+template class AxpyHelper<MLU, Precision::FP16>;
+template class AxpyHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Axpy, AxpyHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Axpy, AxpyHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_AXPY(X86, Precision::FP32);
 template class AxpyHelper<X86, Precision::FP32>;
@@ -108,6 +118,11 @@ ANAKIN_REGISTER_OP(Axpy)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("axpy")
 #endif
+
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("axpy")
+#endif  // USE_MLU
+
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("axpy")
 #endif

@@ -1,6 +1,9 @@
 #include "saber/funcs/impl/x86/winograd_float.h"
 #include "mkl_cblas.h"
 #include "mkl_trans.h"
+#ifdef USE_SGX
+extern "C" void mkl_free_buffers();
+#endif
 
 namespace anakin {
 namespace saber {
@@ -184,6 +187,9 @@ static void gemm(const bool trans_a, const bool transb, int m, int n, int k, con
     CBLAS_TRANSPOSE cblas_transb =
         (!transb/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
     cblas_sgemm(CblasRowMajor, cblas_transa, cblas_transb, m, n, k, alpha, a, k, b, n, beta, c, n);
+#ifdef USE_SGX
+    mkl_free_buffers();
+#endif
 };
 
 static void print_hw(const float* in, int h, int w) {

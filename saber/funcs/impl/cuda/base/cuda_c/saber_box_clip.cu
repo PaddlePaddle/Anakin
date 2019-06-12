@@ -40,9 +40,25 @@ static __global__ void GPUBoxClip(const Dtype* input, const int* lod,
     }
 }
 
+template <typename Dtype, int BlockSize>
+static __global__ void GPUBoxClip_no_ori(const Dtype* input, const int* lod,
+                                  const int width, const Dtype* im_info,
+                                  Dtype* output) {
+    Dtype im_w = round(im_info[blockIdx.x * ImInfoSize + 1]);
+    Dtype im_h = round(im_info[blockIdx.x * ImInfoSize]);
+    Dtype scale_rev = Dtype(1)/im_info[blockIdx.x * ImInfoSize+2];
+
+    for (int i = threadIdx.x; i < (lod[blockIdx.x + 1] - lod[blockIdx.x]) * width;
+         i += BlockSize) {
+        int idx = lod[blockIdx.x] * width + i;
+        Dtype im_size = (idx % 2 == 0) ? im_w : im_h;
+        output[idx] = max(min(input[idx], im_size - 1), Dtype(0.))*scale_rev;
+    }
+}
+
 template <DataType OpDtype>
 SaberStatus SaberBoxClip<NV, OpDtype>::dispatch(const std::vector<Tensor<NV>*>& inputs,
-        std::vector<Tensor<NV>*>& outputs, EmptyParam<NV>& param) {
+        std::vector<Tensor<NV>*>& outputs, BoxClipParam<NV>& param) {
     static constexpr int im_info_size = 3;
     static constexpr int box_info_size = 4;
     auto seq_offset = inputs[1]->get_seq_offset();
@@ -59,15 +75,21 @@ SaberStatus SaberBoxClip<NV, OpDtype>::dispatch(const std::vector<Tensor<NV>*>& 
     utils::try_expand_tensor(cuda_seq_offset, offset.size());
     CUDA_CHECK(cudaMemcpyAsync(cuda_seq_offset.data(), offset.data(), sizeof(int)*offset.size(),
                                cudaMemcpyHostToDevice, this->_ctx->get_compute_stream()));
-    GPUBoxClip<float, 256> <<< batch_size, 256, 0, this->_ctx->get_compute_stream() >>> (
-        static_cast<float*>(img->data()), static_cast<int*>(cuda_seq_offset.data()),
-        box_info_size, static_cast<float*>(im_info->data()), static_cast<float*>(outputs[0]->data()));
+    if (param.is_ori_box) {
+        GPUBoxClip<float, 256> << < batch_size, 256, 0, this->_ctx->get_compute_stream() >> > (
+                static_cast<float *>(img->data()), static_cast<int *>(cuda_seq_offset.data()),
+                        box_info_size, static_cast<float *>(im_info->data()), static_cast<float *>(outputs[0]->data()));
+    }else{
+        GPUBoxClip_no_ori<float, 256> << < batch_size, 256, 0, this->_ctx->get_compute_stream() >> > (
+                static_cast<float *>(img->data()), static_cast<int *>(cuda_seq_offset.data()),
+                        box_info_size, static_cast<float *>(im_info->data()), static_cast<float *>(outputs[0]->data()));
+    }
     return SaberSuccess;
 }
 
 template class SaberBoxClip<NV, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberBoxClip, EmptyParam, NV, AK_HALF);
-DEFINE_OP_TEMPLATE(SaberBoxClip, EmptyParam, NV, AK_INT8);
+DEFINE_OP_TEMPLATE(SaberBoxClip, BoxClipParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberBoxClip, BoxClipParam, NV, AK_INT8);
 } //namespace anakin
 
 } //namespace anakin

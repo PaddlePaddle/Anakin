@@ -179,7 +179,7 @@ NodeIO<Ttype, Ptype>& NodeIO<Ttype, Ptype>::operator>>(const NodeProto& node_pro
                     block->d_tensor().set_scale(scale_vector);
                     block->h_tensor().set_scale(scale_vector);
 
-#if defined(    USE_CUDA) || defined(AMD_GPU)
+#if defined(    USE_CUDA) || defined(AMD_GPU) || defined(USE_MLU)
                     // map cpu data to GPU
                     block->d_tensor().set_shape(saber_shape);
                     block->d_tensor().copy_from(block->h_tensor());
@@ -218,7 +218,7 @@ NodeIO<Ttype, Ptype>& NodeIO<Ttype, Ptype>::operator>>(const NodeProto& node_pro
                     block->d_tensor().set_scale(scale_vector);
                     block->h_tensor().set_scale(scale_vector);
 
-#if defined(    USE_CUDA) || defined(AMD_GPU)
+#if defined(    USE_CUDA) || defined(AMD_GPU) || defined(USE_MLU)
                     // map cpu data to GPU
                     block->d_tensor().set_shape(saber_shape);
                     block->d_tensor().copy_from(block->h_tensor());
@@ -462,6 +462,11 @@ template class NodeIO<NV, Precision::FP16>;
 template class NodeIO<NV, Precision::INT8>;
 #endif
 
+#ifdef USE_MLU
+template class NodeIO<MLU, Precision::FP32>;
+template class NodeIO<MLU, Precision::FP16>;
+template class NodeIO<MLU, Precision::INT8>;
+#endif
 #ifdef AMD_GPU
 template class NodeIO<AMD, Precision::FP32>;
 template class NodeIO<AMD, Precision::FP16>;
@@ -478,6 +483,12 @@ template class NodeIO<X86, Precision::INT8>;
 template class NodeIO<ARM, Precision::FP32>;
 template class NodeIO<ARM, Precision::FP16>;
 template class NodeIO<ARM, Precision::INT8>;
+#endif
+
+#ifdef USE_BM_PLACE
+template class NodeIO<BM, Precision::FP32>;
+template class NodeIO<BM, Precision::FP16>;
+template class NodeIO<BM, Precision::INT8>;
 #endif
 
 } /* parser */

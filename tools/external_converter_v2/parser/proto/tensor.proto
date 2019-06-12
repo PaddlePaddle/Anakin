@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-// tensor shape define.
+// anakin tensor shape define.
 message TensorShape {
     message Dim {
         repeated int32 value = 1;
@@ -31,7 +31,7 @@ enum LayoutProto {
 };
 
 
-// data type.
+// anakin data type.
 // maybe need to be improved
 enum DateTypeProto {
         STR = 0;  // When used as bit type, enum 0 means invalid.
@@ -57,19 +57,19 @@ message CacheDate {
     int64 size = 7;
 };
 
-// tensor define
+// anakin tensor define
 // it maybe need to improved to support sequence data.
 message TensorProto {
     // tensor id [optional]
-    // ( only used when paddle inference generates optimized model )
+    // ( only used when anakin generates optimized model )
     bytes name = 1;
 
     // whether shared from other [optional]
-    // ( paddle inference generates optimized model )
+    // ( anakin generates optimized model )
     bool shared = 2;
 
     // share_from is not null if shared [optional]
-    // ( only used when paddle inference generates optimized model)
+    // ( only used when anakin generates optimized model)
     bytes  share_from = 3; 
 
     // tensor real shape

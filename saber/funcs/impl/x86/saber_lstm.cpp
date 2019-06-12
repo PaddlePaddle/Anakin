@@ -2,11 +2,9 @@
 #include "saber/funcs/impl/x86/saber_normal_activation.h"
 #include "mkl_cblas.h"
 
-
 namespace anakin {
 
 namespace saber {
-
 
 template <typename BIT, typename OpDataType, bool with_peephole>
 static inline void cal_first_lstm_nullhidden(int emit_word_id_start, int emit_word_id_end,

@@ -75,13 +75,19 @@ TEST(TestSaberFunc, test_func_crop) {
     TestSaberBase<X86,X86,AK_FLOAT,Crop,CropParam> testbase_x86;
     LOG(INFO)<<"ENVEND";
 #endif
+#ifdef USE_MLU
+    //Init the test_base
+    Env<MLUHX86>::env_init();
+    Env<MLU>::env_init();
+    TestSaberBase<MLU, MLUHX86,AK_FLOAT,Crop,CropParam> testbase_mlu;
+#endif
     //combine param by yourself
-    std::vector<int> offset = {2, 2};
+    std::vector<int> offset = {1, 2, 2};
     std::vector<int> shape = {1, 3, 4, 5};
-    for(int w_in:{32,64,128,512}){
-        for(int h_in: {32,64,128,512}){
-            for(int ch_in:{3,8,16,32}){
-                for(int num_in:{1,2,32,64}){
+    for(int w_in:{32, 64, 128}){
+        for(int h_in: {32, 64, 128}){
+            for(int ch_in:{4, 8, 16}){
+                for(int num_in:{1, 2, 32}){
                     #ifdef USE_CUDA
 //                    //make param
 //                    CropParam<NV> param_nv( /*axis_in*/2, /*offset*/offset, /*shape_in*/shape);
@@ -93,12 +99,21 @@ TEST(TestSaberFunc, test_func_crop) {
                     #endif
                     #ifdef USE_X86_PLACE
                     //make param
-                    CropParam<X86> param_x86( /*axis_in*/2, /*offset*/offset, /*shape_in*/shape);
+                    CropParam<X86> param_x86( /*axis_in*/1, /*offset*/offset, /*shape_in*/shape);
                     //testbase test
                     testbase_x86.set_param(param_x86);//set param
                     //testbase.set_rand_limit(255,255);
                     testbase_x86.set_input_shape(Shape({num_in,ch_in,h_in,w_in}));
                     testbase_x86.run_test(norm_cpu_nchw<float,X86,X86>);//run test
+                    #endif
+                    #ifdef USE_MLU
+                    //make param
+                    CropParam<MLU> param_mlu( /*axis_in*/1, /*offset*/offset, /*shape_in*/shape);
+                    //testbase test
+                    testbase_mlu.set_param(param_mlu);//set param
+                    //testbase.set_rand_limit(255,255);
+                    testbase_mlu.set_input_shape(Shape({num_in,ch_in,h_in,w_in}));
+                    testbase_mlu.run_test(norm_cpu_nchw<float,MLU,MLUHX86>, 0.02, true);//run test
                     #endif
                 }
             }

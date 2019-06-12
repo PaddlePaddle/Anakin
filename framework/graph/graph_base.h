@@ -72,6 +72,8 @@ public:
 	/// remove arc from graph
 	virtual void remove(ArcType& arc);
     virtual void remove(VertexNameType vertex_name_0, VertexNameType vertex_name_1);
+    virtual void remove_byio(ArcType& arc);
+    virtual void remove_byio(VertexNameType vertex_name_0, VertexNameType vertex_name_1);
 
     /// has arc	
  	virtual bool has_arc(ArcType& arc);

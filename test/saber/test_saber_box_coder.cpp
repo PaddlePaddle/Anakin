@@ -125,7 +125,7 @@ void test_model() {
     int box_num = 10;
     int class_num = 11;
     Shape prior_box_shape({box_num, 5, 1, 1}, Layout_NCHW);
-    Shape delta_shape({class_num, box_num, 1, 4}, Layout_NCHW);
+    Shape delta_shape({box_num, class_num, 1, 4}, Layout_NCHW);
     Shape var_shape({1, 1, 1, 4}, Layout_NCHW);
     Tensor<TargetType_D> var_tensor(var_shape);
     fill_tensor_rand(var_tensor, 0, 1);

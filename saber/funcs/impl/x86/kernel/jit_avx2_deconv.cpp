@@ -309,7 +309,7 @@ SaberStatus JitAvx2Deconv<AK_FLOAT>::dispatch(
 
     #pragma omp parallel
     {
-        ker(omp_get_thread_num(), omp_get_num_threads());
+        ker(anakin_get_thread_num(), anakin_get_num_threads());
     }
 
     return SaberSuccess;

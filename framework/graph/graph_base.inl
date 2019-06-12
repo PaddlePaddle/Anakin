@@ -215,9 +215,38 @@ void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::remove(ArcType&
 }
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
+void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::remove_byio(ArcType& arc) {
+    if(has_arc(arc)) {
+        Arc_iterator<VertexNameType, WeightType, ArcType> it = find(arc.bottom(), arc.top());
+        _arcs.erase(it.origin());
+    }
+    auto bot = arc.bottom();
+    auto top = arc.top();
+
+    for(auto out_arc_it = _graph_out_arcs[bot].begin();
+     out_arc_it != _graph_out_arcs[bot].end(); ++out_arc_it) {
+        if(out_arc_it->origin()->top() == top) {
+            _graph_out_arcs[bot].erase(out_arc_it);
+        }
+    }
+    for(auto in_arc_it = _graph_in_arcs[top].begin();
+     in_arc_it != _graph_in_arcs[top].end(); ++in_arc_it) {
+        if(in_arc_it->origin()->bottom() == bot) {
+            _graph_in_arcs[top].erase(in_arc_it);
+        }
+    }
+    
+}
+
+template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::remove(VertexNameType vertex_name_0, VertexNameType vertex_name_1) {
     ArcType arc(vertex_name_0, vertex_name_1);
     remove(arc);
+}
+template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
+void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::remove_byio(VertexNameType vertex_name_0, VertexNameType vertex_name_1) {
+    ArcType arc(vertex_name_0, vertex_name_1);
+    remove_byio(arc);
 }
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>

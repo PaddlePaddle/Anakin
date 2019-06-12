@@ -97,6 +97,17 @@ public:
                                              std::vector<float> batchnorm_variance){
         LOG(ERROR) << "unsupport weights dtype";
     };
+
+    /**
+     * \brief  update dense weights.
+     */
+    static void update_dense_weights(PBlock<T> weights_0, PBlock<T> bias_0, 
+                               bool bias_term_0, int out_dim_0, bool is_transed_0,
+                               PBlock<T> weights_1, PBlock<T> bias_1, 
+                               bool bias_term_1, int out_dim_1, bool is_transed_1){
+        LOG(ERROR) << "unsupport weights dtype";
+    }
+
 };
 
 template<typename T>
@@ -161,6 +172,14 @@ public:
                                              float batchnorm_scale, float batchnorm_eps,
                                              std::vector<float> batchnorm_mean,
                                              std::vector<float> batchnorm_variance);
+
+    /**
+     * \brief  update dense weights.
+     */
+      static void update_dense_weights(PBlock<T> weights_0, PBlock<T> bias_0, 
+                               bool bias_term_0, int out_dim_0, bool is_transed_0,
+                               PBlock<T> weights_1, PBlock<T> bias_1, 
+                               bool bias_term_1, int out_dim_1, bool is_transed_1);
 };
 
 template<typename T>
@@ -226,6 +245,16 @@ public:
 											 float batchnorm_scale, float batchnorm_eps,
 											 std::vector<float> batchnorm_mean,
 											 std::vector<float> batchnorm_variance);
+
+  /**
+     * \brief  update dense weights.
+     */
+    static void update_dense_weights(PBlock<T> weights_0, PBlock<T> bias_0, 
+                               bool bias_term_0, int out_dim_0, bool is_transed_0,
+                               PBlock<T> weights_1, PBlock<T> bias_1, 
+                               bool bias_term_1, int out_dim_1, bool is_transed_1){
+        LOG(ERROR) << "unsupport weights dtype";
+    }
 };
 
 

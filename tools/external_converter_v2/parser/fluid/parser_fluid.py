@@ -10,7 +10,7 @@ import proto_helper
 class FluidParser:
 
     def __init__(self, fluid_config_dict):
-        # graph model io
+        # anakin graph model io
         self.graphIO = None
         # config info
         self.ModelPath = fluid_config_dict['ModelPath']
@@ -40,11 +40,10 @@ class FluidParser:
         return new_name
 
     def _NameNodeIn(self, in_name):
-        new_name = 'input_' + bytes(self.graph_ins.index(in_name))
-        return new_name
+        return in_name
 
     def _NameNodeOut(self, out_name):
-        new_name = out_name + '_gout'
+        new_name = out_name
         return new_name
 
     def _AddPairEdges(self, start_node_name, end_node_name, out_param, in_param):
@@ -177,8 +176,10 @@ class FluidParser:
             for arg_name in op.output_arg_names:
                 private_data['fill_constant'][arg_name] = op
 
+        source_ops = filter(lambda op: op.type not in ['fill_constant'], source_ops)
+
         for source_op in source_ops:
-            if source_op.type in ['feed', 'fetch', 'fill_constant']:
+            if source_op.type in ['feed', 'fetch']:
                 pass
             else:
                 main_node_name = self._NameNodeMid(source_op)
@@ -309,7 +310,7 @@ class FluidParser:
         # If a layer has two identical output tensors, add a split layer.
         for node in self.outs.keys():
             if node.startswith('split#') is False and \
-            node.startswith('increment#') is False:
+                    node.startswith('increment#') is False:
                 out_edges = self.outs[node]
                 for param in out_edges.all_params():
                     out_targets_list = out_edges.targets(param)
@@ -450,7 +451,7 @@ class FluidParser:
                                 elt_node_name, helper, private_data)
 
     def _DealWithBatchnorm(self, source_ops, helper, quantized=False):
-        # In the scale part of batchnorm layer is independent.
+        # In anakin, the scale part of batchnorm layer is independent.
         for source_op in source_ops:
             if source_op.type == 'batch_norm':
                 discrete_flag = True
@@ -875,7 +876,7 @@ class FluidParser:
 
     def _DealWithSoftmax(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
-            if source_op.type == 'softmax':
+            if source_op.type in ['softmax', 'search_seq_softmax']:
                 softmax_node_name = self._NameNodeMid(source_op)
                 outs_of_softmax = self.outs[softmax_node_name].targets('Out')
                 ins_of_softmax = self.ins[softmax_node_name].targets('X')
@@ -1183,6 +1184,41 @@ class FluidParser:
         self.outs[main_layer] = Fluid_edger(out_param, out_target)
         self._AddProtoNode(main_layer, None, helper, private_data, layer_type)
 
+
+    def _remove_sequence_padding_useless_output(self, ops, helper):
+        for op in ops:
+            if op.type == 'search_group_padding':
+                padding = self._NameNodeMid(op)
+                padding_in_node = self.ins[padding].target('X')
+                padding_param = filter(lambda x: x.target == padding,
+                    self.outs[padding_in_node].edges)[0].param
+
+                out_new = self.outs[padding].target('Out_new')
+                out_padding = self.outs[padding].target('Out_padding')
+                self.outs[padding].del_targets('Out_new')
+                self.outs[padding].del_targets('Out_padding')
+
+                self.ins[out_new].mv(padding, padding_in_node)
+                self.outs[padding_in_node].add(padding_param, out_new)
+                self.ins[out_padding].mv(padding, padding_in_node)
+                self.outs[padding_in_node].add(padding_param, out_padding)
+
+
+    def _deal_top_k_avg_pooling_input(self, ops, helper):
+        for op in ops:
+            if op.type == 'sequence_topk_avg_pooling':
+                node_name = self._NameNodeMid(op)
+                X = self.ins[node_name].target('X')
+                ROW = self.ins[node_name].target('ROW')
+                COLUMN = self.ins[node_name].target('COLUMN')
+                self.ins[node_name].rm(X)
+                self.ins[node_name].rm(ROW)
+                self.ins[node_name].rm(COLUMN)
+                self.ins[node_name].add('X', X, None)
+                self.ins[node_name].add('ROW', ROW, None)
+                self.ins[node_name].add('COLUMN', COLUMN, None)
+
+
     def _ParseNetwork(self, source_ops, helper, quantized=False):
         self._ParseBase(source_ops, helper)
         if self.NetType == "FLUIDBASE":
@@ -1196,6 +1232,7 @@ class FluidParser:
             self._ReplaceInputs(source_ops, helper, reshape_dict)
             self._DealWithQuantize(source_ops, helper)
             self._DealWithDequantize(source_ops, helper)
+            self._remove_sequence_padding_useless_output(source_ops, helper)
             self._InsertSplit(source_ops, helper)
             self._DealWithBias(source_ops, helper)
             self._DealWithGru(source_ops, helper)
@@ -1218,6 +1255,7 @@ class FluidParser:
                 self._RefreshReshape(source_ops, helper)
             if self.NetType == "FEED":
                 self._DealWithFeedSequencePool(source_ops, helper)
+            self._deal_top_k_avg_pooling_input(source_ops, helper)
         if self.Debug == 'IN':
             self._Graph(True, False)
         else:

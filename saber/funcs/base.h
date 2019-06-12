@@ -61,18 +61,22 @@ public:
     //TODO:create may lead to leak
     virtual SaberStatus reset_output_shape(const Input_v& input, Output_v& output, \
         Param_t& param, Context<TargetType> &ctx) {
-        compute_output_shape(input, output, param);
+        //compute_output_shape(input, output, param);
         for (int i = 0; i < output.size(); ++i) {
             output[i]->reshape(output[i]->valid_shape());
         }
-        for (auto imp : this->_impl) {
-            if (imp) {
-                SaberStatus status = imp->create(input, output, param, ctx);
-                if (status != SaberSuccess) {
-                    return status;
-                }
-            }
+        SaberStatus status = this->_best_impl->create(input, output, param, ctx);
+        if (status != SaberSuccess) {
+            return status;
         }
+        //for (auto imp : this->_impl) {
+        //    if (imp) {
+        //        SaberStatus status = imp->create(input, output, param, ctx);
+        //        if (status != SaberSuccess) {
+        //            return status;
+        //        }
+        //    }
+        //}
         return SaberSuccess;
     }
 
@@ -152,7 +156,7 @@ public:
                 this->_last_input_shape.push_back(input[i]->valid_shape());
             }
             reset_output_shape(input, output, param, ctx);
-            pick_best(input, output, param, _strategy, _implenum, ctx);
+            //pick_best(input, output, param, _strategy, _implenum, ctx);
             return _best_impl->dispatch(input, output, param);
         }
     }

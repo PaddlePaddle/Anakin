@@ -21,10 +21,7 @@ SaberStatus SaberShuffleChannel<X86, AK_FLOAT>::dispatch(\
         std::vector<Tensor<X86> *>& outputs,
         ShuffleChannelParam<X86> &param) {
 
-#ifdef ENABLE_OP_TIMER
-    this->_timer.clear();
-    this->_timer.start();
-#endif
+
     int num = inputs[0]->num();
     int channel = inputs[0]->channel();
     int height = inputs[0]->height();
@@ -39,17 +36,7 @@ SaberStatus SaberShuffleChannel<X86, AK_FLOAT>::dispatch(\
     for (int i = 0; i < num; ++i) {
         shuffle_kernel(dout + i * fea_size, din + i * fea_size, group_row, group_col, spatial_size);
     }
-#ifdef ENABLE_OP_TIMER
-    this->_timer.end();
-    float ts = this->_timer.get_average_ms();
-    LOGI("ShuffleChannel : %s: time: %f\n", this->_op_name.c_str(), ts);
-    GOPS ops;
-    //fixme
-    ops.ops = 0;
-    ops.ts = ts;
-    OpTimer::add_timer("ShuffleChannel", ops);
-    OpTimer::add_timer("total", ops);
-#endif
+
     return SaberSuccess;
 }
 template <>
@@ -58,10 +45,7 @@ SaberStatus SaberShuffleChannel<X86, AK_INT8>::dispatch(\
         std::vector<Tensor<X86> *>& outputs,
         ShuffleChannelParam<X86> &param) {
 
-#ifdef ENABLE_OP_TIMER
-    this->_timer.clear();
-    this->_timer.start();
-#endif
+
     int num = inputs[0]->num();
     int channel = inputs[0]->channel();
     int height = inputs[0]->height();
@@ -76,17 +60,7 @@ SaberStatus SaberShuffleChannel<X86, AK_INT8>::dispatch(\
     for (int i = 0; i < num; ++i) {
         shuffle_kernel(dout + i * fea_size, din + i * fea_size, group_row, group_col, spatial_size);
     }
-#ifdef ENABLE_OP_TIMER
-    this->_timer.end();
-    float ts = this->_timer.get_average_ms();
-    LOGI("ShuffleChannel : %s: time: %f\n", this->_op_name.c_str(), ts);
-    GOPS ops;
-    //fixme
-    ops.ops = 0;
-    ops.ts = ts;
-    OpTimer::add_timer("ShuffleChannel", ops);
-    OpTimer::add_timer("total", ops);
-#endif
+
     return SaberSuccess;
 }
 DEFINE_OP_TEMPLATE(SaberShuffleChannel, ShuffleChannelParam, X86, AK_HALF);

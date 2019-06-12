@@ -52,7 +52,7 @@ Status LrnHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
         std::vector<Tensor4dPtr<Ttype> >& outs) {
 
     saber::ImplEnum impl_e = VENDER_IMPL;
-    if (std::is_same<Ttype, X86>::value) {
+    if (std::is_same<Ttype, X86>::value || std::is_same<Ttype, MLU>::value) {
         impl_e = SABER_IMPL;
     }
     SABER_CHECK(_funcs_lrn.init(ins, outs, _param_lrn, SPECIFY, impl_e, ctx));
@@ -94,6 +94,16 @@ template class LrnHelper<ARM, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, ARM, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_LRN(MLU, Precision::FP32);
+INSTANCE_LRN(MLU, Precision::FP16);
+template class LrnHelper<MLU, Precision::FP32>;
+template class LrnHelper<MLU, Precision::FP16>;
+template class LrnHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 //! register op
 ANAKIN_REGISTER_OP(Lrn)
 .Doc("LRN operator")
@@ -109,6 +119,9 @@ ANAKIN_REGISTER_OP(Lrn)
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("LRN")
 #endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("LRN")
+#endif  // USE_MLU
 .num_in(3)
 .num_out(1);
 

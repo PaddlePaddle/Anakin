@@ -13,8 +13,8 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_ELTWISEACT_H
-#define ANAKIN_SABER_FUNCS_IMPL_ELTWISEACT_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_ELTWISE_ACT_H
+#define ANAKIN_SABER_FUNCS_IMPL_ELTWISE_ACT_H
 
 #include "saber/funcs/impl/impl_macro.h"
 namespace anakin{
@@ -26,4 +26,4 @@ DEFINE_OP_CLASS(EltwiseActive, EltwiseActiveParam);
 }
 }
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_ELTWISEACT_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_ELTWISE_ACT_H

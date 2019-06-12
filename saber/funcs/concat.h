@@ -35,24 +35,28 @@
 #include "saber/funcs/impl/arm/saber_concat.h"
 #endif
 
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_concat.h"
+#endif  // USE_MLU
+
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype>
+         DataType OpDtype>
 
-class Concat : public BaseFunc<
-        TargetType,
-        OpDtype,
-        ImplBase,
-        ConcatParam
-> {
+class Concat : public BaseFunc <
+    TargetType,
+    OpDtype,
+    ImplBase,
+    ConcatParam
+    > {
 public:
-    using BaseFunc<
-        TargetType,
-        OpDtype,
-        ImplBase,
-        ConcatParam>::BaseFunc;
+    using BaseFunc <
+    TargetType,
+    OpDtype,
+    ImplBase,
+    ConcatParam >::BaseFunc;
 
     Concat() = default;
 
@@ -60,18 +64,19 @@ public:
     typedef Tensor<TargetType> OutDataTensor;
     typedef Tensor<TargetType> OpTensor;
     typedef ConcatParam<TargetType> Param_t;
-    typedef std::vector<InDataTensor *> Input_v;
-    typedef std::vector<OutDataTensor *> Output_v;
+    typedef std::vector<InDataTensor*> Input_v;
+    typedef std::vector<OutDataTensor*> Output_v;
     typedef std::vector<Shape> Shape_v;
 
-    virtual SaberStatus compute_output_shape(const Input_v &input,
-                                             Output_v &output, Param_t &param) override {
+    virtual SaberStatus compute_output_shape(const Input_v& input,
+            Output_v& output, Param_t& param) override {
         unsigned long input_size = input.size();
 
         Shape_v shapes_in;
         shapes_in.resize(input_size);
+
         //! get input size
-        for (int i = 0; i < input_size; i++){
+        for (int i = 0; i < input_size; i++) {
             shapes_in[i] = input[i]->valid_shape();
         }
 
@@ -80,43 +85,77 @@ public:
         //! compute output shape
         for (int i = 1; i < input_size; ++i) {
             Shape sh = shapes_in[i];
+
             for (int j = 0; j < sh.dims(); ++j) {
                 CHECK_EQ(sh.get_layout(), shape_out.get_layout()) << "This should be same";
-                if (j == param.axis) { continue; }
-                else if (sh[j] != -1) {
-                            CHECK_EQ(shape_out[j], sh[j]) \
-                        << "All inputs must have the same shape, except at concat_axis.";
+
+                if (j == param.axis) {
+                    continue;
+                } else if (sh[j] != -1) {
+                    CHECK_EQ(shape_out[j], sh[j]) \
+                            << "All inputs must have the same shape, except at concat_axis.";
                 } else {
-//                    sh[j] = shape_out[j];
-//                    SABER_CHECK(input[i]->set_shape(sh));
+                    //                    sh[j] = shape_out[j];
+                    //                    SABER_CHECK(input[i]->set_shape(sh));
                 }
             }
+
             shape_out[param.axis] += sh[param.axis];
         }
-        output[0]->set_seq_offset(input[0]->get_seq_offset());
+
+        if (input[0]->get_seq_offset().size() > 0 && param.axis == 0) {
+            int offset_size = input[0]->get_seq_offset()[0].size();
+            auto offsets = std::vector<std::vector<int>>();
+
+            for (auto input_tensor_p : input) {
+                auto offset_vec = input_tensor_p->get_seq_offset();
+                CHECK(offset_vec.size() >= 1);
+                auto offset = offset_vec[0];
+                CHECK_EQ(offset.size(), offset_size);
+                offsets.push_back(offset);
+            }
+
+            auto new_offset = std::vector<int>();
+            new_offset.push_back(0);
+
+            for (auto i = 0; i < offset_size - 1; i++) {
+                int len = 0;
+
+                for (auto offset : offsets) {
+                    len += offset[i + 1] - offset[i];
+                }
+
+                new_offset.push_back(new_offset[i] + len);
+            }
+            output[0]->set_seq_offset({new_offset});
+
+        } else {
+            output[0]->set_seq_offset(input[0]->get_seq_offset());
+        }
         return output[0]->set_shape(shape_out);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
-            case VENDER_IMPL:
-                this->_impl.push_back(new VenderConcat <TargetType, OpDtype>);
-                return SaberSuccess;
+        case VENDER_IMPL:
+            this->_impl.push_back(new VenderConcat <TargetType, OpDtype>);
+            return SaberSuccess;
 
-            case SABER_IMPL:
-                this->_impl.push_back(new SaberConcat <TargetType, OpDtype>);
-                return SaberSuccess;
+        case SABER_IMPL:
+            this->_impl.push_back(new SaberConcat <TargetType, OpDtype>);
+            return SaberSuccess;
 
-            default:
-                return SaberUnImplError;
+        default:
+            return SaberUnImplError;
         }
     }
 
 private:
 
     virtual void pick_best_static() override {
-        if (true) // some condition?
+        if (true) { // some condition?
             this->_best_impl = this->_impl[0];
+        }
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {

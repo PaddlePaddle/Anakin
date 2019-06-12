@@ -86,6 +86,16 @@ template class SoftmaxHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, NV, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_SOFTMAX(MLU, Precision::FP32);
+INSTANCE_SOFTMAX(MLU, Precision::FP16);
+template class SoftmaxHelper<MLU, Precision::FP32>;
+template class SoftmaxHelper<MLU, Precision::FP16>;
+template class SoftmaxHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_SOFTMAX(X86, Precision::FP32);
 template class SoftmaxHelper<X86, Precision::FP32>;
@@ -122,6 +132,11 @@ ANAKIN_REGISTER_OP(Softmax)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("softmax")
 #endif
+
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("softmax")
+#endif  // USE_MLU
+
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("softmax")
 #endif

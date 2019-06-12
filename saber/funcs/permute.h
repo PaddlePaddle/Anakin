@@ -36,6 +36,10 @@
 #include "saber/funcs/impl/amd/include/saber_permute.h"
 #endif
 
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_permute.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

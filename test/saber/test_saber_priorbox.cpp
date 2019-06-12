@@ -201,6 +201,18 @@ TEST(TestSaberFunc, test_op_priorbox) {
     testbase_x86.set_input_shape(shape);
     testbase_x86.run_test(priorbox_cpu_base<float, X86, X86>, 2.1e-5f);
 #endif
+
+
+#ifdef USE_MLU
+    Env<MLUHX86>::env_init();
+    Env<MLU>::env_init();
+    TestSaberBase<MLU, MLUHX86, AK_FLOAT, PriorBox, PriorBoxParam> testbase_mlu(2, 1);
+    PriorBoxParam<MLU> param_mlu(variance, flip, clip, img_w, img_h, step_w, step_h, offset, order, \
+                        min_size, max_size, aspect_ratio, std::vector<float>(), std::vector<float>(), std::vector<float>());
+    testbase_mlu.set_param(param_mlu);
+    testbase_mlu.set_input_shape(shape);
+    testbase_mlu.run_test(priorbox_cpu_base<float, MLU, MLUHX86>, 0.02, true);
+#endif  // USE_MLU
 }
 
 

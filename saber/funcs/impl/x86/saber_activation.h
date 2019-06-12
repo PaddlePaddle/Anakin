@@ -46,6 +46,8 @@ public:
                                  std::vector<Tensor<X86>*>& outputs,
                                  ActivationParam<X86> &param) override;
 
+    Tensor<X86> _output_scale;
+
 private:
 
 };

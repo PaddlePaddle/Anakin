@@ -74,19 +74,19 @@ void test_model(){
     Shape input_shape2({1, 32, 17, 32}, Layout_NCHW);
 
     for (auto shape: {input_shape, input_shape2}){
-        for (auto a: {1, 5, inType}){
+        for (auto a: {1, 5}){
             TensorH input_host;
             TensorD input_dev;
             if (a == 1){
                 float min = -100.f;
-                float max =100.f;
+                float max = 100.f;
                 input_host.re_alloc(shape, AK_FLOAT);
                 input_dev.re_alloc(shape, AK_FLOAT);
                 fill_tensor_rand(input_host, min, max);
             }
             if (a == 5){
                 float min = -100.f;
-                float max =100.f;
+                float max = 100.f;
                 input_host.re_alloc(shape, AK_INT32);
                 input_dev.re_alloc(shape, AK_INT32);
                 fill_tensor_rand(input_host, min, max);
@@ -95,20 +95,31 @@ void test_model(){
             std::vector<TensorD*> input_dt;
             input_dt.push_back(&input_dev);
             for (auto b: {1, 5, outType}){
+                if( a == b){
+                  continue;
+                }
                 CastParam<TargetType_D> param(a, b);
                 if (b == 1){
                     TestSaberBase<TargetType_D, TargetType_H, AK_FLOAT, Cast, CastParam> testbase(1,1);
                     testbase.set_param(param);
                     testbase.add_custom_input(input_dt);
-                    testbase.set_ouput_datatype(AK_FLOAT);
-                    testbase.run_test(cast_basic<float, TargetType_D, TargetType_H>, 2.1e-5f);
+                    testbase.set_output_datatype(AK_FLOAT);
+                    if (std::is_same<TargetType_D, MLU>::value) {
+                        testbase.run_test(cast_basic<float, TargetType_D, TargetType_H>, 0.02, true);
+                    }else {
+                        testbase.run_test(cast_basic<float, TargetType_D, TargetType_H>, 2.1e-5f);
+                    }
                 }
                 if (b == 5){
                     TestSaberBase<TargetType_D, TargetType_H, AK_INT32, Cast, CastParam> testbase(1,1);
                     testbase.set_param(param);
                     testbase.add_custom_input(input_dt);
-                    testbase.set_ouput_datatype(AK_INT32);
-                    testbase.run_test(cast_basic<int, TargetType_D, TargetType_H>, 2.1e-5f);
+                    testbase.set_output_datatype(AK_INT32);
+                    if (std::is_same<TargetType_D, MLU>::value) {
+                        testbase.run_test(cast_basic<int, TargetType_D, TargetType_H>, 0.02, true);
+                    }else {
+                        testbase.run_test(cast_basic<int, TargetType_D, TargetType_H>, 2.1e-5f);
+                    }
                 }
             }
         }
@@ -167,6 +178,10 @@ TEST(TestSaberFunc, test_func_cast) {
     Env<X86>::env_init();
     test_model<X86, X86>();
 #endif
+#ifdef USE_MLU
+    Env<MLU>::env_init();
+    test_model<MLU, MLUHX86>();
+#endif  // USE_MLU
 #ifdef USE_ARM_PLACE
     Env<ARM>::env_init();
     test_model<ARM, ARM>();

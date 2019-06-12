@@ -513,4 +513,3 @@ OpsRegister.Register("SProposal").set_attr(feat_stride=int(),
                                             nms_thresh=float(),
                                             scale=list(),
                                             ratio=list())
-

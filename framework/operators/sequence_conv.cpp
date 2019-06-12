@@ -32,23 +32,38 @@ Status SequenceConvHelper<Ttype, Ptype>::InitParam() {
     auto context_start=GET_PARAMETER(int, context_start);
     auto context_stride=GET_PARAMETER(int, context_stride);
     auto padding_trainable=GET_PARAMETER(bool, padding_trainable);
+    auto bias_term=GET_PARAMETER(bool, bias_term);
     //auto filter_tensor=GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type> , filter_tensor);
     //auto padding_tensor=GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type> , padding_tensor);
     using pblock_type = PBlock<Ttype>;
-    auto filter_tensor = GET_PARAMETER(pblock_type, filter_tensor);
-    auto padding_tensor = GET_PARAMETER(pblock_type, padding_tensor);
-
-
-    if(padding_tensor.d_tensor().valid_size()>0) {
-        SequenceConvParam<Ttype> param(&(filter_tensor.d_tensor()), context_length, context_start,
-                                                        context_stride, padding_trainable, &(padding_tensor.d_tensor()));
-        _param = param;
+    auto filter_tensor = GET_PARAMETER(pblock_type, weight_1);
+    if (bias_term) {
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
+        if (padding_trainable) {
+            auto padding_tensor = GET_PARAMETER(pblock_type, padding_tensor);
+            SequenceConvParam<Ttype> param(&(filter_tensor.d_tensor()),
+                                           context_length, context_start,context_stride, 
+                                           padding_trainable, &(padding_tensor.d_tensor()), bias_term, &(bias.d_tensor()));
+            _param = param;
+        }else{
+            SequenceConvParam<Ttype> param(&(filter_tensor.d_tensor()),
+                                             context_length, context_start,
+                                             context_stride, padding_trainable, nullptr, bias_term, &(bias.d_tensor()));
+            _param = param;
+        } 
     }else{
-        SequenceConvParam<Ttype> param(&(filter_tensor.d_tensor()), context_length, context_start,
-                                                        context_stride, padding_trainable);
-        _param = param;
+        if (padding_trainable) {
+            auto padding_tensor = GET_PARAMETER(pblock_type, padding_tensor);
+            SequenceConvParam<Ttype> param(&(filter_tensor.d_tensor()), context_length, context_start,
+                                             context_stride, padding_trainable, &(padding_tensor.d_tensor()));
+            _param = param;
+        }else{
+            SequenceConvParam<Ttype> param(&(filter_tensor.d_tensor()), context_length, context_start,
+                                             context_stride, padding_trainable);
+            _param = param;
+        } 
+        
     }
-
     return Status::OK();
 }
 
@@ -79,7 +94,7 @@ template<typename Ttype, Precision Ptype>
 Status SequenceConvHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype> >& ins,
         std::vector<Tensor4dPtr<Ttype> >& outs) {
-    SABER_CHECK(_funcs.init(ins, outs, _param, STATIC, SABER_IMPL, ctx));
+    SABER_CHECK(_funcs.init(ins, outs, _param, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
@@ -118,6 +133,16 @@ template class SequenceConvHelper<ARM, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, ARM, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_SEQUENCE_CONV(MLU, Precision::FP32);
+INSTANCE_SEQUENCE_CONV(MLU, Precision::FP16);
+template class SequenceConvHelper<MLU, Precision::FP32>;
+template class SequenceConvHelper<MLU, Precision::FP16>;
+template class SequenceConvHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, MLU, Precision::FP16);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(SequenceConv)
 .Doc("SequenceConv operator")
@@ -132,6 +157,9 @@ ANAKIN_REGISTER_OP(SequenceConv)
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("SequenceConv")
+#endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("SequenceConv")
 #endif
 .num_in(1)
 .num_out(1)

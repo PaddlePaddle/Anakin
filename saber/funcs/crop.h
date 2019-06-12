@@ -26,6 +26,10 @@
 #include "saber/funcs/impl/x86/saber_crop.h"
 #endif
 
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_crop.h"
+#endif  // USE_MLU
+
 #ifdef USE_ARM_PLACE
 //todo
 #include "saber/funcs/impl/impl_crop.h"

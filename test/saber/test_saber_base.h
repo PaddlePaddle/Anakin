@@ -50,7 +50,7 @@ public:
         Env<TargetType_D> :: env_init();
         Env<TargetType_H> :: env_init();
     }
-    ~TestSaberBase(){
+    ~TestSaberBase() {
         clear_datas();
     }
     void add_param(Param_t& param) {
@@ -61,8 +61,8 @@ public:
         _params.push_back(param);
     }
 
-    void add_inputs_shape(Shape new_shape,std::vector<float> in_tensor_scale={},
-    std::vector<float> out_tensor_scale={}) {
+    void add_inputs_shape(Shape new_shape, std::vector<float> in_tensor_scale = {},
+                          std::vector<float> out_tensor_scale = {}, LayoutType output_layout = Layout_NCHW) {
 
         std :: vector<TensorD*> in_d;
         std :: vector<TensorH*> in_h;
@@ -71,8 +71,8 @@ public:
         std :: vector<TensorH*> out_hd;
 
         for (int i = 0; i < _op_input_num; ++i) {
-            TensorD* d_id = new TensorD(new_shape,_in_data_type);
-            TensorH* d_ih = new TensorH(new_shape,_in_data_type);
+            TensorD* d_id = new TensorD(new_shape, _in_data_type);
+            TensorH* d_ih = new TensorH(new_shape, _in_data_type);
             d_id->set_scale(in_tensor_scale);
             d_ih->set_scale(in_tensor_scale);
             in_d.push_back(d_id);
@@ -80,9 +80,9 @@ public:
         }
 
         for (int i = 0; i < _op_output_num; ++i) {
-            TensorD* d_od = new TensorD(new_shape);
-            TensorH* d_oh = new TensorH(new_shape);
-            TensorH* d_ohd = new TensorH(new_shape);
+            TensorD* d_od = new TensorD(Shape({1, 1, 1, 1}, output_layout));
+            TensorH* d_oh = new TensorH(Shape({1, 1, 1, 1}, output_layout));
+            TensorH* d_ohd = new TensorH(Shape({1, 1, 1, 1}, output_layout));
             d_od->set_scale(out_tensor_scale);
             d_oh->set_scale(out_tensor_scale);
             d_ohd->set_scale(out_tensor_scale);
@@ -90,6 +90,7 @@ public:
             out_h.push_back(d_oh);
             out_hd.push_back(d_ohd);
         }
+
         clear_datas();
         _inputs_dev.push_back(in_d);
         _inputs_host.push_back(in_h);
@@ -112,8 +113,8 @@ public:
         std :: vector<TensorH*> out_hd;
 
         for (int i = 0; i < _op_input_num; ++i) {
-            TensorD* d_id = new TensorD(new_shape_v[i],_in_data_type);
-            TensorH* d_ih = new TensorH(new_shape_v[i],_in_data_type);
+            TensorD* d_id = new TensorD(new_shape_v[i], _in_data_type);
+            TensorH* d_ih = new TensorH(new_shape_v[i], _in_data_type);
             in_d.push_back(d_id);
             in_h.push_back(d_ih);
 
@@ -127,6 +128,7 @@ public:
             out_h.push_back(d_oh);
             out_hd.push_back(d_ohd);
         }
+
         clear_datas();
 
         _inputs_dev.push_back(in_d);
@@ -138,12 +140,13 @@ public:
         _input_type = RANDOM;
     }
 
-    void add_inputs_shape(std::vector<Shape> new_shape_v,std::vector<std::vector<float>> in_tensor_scale,
+    void add_inputs_shape(std::vector<Shape> new_shape_v,
+                          std::vector<std::vector<float>> in_tensor_scale,
                           std::vector<std::vector<float>> out_tensor_scale) {
 
         CHECK_GE(new_shape_v.size(), _op_input_num) << "unvaliable shape vector";
-        CHECK_EQ(in_tensor_scale.size(),new_shape_v.size());
-        CHECK_EQ(out_tensor_scale.size(),new_shape_v.size());
+        CHECK_EQ(in_tensor_scale.size(), new_shape_v.size());
+        CHECK_EQ(out_tensor_scale.size(), new_shape_v.size());
         std :: vector<TensorD*> in_d;
         std :: vector<TensorH*> in_h;
         std :: vector<TensorD*> out_d;
@@ -151,8 +154,8 @@ public:
         std :: vector<TensorH*> out_hd;
 
         for (int i = 0; i < _op_input_num; ++i) {
-            TensorD* d_id = new TensorD(new_shape_v[i],_in_data_type);
-            TensorH* d_ih = new TensorH(new_shape_v[i],_in_data_type);
+            TensorD* d_id = new TensorD(new_shape_v[i], _in_data_type);
+            TensorH* d_ih = new TensorH(new_shape_v[i], _in_data_type);
             d_id->set_scale(in_tensor_scale[i]);
             d_ih->set_scale(in_tensor_scale[i]);
             in_d.push_back(d_id);
@@ -171,6 +174,7 @@ public:
             out_h.push_back(d_oh);
             out_hd.push_back(d_ohd);
         }
+
         clear_datas();
 
         _inputs_dev.push_back(in_d);
@@ -182,18 +186,20 @@ public:
         _input_type = RANDOM;
     }
 
-    void set_input_shape(Shape new_shape, std::vector<float> scale_in, std::vector<float> scale_out,TestDataType type = RANDOM, OpDataType value = 1) {
+    void set_input_shape(Shape new_shape, std::vector<float> scale_in, std::vector<float> scale_out,
+                         TestDataType type = RANDOM, OpDataType value = 1, LayoutType output_layout = Layout_NCHW) {
         //clear_datas();
 
-        add_inputs_shape(new_shape,scale_in,scale_out);
+        add_inputs_shape(new_shape, scale_in, scale_out, output_layout);
         _input_type = type;
         _special_value = value;
     }
 
-    void set_input_shape(Shape new_shape, TestDataType type = RANDOM, OpDataType value = 1) {
+    void set_input_shape(Shape new_shape, TestDataType type = RANDOM, OpDataType value = 1,
+                         LayoutType output_layout = Layout_NCHW) {
         //clear_datas();
 
-        add_inputs_shape(new_shape);
+        add_inputs_shape(new_shape, {}, {}, output_layout);
         _input_type = type;
         _special_value = value;
     }
@@ -268,10 +274,18 @@ public:
             if (status != SaberSuccess || status2 != SaberSuccess) {
                 LOG(INFO) << "ERROR";
             }
-
-            _inputs_dev[0][i] -> copy_from(*input[i]);
-            _inputs_host[0][i] -> copy_from(*input[i]);
-
+            if (std::is_same<TargetType_D, MLU>::value) {
+				TensorH temp_cpu;
+				temp_cpu.re_alloc(input[i]->shape(), input[i]->get_dtype());
+				temp_cpu.copy_from(*input[i]);
+			    _inputs_dev[0][i] -> copy_from(temp_cpu);
+//			    _inputs_dev[0][i] -> copy_from(*_inputs_host[0][i]);
+                _inputs_host[0][i] -> copy_from(*input[i]);
+            }else {
+                _inputs_dev[0][i] -> copy_from(*input[i]);
+                _inputs_host[0][i] -> copy_from(*input[i]);
+			}
+ 
             if (input[i]->get_seq_offset().size() > 0) {
                 _inputs_dev[0][i] -> set_seq_offset(input[i]->get_seq_offset());
                 _inputs_host[0][i] -> set_seq_offset(input[i]->get_seq_offset());
@@ -284,11 +298,11 @@ public:
     void set_input_datatype(DataType dtype_in = AK_FLOAT) {
         _in_data_type = dtype_in;
     }
-    void set_ouput_datatype(DataType dtype_out = AK_FLOAT) {
+    void set_output_datatype(DataType dtype_out = AK_FLOAT) {
         _out_data_type = dtype_out;
     }
 
-    void compute_outputs_shape (int param_index = 0){
+    void compute_outputs_shape(int param_index = 0) {
         CHECK_GT(_params.size(), 0) << "no available param";
         CHECK_GT(_inputs_dev.size(), 0) << "no available inputs";
         CHECK_GE(param_index, 0) << "param index must be positive";
@@ -306,6 +320,7 @@ public:
                 _outputs_dev[i][j] -> re_alloc(sh, _out_data_type);
                 _outputs_host[i][j] -> re_alloc(sh, _out_data_type);
                 _outputs_hd[i][j] -> re_alloc(sh, _out_data_type);
+
                 if (!_use_random_output) {
                     fill_tensor_const(*_outputs_dev[i][j], 0);
                     fill_tensor_const(*_outputs_host[i][j], 0);
@@ -399,7 +414,35 @@ public:
         CHECK_EQ(_outputs_host.size(), _outputs_dev.size()) << "input and output number must be equal";
 
         for (int i = 0; i < _inputs_dev.size(); ++i) {
-            CpuFunc(_inputs_host[i], _outputs_host[i], _params[param_index]);
+            Input_ht fake_input;
+            Output_ht fake_output;
+
+            if (_inputs_host[i][0]->get_layout() == Layout_NCHW_C8R
+                    || _inputs_host[i][0]->get_layout() == Layout_NCHW_C16R) {
+                CHECK_EQ(_inputs_host[i].size(), 1) << "testbase only support one input now";
+                CHECK_EQ(_outputs_host[i][0]->get_layout(),
+                         _inputs_host[i][0]->get_layout()) << "test base only support same layout now";
+                int num_in = _inputs_host[i][0]->num();
+                int c_in = _inputs_host[i][0]->channel();
+                int h_in = _inputs_host[i][0]->height();
+                int w_in = _inputs_host[i][0]->width();
+                int num_out = _outputs_host[i][0]->num();
+                int c_out = _outputs_host[i][0]->channel();
+                int h_out = _outputs_host[i][0]->height();
+                int w_out = _outputs_host[i][0]->width();
+                TensorH temp_in = TensorH(Shape({num_in, c_in, h_in, w_in}));
+                TensorH temp_out = TensorH(Shape({num_out, c_out, h_out, w_out}));
+                Input_ht input_vec;
+                Output_ht output_vec;
+                input_vec.push_back(&temp_in);
+                output_vec.push_back(&temp_out);
+                reorder_nchwc_nchw(*_inputs_host[i][0], temp_in);
+                CpuFunc(input_vec, output_vec, _params[param_index]);
+                reorder_nchwc_nchw(temp_out, *_outputs_host[i][0]);
+
+            } else {
+                CpuFunc(_inputs_host[i], _outputs_host[i], _params[param_index]);
+            }
         }
     }
     void result_check_accuracy(double succ_ratio = 0.00001, bool write_error_tensor = false) {
@@ -424,7 +467,7 @@ public:
                 LOG(INFO) << " output shape: " << _outputs_hd[i][j]->valid_shape();
                 LOG(INFO) << " output layout: " << _outputs_hd[i][j]->get_layout();
 
-                if ((max_diff[i] < 0.0001 || max_ratio[i] <= succ_ratio)
+                if ((max_diff[i] < 0.001 || max_ratio[i] <= succ_ratio)
                         && (_outputs_hd[i][0]->valid_shape() == _outputs_host[i][0]->valid_shape()) \
                         && _outputs_hd[i][0]->get_layout() == _outputs_host[i][0]->get_layout()) {
                     LOG(INFO) << "Test Passed!";
@@ -471,11 +514,18 @@ public:
         std :: vector<std :: string> runtype{"STATIC", "RUNTIME", "SPECIFY"};
         std :: vector<std :: string> impltype{"VENDER", "SABER"};
 
-        for (auto strate : { SPECIFY, RUNTIME, STATIC}) {
-            for (auto implenum : {VENDER_IMPL, SABER_IMPL}) {
+        for (auto strate : {
+                    SPECIFY, RUNTIME, STATIC
+                }) {
+            for (auto implenum : {
+                        VENDER_IMPL, SABER_IMPL
+                    }) {
                 LOG(INFO) << "TESTING: strategy:" << runtype[strate - 1] << ",impltype:" << impltype[(int)implenum];
 #ifdef USE_ARM_PLACE
-                for (auto th: {1, 2, 4}){
+
+                for (auto th : {
+                            1, 2, 4
+                        }) {
                     Context<ARM> ctx;
                     LOG(INFO) << "create runtime ctx";
                     ctx.set_run_mode(SABER_POWER_HIGH, th);
@@ -484,18 +534,21 @@ public:
 #ifdef USE_OPENMP
                     #pragma omp parallel
                     {
-                            int thread = omp_get_num_threads();
-                            LOG(INFO) << "number of omp threads: " << thread;
+                        int thread = omp_get_num_threads();
+                        LOG(INFO) << "number of omp threads: " << thread;
                     }
- #endif
+#endif
+
                     if (get_op_result(strate, implenum, 0, test_speed) == SaberUnImplError) {
                         LOG(INFO) << "Unimpl!!";
                         continue;
                     }
+
                     get_cpu_result(CpuFunc);
                     result_check_accuracy(succ_ratio, write_error_tensor);
                 }
 #else
+
                 if (get_op_result(strate, implenum, 0, test_speed) == SaberUnImplError) {
                     LOG(INFO) << "Unimpl!!";
                     continue;

@@ -109,6 +109,16 @@ template class ResizeHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Resize, ResizeHelper, AMD, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_RESIZE(MLU, Precision::FP32);
+INSTANCE_RESIZE(MLU, Precision::FP16);
+template class ResizeHelper<MLU, Precision::FP32>;
+template class ResizeHelper<MLU, Precision::FP16>;
+template class ResizeHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Resize, ResizeHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Resize, ResizeHelper, MLU, Precision::FP16);
+#endif  
+
 //! register op
 ANAKIN_REGISTER_OP(Resize)
 .Doc("Resize operator")
@@ -123,6 +133,9 @@ ANAKIN_REGISTER_OP(Resize)
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("Resize")
+#endif
+#ifdef USE_MLU 
+.__alias__<MLU, Precision::FP32>("Resize")
 #endif
 .num_in(1)
 .num_out(1)

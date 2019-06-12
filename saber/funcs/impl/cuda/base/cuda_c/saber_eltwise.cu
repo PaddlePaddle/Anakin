@@ -139,6 +139,35 @@ __global__ void ker_elt_with_axis_div(Dtype* out_data, const Dtype* in_data1, co
     }
 }
 
+template <typename Dtype>
+__global__ void ker_elt_mul(Dtype* out_data, const Dtype* in_data1, const Dtype* in_data2,
+                            int count, bool with_relu) {
+    CUDA_KERNEL_LOOP(tid, count) {
+        Dtype tmp = in_data1[tid] * in_data2[tid];
+
+        if (with_relu) {
+            out_data[tid] = tmp > static_cast<Dtype>(0.0f) ? tmp : static_cast<Dtype>(0.0f);
+        } else {
+            out_data[tid] = tmp;
+        }
+    }
+}
+
+template <typename Dtype>
+__global__ void ker_elt_with_axis_mul(Dtype* out_data, const Dtype* in_data1, const Dtype* in_data2,
+                            int outer_num, int mid_num, int inner_num, int count, bool with_relu) {
+    CUDA_KERNEL_LOOP(tid, count) {
+        int mid_id = (tid /inner_num) % mid_num;
+        Dtype tmp = in_data1[tid] * in_data2[mid_id];
+
+        if (with_relu) {
+            out_data[tid] = tmp > static_cast<Dtype>(0.0f) ? tmp : static_cast<Dtype>(0.0f);
+        } else {
+            out_data[tid] = tmp;
+        }
+    }
+}
+
 template <typename Dtype> 
 __global__ void ker_elt_sum_v(Dtype* out_data, const Dtype** in_data_v, const Dtype* coeff, int in_num, int count, 
                 bool with_relu) {
@@ -203,6 +232,22 @@ __global__ void ker_elt_div_v(Dtype* out_data, const Dtype** in_data_v, int in_n
     }
 }
 
+
+template <typename Dtype> 
+__global__ void ker_elt_mul_v(Dtype* out_data, const Dtype** in_data_v, int in_num, int count, 
+                bool with_relu) {
+    CUDA_KERNEL_LOOP(tid, count) {
+        Dtype tmp = in_data_v[0][tid];
+        for (int i = 1; i < in_num; i++) {
+            tmp = tmp * in_data_v[i][tid];
+        }
+        if (with_relu) {
+            out_data[tid] = tmp > static_cast<Dtype>(0.0f) ? tmp : static_cast<Dtype>(0.0f);
+        } else {
+            out_data[tid] = tmp;
+        }
+    }
+}
 
 template <>
 SaberStatus SaberEltwise<NV, AK_FLOAT>::dispatch(\
@@ -276,9 +321,9 @@ SaberStatus SaberEltwise<NV, AK_FLOAT>::dispatch(\
                         in_data_a, in_data_b,
                         count, _with_relu);
             } else {
-                int outer_num = inputs[0]->count(0, param.axis);
+                int outer_num = inputs[0]->count_valid(0, param.axis);
                 int mid_num = outputs[0]->valid_size();
-                int inner_num = inputs[0]->count(param.axis, inputs[0]->dims()) / mid_num;
+                int inner_num = inputs[0]->count_valid(param.axis, inputs[0]->dims()) / mid_num;
                 ker_elt_with_axis_div <float><<<grid_dim, block_dim, 0, cuda_stream >>> (out_data,
                         in_data_a, in_data_b, outer_num, mid_num, inner_num,
                         count, _with_relu);
@@ -290,6 +335,27 @@ SaberStatus SaberEltwise<NV, AK_FLOAT>::dispatch(\
 
         break;
 
+    case Eltwise_mul:
+        if (inputs.size() <= 2) {
+            if (inputs[0]->valid_size() == inputs[1]->valid_size()) {
+                ker_elt_mul <float><<<grid_dim, block_dim, 0, cuda_stream >>> (out_data,
+                        in_data_a, in_data_b,
+                        count, _with_relu);
+            } else {
+                int outer_num = inputs[0]->count_valid(0, param.axis);
+                //int mid_num = inputs[1]->valid_size();
+                int mid_num = inputs[1]->count_valid(param.axis, inputs[1]->dims());
+                int inner_num = inputs[0]->count_valid(param.axis, inputs[0]->dims()) / mid_num;
+                ker_elt_with_axis_mul <float><<<grid_dim, block_dim, 0, cuda_stream >>> (out_data,
+                        in_data_a, in_data_b, outer_num, mid_num, inner_num,
+                        count, _with_relu);
+            }
+        } else {
+            ker_elt_mul_v<float><<<grid_dim, block_dim, 0, cuda_stream >>> (out_data,
+                    (const float**)in_data_d, in_num, count, _with_relu);
+        }
+
+        break;
     default:
         LOG(FATAL) << "unknown elementwise operation. ";
     }

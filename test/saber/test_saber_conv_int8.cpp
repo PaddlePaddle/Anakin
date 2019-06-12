@@ -34,6 +34,7 @@ int count_diff(const dtype* src1, const dtype* src2,
     }
     return count;
 }
+const bool g_test_from_file = false;
 
 #ifdef USE_X86_PLACE
 template<typename TargetType, typename TargetType_H ,DataType OutPutDtype>
@@ -60,7 +61,7 @@ int test_conv_results_nhwc(int group,
              << " kernel_w = " << kernel_w
              << " out_channels = " << out_channels
              << " bias_term = " << (bias_term ? "true" : "false");
-    float input_max=1.f;
+    float input_max=3.f;
     Shape input_nhwc({input_num,  height, width, in_channels}, Layout_NHWC);
     Shape input_nchw({input_num, in_channels, height, width}, Layout_NCHW);
     Shape weights_s({out_channels, in_channels/group, kernel_h, kernel_w}, Layout_NCHW);
@@ -92,8 +93,16 @@ int test_conv_results_nhwc(int group,
         fill_tensor_rand(input_host, -input_max, input_max);
 //        fill_tensor_const(input_host,input_max);
     }
-//    load_tensor_in_io_format(input_host,nothing_flag,nothing_str,"record+ConvBatchnormScaleRelu+res2a_branch2a+in+0+1_64_56_56_+nchw+ak_float+0.txt");
     input_host.set_scale({input_max/127.f});
+
+    if (g_test_from_file) {
+        load_tensor_in_io_format(input_host, nothing_flag, nothing_str,
+                                 "record+ConvBatchnormScale+conv2d#10(conv2d_2)+in+0+1_32_112_112_+nchw+ak_float+0.txt");
+        float max_input = utils::ScaleUtils::get_fp32_max((float *) input_host.data(), input_host.valid_size());
+        input_host.set_scale({max_input / 127.f});
+    }
+
+
     if (is_unsigned) {
         utils::ScaleUtils::scale_fp32_uint8(input_dev_temp, input_host);
     }else{
@@ -112,7 +121,10 @@ int test_conv_results_nhwc(int group,
 
     fill_tensor_rand(weights_dev,-input_max,input_max);
 //    fill_tensor_const(weights_dev, input_max);//
-//    load_tensor_in_io_format(weights_dev,nothing_flag,nothing_str,"record+weights_int8+conv+out+0+64_64_1_1_+nchw+ak_float+0.txt");
+    if (g_test_from_file) {
+        load_tensor_in_io_format(weights_dev, nothing_flag, nothing_str,
+                                 "record+weigths+conv_weights+out+2+16_32_1_1_+nchw+ak_float+0.txt");
+    }
     weights_host.copy_from(weights_dev);
 
 
@@ -123,13 +135,27 @@ int test_conv_results_nhwc(int group,
         bias_host.re_alloc(bias_s, AK_FLOAT);
         fill_tensor_rand(bias_dev,-input_max,input_max);
 //        fill_tensor_const(bias_dev,input_max);
-//        load_tensor_in_io_format(bias_dev,nothing_flag,nothing_str,"record+bias_int8+conv+out+0+1_64_1_1_+nchw+ak_float+0.txt");
+        if (g_test_from_file) {
+            load_tensor_in_io_format(bias_dev, nothing_flag, nothing_str,
+                                     "record+bias+conv_bias+out+2+1_16_1_1_+nchw+ak_float+0.txt");
+        }
         bias_host.copy_from(bias_dev);
     }
     Tensor<TargetType> output_dev(output_nhwc, OutPutDtype);
     if (OutPutDtype == AK_UINT8 || OutPutDtype == AK_INT8) {
         output_dev.set_scale({in_channels * kernel_h * kernel_w * input_max / 127.f});
     }
+
+    if (g_test_from_file) {
+        Tensor<X86> temp_tensor;
+        load_tensor_in_io_format(temp_tensor, nothing_flag, nothing_str,
+                                 "../mobilnet_v2_fp32/record+ConvBatchnormScale+conv2d#10(conv2d_2)+in+0+1_32_112_112_+nchw+ak_float+0.txt");
+        float max_output = utils::ScaleUtils::get_fp32_max((float *) temp_tensor.data(), temp_tensor.valid_size());
+        output_dev.set_scale({max_output / 127.f});
+        output_dev.set_scale({0.027173});
+        output_dev.set_scale({1});
+    }
+
     Tensor<TargetType_H> output_host(output_nchw);
     Tensor<TargetType_H> check_host(output_nchw);
 
@@ -175,8 +201,8 @@ int test_conv_results_nhwc(int group,
 
     if (max_ratio< 0.15) {
         //LOG(INFO) << " PASS!!! max_ratio = " << max_ratio << " max_diff = " << max_diff;
-//        write_tensorfile(output_host,"output_host");
-//        write_tensorfile(check_host,"check_host");
+        write_tensorfile(output_host,"output_host");
+        write_tensorfile(check_host,"check_host");
                 LOG(INFO) << "PASS!!! ratio = " << max_ratio <<" in "<<output_host.valid_size();
         return 0;
     } else {
@@ -569,19 +595,19 @@ TEST(TestSaberFunc, test_saber_conv_int8_x86_results) {
 
     int group = 1;
     int input_num = 1;
-    int in_channels = 23;
+    int in_channels = 32;
     int height = 112;
     int width = 112;
-    int out_channels = 64;
-    int kernel_h = 3;
-    int kernel_w = 3;
+    int out_channels = 16;
+    int kernel_h = 1;
+    int kernel_w = 1;
     int stride_h = 1;
     int stride_w = 1;
     int dilation_h = 1;
     int dilation_w = 1;
-    int pad_h = 3;
-    int pad_w = 3;
-    bool bias_term = true;
+    int pad_h = 0;
+    int pad_w = 0;
+    bool bias_term = false;
     bool with_relu = false;
 
     if (jit::mayiuse(jit::avx512_core)&&jit::mayiuse(jit::avx512_core_vnni)) {

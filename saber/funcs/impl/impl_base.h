@@ -19,7 +19,9 @@
 #include "saber/core/context.h"
 #include "saber/core/tensor.h"
 #if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
+#ifndef USE_SGX
 #include "saber/funcs/timer.h"
+#endif
 #endif
 
 namespace anakin {
@@ -59,11 +61,14 @@ protected:
     Context<TargetType>* _ctx;
     std::string _op_name;
 #if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
+#ifndef USE_SGX
     saber::SaberTimer<TargetType> _timer;
     saber::SaberTimer<TargetType> _trans_timer;
 #endif
+#endif
 };
 #if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
+#ifndef USE_SGX
 struct GOPS{
     float ts;
     float ops;
@@ -143,6 +148,7 @@ private:
     OpTimer() {}
 };
 
+#endif
 #endif
 }
 }

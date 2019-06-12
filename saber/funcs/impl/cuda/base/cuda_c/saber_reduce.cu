@@ -403,6 +403,10 @@ SaberStatus SaberReduce<NV, AK_FLOAT>::init(
         ReduceParam<NV>& param, Context<NV>& ctx) {
 
     this->_ctx = &ctx;
+    
+    if (param.reduce_type == Reduce_avg) {
+        _template_reduction = true;
+    }
 
     if (_template_reduction) {
         REG_REDUCE_TYPE_KERNEL(Reduce_avg);

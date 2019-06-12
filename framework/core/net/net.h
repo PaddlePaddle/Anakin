@@ -208,18 +208,21 @@ public:
      */
     Tensor4dPtr<Ttype> get_tensor_from_edge(const char* from, const char* to);
 
-#ifndef USE_SGX
     /**
      *  \brief Get tensor from a given edge.
      */
 
+#ifndef USE_SGX
     void load_calibrator_config(graph::Graph<Ttype, Ptype>& graph, bool load_layout_from_config = true,
                                 bool auto_layout_config = false);
+#endif
     void load_x86_layout_config(std::string config) {
+#ifndef USE_SGX
         _calibrator_parser.layout_parse(config);
         _layout_config_path = config;
 
         _has_loaded_layout_from_file = true;
+#endif
     }
 
     void set_calibrator_info(typename graph::Graph<Ttype, Ptype>::Edge_it_t& edge_it) {
@@ -256,6 +259,7 @@ public:
         }
     }
 
+#ifndef USE_SGX
     friend class Calibrator<Ttype>;
 #endif
 
@@ -268,6 +272,17 @@ public:
      *     used and tested in anakin subgraph mode.
      */
     Status alloc_memory_first(graph::Graph<Ttype, Ptype>&);
+    
+    /**
+     * \brief fusion_init 
+     *
+     */
+    void fusion_init(graph::Graph<Ttype, Ptype>& graph, OpContextPtr<Ttype> ctx, bool auto_config_layout = false); 
+     
+    /**
+     * \brief do inference.   
+     */
+    void fusion_prediction();
 
 private:
     /**
@@ -308,6 +323,8 @@ private:
     std::vector<float> _op_time;
     std::vector<std::string> _op_param;
 #endif
+
+    OperatorFunc<Ttype, Ptype>* _fusion{nullptr};
 };
 
 }

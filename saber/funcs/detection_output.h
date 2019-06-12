@@ -31,8 +31,13 @@
 #include "saber/funcs/impl/x86/saber_detection_output.h"
 #endif
 #ifdef AMD_GPU
-#include "saber/funcs/impl/amd/include/saber_detection_output.h"
+// #include "saber/funcs/impl/amd/include/saber_detection_output.h"
 #endif
+
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_detection_output.h"
+#endif  // USE_MLU
+
 namespace anakin {
 namespace saber {
 

@@ -108,6 +108,15 @@ ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, ARM, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, X86, Precision::FP32);
 #endif
 
+#ifdef USE_MLU
+INSTANCE_NORMALIZE(MLU, Precision::FP32);
+INSTANCE_NORMALIZE(MLU, Precision::FP16);
+template class NormalizeHelper<MLU, Precision::FP32>;
+template class NormalizeHelper<MLU, Precision::FP16>;
+ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, MLU, Precision::FP16);
+#endif 
+
 //! register op
 ANAKIN_REGISTER_OP(Normalize)
     .Doc("Normalize operator")
@@ -122,6 +131,9 @@ ANAKIN_REGISTER_OP(Normalize)
 #endif
 #ifdef AMD_GPU
     .__alias__<AMD, Precision::FP32>("normalize")
+#endif
+#ifdef USE_MLU
+    .__alias__<MLU, Precision::FP32>("normalize")
 #endif
     .num_in(1)
     .num_out(1)

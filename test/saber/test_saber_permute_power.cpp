@@ -54,36 +54,61 @@ void test_permute_power(){
     typedef typename DataTrait<TargetType_H, OpDtype> :: Dtype dtype;
     
     for (int s0 : {0, 1, 2, 3}){
-        for (int s1 : {0, 1, 2, 3}){
-            for (int s2 : {0, 1, 2, 3}){
-                for (int s3 : {0, 1, 2, 3}){
-                    if (s0 != s1 && s0 != s2 && s0 != s3 && s1 != s2 && s1 != s3 && s2 != s3){
-                        PermuteParam<TargetType_D> permute_param({s0, s1,s2, s3});
-                        for (float p : {0, 1, 2}){
-                            for (float scale : {0.5, 1.0, 2.0}){
-                                for (float shift : {0, 1, 2}){
-                                    PowerParam<TargetType_D> power_param(p, scale, shift);
-                                    LOG(INFO)<<"permute:("<<s0<<","<<s1<<","<<s2<<","<<s3<<")";
-                                    LOG(INFO)<<"power_param: p:"<<p<<" scale: "<<scale<<" shift:"<<shift;
-                                    PermutePowerParam<TargetType_D> param(permute_param, power_param);
-                                    for (int n : {1, 2}){
-                                        for (int c : {1, 3}){
-                                            for (int h: {32, 64}){
-                                                for (int w : {32, 64}){
-                                                    testbase.set_param(param);
-                                                    testbase.set_input_shape(Shape({n, c, h, w}));
-                                                    testbase.run_test(permute_power_cpu_func<dtype, TargetType_D, TargetType_H>);
-                                                }
-                                            }
-                                        }
-                                    }//for after permute_power_param
-                                }
-                            }
-                        } //for after power_param
+    for (int s1 : {0, 1, 2, 3}){
+    for (int s2 : {0, 1, 2, 3}){
+    for (int s3 : {0, 1, 2, 3}){
+        if (s0 != s1 && s0 != s2 && s0 != s3 && s1 != s2 && s1 != s3 && s2 != s3){
+            PermuteParam<TargetType_D> permute_param({s0, s1,s2, s3});
+
+            std::vector<int> v_p = {0, 1, 2};
+            std::vector<int> v_scale = {0.5, 1.0, 2.0};
+            std::vector<int> v_shift = {0, 1, 2};
+            // mlu test is too slow for now
+            if (std::is_same<TargetType_D, MLU>::value) {
+                v_p = {2};
+                v_scale = {0.5};
+                v_shift = {2};
+            }
+
+            for (float p : v_p) {
+            for (float scale : v_scale) {
+            for (float shift : v_shift) {
+                PowerParam<TargetType_D> power_param(p, scale, shift);
+                LOG(INFO)<<"permute:("<<s0<<","<<s1<<","<<s2<<","<<s3<<")";
+                LOG(INFO)<<"power_param: p:"<<p<<" scale: "<<scale<<" shift:"<<shift;
+                PermutePowerParam<TargetType_D> param(permute_param, power_param);
+
+                std::vector<int> v_n = {1, 2};    std::vector<int> v_c = {1, 3};
+                std::vector<int> v_h = {32, 64};  std::vector<int> v_w = {32, 64};
+                // mlu test is too slow for now
+                if (std::is_same<TargetType_D, MLU>::value) {
+                    v_n = {2};   v_c = {3};
+                    v_h = {32};  v_w = {64};
+                }
+                for (int n : v_n){
+                for (int c : v_c){
+                for (int h : v_h){
+                for (int w : v_w){
+                    testbase.set_param(param);
+                    testbase.set_input_shape(Shape({n, c, h, w}));
+                    if (std::is_same<TargetType_D, MLU>::value) {
+                        testbase.set_rand_limit(1.0, 2.0);
+                        testbase.run_test(permute_power_cpu_func<dtype, TargetType_D, TargetType_H>,
+                                          0.02, true);
+                    } else {
+                        testbase.run_test(permute_power_cpu_func<dtype, TargetType_D, TargetType_H>);
                     }
                 }
+                }
+                }
+                }//for after permute_power_param
             }
+            }
+            } //for after power_param
         }
+    }
+    }
+    }
     }
 }
 
@@ -93,6 +118,9 @@ TEST(TestSaberFunc, test_func_normalize) {
 #endif
 #ifdef USE_X86_PLACE
     test_permute_power<X86, X86, AK_FLOAT>();
+#endif
+#ifdef USE_MLU
+    test_permute_power<MLU, MLUHX86, AK_FLOAT>();
 #endif
 }
 

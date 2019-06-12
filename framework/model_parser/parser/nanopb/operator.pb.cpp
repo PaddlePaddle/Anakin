@@ -1,18 +1,31 @@
-#include <pb_decode.h>
-
-#include <algorithm>
-#include <memory>
-
 #include "operator.pb.hpp"
-
-#include <pb_cpp_decode.h>
+#include <pb_codec.hpp>
 
 namespace nanopb_cpp {
 
-void OpProto::fill(Nanopb *pb) {
+void OpProto::CopyFrom(const OpProto &other) {
 
     // name: optional string
-    pb->name.funcs.decode = decode_string;
+    field_copy(_name, other._name);
+
+    // is_commutative: optional bool
+    field_copy(_is_commutative, other._is_commutative);
+
+    // in_num: optional int32
+    field_copy(_in_num, other._in_num);
+
+    // out_num: optional int32
+    field_copy(_out_num, other._out_num);
+
+    // description: optional string
+    field_copy(_description, other._description);
+
+}
+
+void OpProto::pre_decode(Nanopb *pb) {
+
+    // name: optional string
+    pb->name.funcs.decode = codec_obj<std::string>::decode;
     pb->name.arg = &_name;
     
     // is_commutative: optional bool
@@ -22,12 +35,12 @@ void OpProto::fill(Nanopb *pb) {
     // out_num: optional int32
     
     // description: optional string
-    pb->description.funcs.decode = decode_string;
+    pb->description.funcs.decode = codec_obj<std::string>::decode;
     pb->description.arg = &_description;
     
 }
 
-void OpProto::retrieve(const Nanopb *pb) {
+void OpProto::post_decode(const Nanopb *pb) {
 
     // name: optional string
     
@@ -44,6 +57,26 @@ void OpProto::retrieve(const Nanopb *pb) {
     
 }
 
-IMPLEMENT_PARSING_WRAPPERS(OpProto);
+void OpProto::pre_encode(Nanopb *pb) const {
 
+    // name: optional string
+    pb->name.funcs.encode = codec_obj<std::string>::encode;
+    pb->name.arg = const_cast<void *>(static_cast<const void *>(&_name));
+    
+    // is_commutative: optional bool
+    pb->is_commutative = static_cast<decltype(pb->is_commutative)>(_is_commutative);
+    
+    // in_num: optional int32
+    pb->in_num = static_cast<decltype(pb->in_num)>(_in_num);
+    
+    // out_num: optional int32
+    pb->out_num = static_cast<decltype(pb->out_num)>(_out_num);
+    
+    // description: optional string
+    pb->description.funcs.encode = codec_obj<std::string>::encode;
+    pb->description.arg = const_cast<void *>(static_cast<const void *>(&_description));
+    
+}
+
+IMPLEMENT_CODEC_MEMBERS(OpProto);
 } // namespace nanopb_cpp

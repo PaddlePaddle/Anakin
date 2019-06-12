@@ -205,6 +205,12 @@ INSTANCE_DECONVBATCHNORMSCALERELU(ARM, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(DeconvBatchnormScaleRelu, DeconvBatchnormScaleReluHelper, ARM, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_DECONVBATCHNORMSCALERELU(AMD, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(DeconvBatchnormScaleRelu, DeconvBatchnormScaleReluHelper, AMD,
+                          Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(DeconvBatchnormScaleRelu)
 .Doc("DeconvBatchnormScaleRelu fusion operator")
@@ -216,6 +222,9 @@ ANAKIN_REGISTER_OP(DeconvBatchnormScaleRelu)
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("deconvolution_batchnorm_scale_relu")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 .num_in(1)
 .num_out(1)

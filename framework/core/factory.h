@@ -16,6 +16,7 @@
 #ifndef ANAKIN_FACTORY_H
 #define ANAKIN_FACTORY_H
 
+#include "anakin_config.h"
 #include <mutex>
 #include <unordered_map>
 #include <functional>
@@ -23,10 +24,6 @@
 #include "framework/core/thread_safe_macros.h"
 #include "framework/core/singleton.h"
 #include "utils/logger/logger.h"
-#include "anakin_config.h"
-#ifdef USE_SGX
-#include <support/sgx/sgx_mutex>
-#endif
 
 namespace anakin {
 
