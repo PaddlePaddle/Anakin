@@ -1,6 +1,6 @@
 ## Building Anakin from Source ##
 
-We've built and tested Anakin on CentOS 7.3. The other operating systems installation are coming soon.
+We've built and tested Anakin on CentOS 7.3 and Ubuntu 16.04.
 
 ### Installation overview ###
 
@@ -19,32 +19,26 @@ We've built and tested Anakin on CentOS 7.3. The other operating systems install
 *  gcc 4.8.2+
 *  g++ 4.8.2+
 
-#### 2. Building Anakin for CPU-only ####
-
-Not support yet.
-
-#### 3. Building Anakin with NVIDIA GPU Support ####
-
-- 3.1. Install dependences
- - 3.1.1 protobuf 3.4.0  
+#### 2. Building and install dependency
+ - 2.1.1 protobuf 3.4.0
     Download source from https://github.com/google/protobuf/releases/tag/v3.4.0
-    >tar -xzf protobuf-3.4.0.tar.gz  
-    >$ cd protobuf-3.4.0   
-    >$ ./autogen.sh  
-    >$ ./configure    
-    >$ make  
-    >$ make check   
-    >$ make install  
+    >tar -xzf protobuf-3.4.0.tar.gz
+    >$ cd protobuf-3.4.0
+    >$ ./autogen.sh
+    >$ ./configure
+    >$ make
+    >$ make check
+    >$ make install
 
-   Check  
+   Check
     >$ protoc --version
 
     Any problems for protobuf installation, Please see [here](https://github.com/google/protobuf/blob/master/src/README.md)
 
-  - 3.1.2 CUDA Tookit
+  - 2.1.2 CUDA Tookit
      - [CUDA 8.0](https://developer.nvidia.com/cuda-zone) or higher. For details, see [NVIDIA's documentation](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/).
-     - [cuDNN v7](https://developer.nvidia.com/cudnn). For details, see [NVIDIA's documentation](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/).  
-  When you have installed cuDNN v7, please set the following variable to your `bashrc` 
+     - [cuDNN v7](https://developer.nvidia.com/cudnn). For details, see [NVIDIA's documentation](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/).
+  When you have installed cuDNN v7, please set the following variable to your `bashrc`
      ```bash
       # CUDNN
       export CUDNN_ROOT=/usr/local/cudnn_v7 # the path where your cuDNN installed.
@@ -53,11 +47,10 @@ Not support yet.
      ```
           Don't forget to source your bashrc
 
-   
+#### 3. Building Anakin with NVIDIA GPU Support ####
 
-
-- 3.2. Compile Anakin
-  >$ git clone https:/xxxxx  
+- 3.1. Compile Anakin
+  >$ git clone https://github.com/PaddlePaddle/Anakin.git
   >$ cd anakin  
   >$ mkdir build  
   >$ cd build  
@@ -146,7 +139,7 @@ Not support yet.
     >$ make install  
     
 - 4.2. Compile Anakin
-  >$ git clone xxx  
+  >$ git clone https://github.com/PaddlePaddle/Anakin.git
   >$ cd anakin  
   >$ ./tools/amd_gpu_build.sh
  
@@ -156,7 +149,7 @@ Not support yet.
 
 ### <span id = '0002'> Installing on Ubuntu </span> ###
 
-Coming soon..
+same with CentOS
 
 
 ### <span id = '0003'> Installing on ARM </span> ###

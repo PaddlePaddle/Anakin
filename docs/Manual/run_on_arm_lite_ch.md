@@ -1,4 +1,4 @@
-## 源码编译 Anakin ##
+## 源码编译 Anakin Lite ##
 
 目前Anakin支持ARM Android和IOS平台，采用Android NDK交叉编译工具链，已在mac os和centos上编译和测试通过。
 
@@ -6,7 +6,7 @@
 
 * [系统需求](#0001)
 * [安装第三方依赖](#0002)
-* [Anakin源码编译](#0003)
+* [Anakin Lite源码编译](#0003)
 * [验证安装](#0004)
 
 
@@ -35,22 +35,36 @@
    然后将已经生成文件清除。
  ```bash
    $ make distclean
- ```
-
- - 2.1.2 交叉编译Android`armeabi-v7a`的protobuf，注意设置ANDROID_NDK的路径，以及ARCH_ABI的值，
+   ```
+ - 2.1.2 交叉编译Android`armeabi-v7a`的protobuf，注意设置ANDROID_NDK的路径，以及ARCH_ABI、HOSTOSN的值，
  ```bash
-  cd tools
-  ./build_android_protobuf_gcc_armv7.sh
- ```
 
-  - 2.1.3 交叉编译Android`arm64-v8a`的protobuf，注意设置ANDROID_NDK的路径，以及ARCH_ABI的值，
- ```bash
-  cd tools
-  ./build_android_protobuf_gcc_armv8.sh
- ```
+   $ export ANDROID_NDK=your_ndk_path
+   $ ARCH_ABI="arm-linux-androideabi-4.9"
+   $ HOSTOSN="darwin-x86_64"
+   $ export SYSROOT=$ANDROID_NDK/platforms/android-9/arch-arm
+   $ export PREBUILT=$ANDROID_NDK/toolchains/$ARCH_ABI
+   $ export LDFLAGS="--sysroot=$SYSROOT"
+   $ export LD="$ANDROID_NDK/toolchains/$ARCH_ABI/prebuilt/$HOSTOSN/arm-linux-androideabi/bin/ld $LDFLAGS"
+   $ export LIBS="-llog $ANDROID_NDK/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi-v7a/libgnustl_static.a"
+   $ export CPPFLAGS=""
+   $ export INCLUDES="-I$ANDROID_NDK/sources/cxx-stl/gnu-libstdc++/4.9/include/ -I$ANDROID_NDK/platforms/android-9/arch-arm/usr/include/ -I$ANDROID_NDK/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi-v7a/include/"
+   $ export CXXFLAGS="-march=armv7-a -mfloat-abi=softfp -DGOOGLE_PROTOBUF_NO_RTTI --sysroot=$SYSROOT"
+   $ export CCFLAGS="$CXXFLAGS"
+   $ export CXX="$PREBUILT/prebuilt/$HOSTOSN/bin/arm-linux-androideabi-g++ $CXXFLAGS"
+   $ export CC="$CXX"
+   $ export RANLIB="$ANDROID_NDK/toolchains/$ARCH_ABI/prebuilt/$HOSTOSN/bin/arm-linux-androideabi-ranlib"
+   $ ./autogen.sh
+   $ ./configure --host=arm-linux-androideabi --with-sysroot=$SYSROOT --enable-cross-compile --with-protoc=protoc --disable-shared CXX="$CXX" CC="$CC" LD="$LD"
+   $ make
+  ```
 
-  编译生成 *.a 静态库，若希望编译*.so 动态链接库 ，请修改脚本中编译选项`Dprotobuf_BUILD_SHARED_LIBS=ON`
-  生成文件在`$protobuf_ROOT/build-protobuf-android-v7-gcc` 和 `$protobuf_ROOT/build-protobuf-android-v8-gcc`下，将生成的文件分别拷贝至Anakin/third-party/arm-android/protobuf/armeabi-v7a 和 Anakin/third-party/arm-android/protobuf/arm64-v8a下。
+  编译生成 *.a 静态库，若希望编译*.so 动态链接库 ，请在./configure参数中改--disable-shared为--disable-static --enable-shared。
+  生成文件在src/.libs/下，将生成的文件拷贝至Anakin/third-party/arm-android/protobuf/lib下。
+  在[cmake](../../cmake/find_modules.cmake)中更新`ARM_RPOTO_ROOT`的路径。
+  ```cmake
+  set(ARM_RPOTO_ROOT "${CMAKE_SOURCE_DIR}/third-party/arm-android/protobuf")
+  ```
 
 - 2.2 opencv 2.4.3+(optional)
     Anakin只在examples示例中使用opencv
@@ -62,7 +76,7 @@
     include_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/include/)
     LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/libs/armeabi-v7a/)
     ```
-### <span id = '0003'> 3. Anakin源码编译 </span> ###
+### <span id = '0003'> 3. Anakin Lite源码编译 </span> ###
 
 #### 编译Android版本
 
@@ -74,7 +88,7 @@
     git fetch origin dev_v2
     git checkout dev_v2
   ```
-  根据编译选项，修改`tools/android_build_v7_gcc.sh` or `tools/android_build_v8_gcc.sh`
+  根据编译选项，修改`tools/anakin-lite/lite_android_build_armv*_*.sh` or `tools/anakin-lite/lite_build_OS*.sh`
 
 - 修改NDK路径
   ```bash
@@ -112,18 +126,6 @@
         -DBUILD_WITH_UNIT_TEST=YES
     ```
 
-- 编译framework
-  设置`BUILD_WITH_FRAMEWORK=YES`将会编译framework
-  ```bash
-        -DBUILD_WITH_FRAMEWORK=YES
-    ```
-
-- 编译示例文件
-  设置`BUILD_EXAMPLES=YES`将会编译单测文件
-    ```bash
-        -DBUILD_EXAMPLES=YES
-    ```
-
 - 开启opencv
   如果使用opencv，设置`USE_OPENCV=YES`
     ```bash
@@ -131,17 +133,16 @@
     ```
 
 - 开始编译
-  运行脚本, 将自动编译Anakin
+  运行脚本, 将自动编译Anakin Lite
 
-  eg:
+  例如：
   ```bash
-      cd tools
-      ./android_build_v7_gcc.sh
+      cd tools/anakin-lite
+      ./lite_android_build_armv7_gcc.sh
   ```
 
 ### <span id = '0004'> 4. 验证安装 </span> ###
-  编译好的库会放在目录`${ANAKIN_ROOT}/output`下；
-  编译好的单测文件会放在`${ANAKIN_ROOT}/output/unit_test`目录下；
-  编译好的示例文件会放在`${ANAKIN_ROOT}/output/examples`目录下；
+  编译好的库会放在目录`${BUILD_ROOT}/output`下；
+  编译好的单测文件会放在`${BUILD_ROOT}/output/unit_test`目录下；
 
   对于Android系统，打开设备的调试模式，通过ADB可以访问的目录是`data/local/tmp`，通过ADB push将测试文件、模型和数据发送到设备目录， 运行测试文件。
