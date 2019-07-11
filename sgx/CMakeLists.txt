@@ -165,8 +165,10 @@ target_link_libraries(anakin_app
 set(CLI11_SRC ${UNTRUSTED_DIR}/CLI11.hpp)
 add_custom_command(
   OUTPUT ${CLI11_SRC}
-  WORKING_DIRECTORY ${UNTRUSTED_DIR}
-  COMMAND wget ARGS -q https://github.com/CLIUtils/CLI11/releases/download/v1.7.1/CLI11.hpp
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${UNTRUSTED_DIR}
+  COMMAND wget ARGS
+     -q https://github.com/CLIUtils/CLI11/releases/download/v1.7.1/CLI11.hpp
+     -O ${UNTRUSTED_DIR}/CLI11.hpp
   COMMENT "Downloading CLI11.hpp..."
 )
 add_custom_target(cli11 ALL

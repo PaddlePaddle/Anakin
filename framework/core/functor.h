@@ -35,7 +35,7 @@ public:
 	Functor(){}
     Functor(FuncType& func):_func(func){};
 
-    Functor<RetType, ParamTypes...>& operator=(FuncType& func) { _func=func; return ;}
+    Functor<RetType, ParamTypes...>& operator=(FuncType& func) { _func=func; return *this;}
 	
 	  /// must be overwritten
     virtual RetType operator()(ParamTypes ...parameters) = 0;

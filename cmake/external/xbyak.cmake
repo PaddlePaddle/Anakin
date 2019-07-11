@@ -28,7 +28,7 @@ message(STATUS "Scanning external modules ${Green}xbyak${ColourReset} ...")
 include_directories(${XBYAK_INC_DIR})
 
 if(USE_SGX)
-    set(SGX_PATCH_CMD "cd ${ANAKIN_TEMP_THIRD_PARTY_PATH} && patch -p0 <${ANAKIN_THIRD_PARTY_PATH}/xbyak.patch")
+    set(SGX_PATCH_CMD "cd ${XBYAK_INSTALL_ROOT} && patch -p1 <${ANAKIN_THIRD_PARTY_PATH}/xbyak.patch")
 else()
     # use a whitespace as nop so that sh won't complain about missing argument
     set(SGX_PATCH_CMD " ")

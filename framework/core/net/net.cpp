@@ -917,7 +917,9 @@ void Net<Ttype, Ptype, RunType>::fusion_init(graph::Graph<Ttype, Ptype>& graph, 
     // shallow copy
     _graph_p->CopyFrom(graph);
     auto node_names_in_exec_order = graph.get_nodes_in_order();
+#ifndef USE_SGX
     load_calibrator_config(graph,!_has_loaded_layout_from_file,auto_config_layout);
+#endif
 #ifndef USE_BM_PLACE // anbl add 
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {

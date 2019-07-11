@@ -68,9 +68,9 @@ private:
     Tensor<X86> _input_scale;
     Tensor<X86> _bias_scale;
 
-#ifndef USE_SGX
+//#ifndef USE_SGX
     PackedMKLInt8Gemm _packed_int8_gemm;
-#endif
+//#endif
 };
 
 

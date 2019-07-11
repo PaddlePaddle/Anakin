@@ -58,7 +58,6 @@ SaberStatus VenderFc<X86, AK_FLOAT>
     for (int i = 0; i < inputs.size(); i++) {
         cblas_int IC = inputs[i]->count_valid(param.axis, inputs[i]->dims());
         packed_weights.push_back(cblas_sgemm_alloc(CblasAMatrix, OC, MB, IC));
-        // LOG(INFO) << "anakin input[" << i << "] alloc passed";
         cblas_sgemm_pack(CblasColMajor,
                          CblasAMatrix,
                          param.is_transpose_weights ? CblasNoTrans : CblasTrans,
@@ -67,7 +66,6 @@ SaberStatus VenderFc<X86, AK_FLOAT>
                          weights + total_IC * OC, IC,
                          packed_weights[i]);
         total_IC += IC;
-        // LOG(INFO) << "anakin input[" << i << "] pack passed";
     }
 
     CHECK_EQ(inputs.size(), 1);
@@ -182,7 +180,6 @@ SaberStatus VenderFc<X86, AK_FLOAT>
         cblas_int IC = inputs[i]->count_valid(param.axis, inputs[i]->dims());
 
         if (i == 0) {
-            // C := alpha * op(A) * op(B) + beta * C
             cblas_sgemm_compute(CblasColMajor,                                     // Layout
                                 CblasPacked,                                       // a
                                 CblasNoTrans,                                      // b是否转置
@@ -201,14 +198,6 @@ SaberStatus VenderFc<X86, AK_FLOAT>
                                 1.0,                                               // beta
                                 dst, OC);                                          // c, ldc
         }
-
-        //LOG(INFO) << "anakin compute[" << i << "] passed";
-
-        // LOG(INFO) << "inputs[]:dims: " << inputs[0]->dims();
-        // LOG(INFO) << "inputs:size: " << inputs.size();
-        // LOG(INFO) << "inputs:capacity: " << inputs.capacity();
-        // LOG(INFO) << "output:size: " << outputs.size();
-        // LOG(INFO) << "OC, MB, IC: " << OC << " "<< MB << " " << IC;
     }
 
     if (bias) {
@@ -246,7 +235,6 @@ SaberStatus VenderFc<X86, AK_INT8>::create(const std::vector<Tensor<X86> *>& inp
         ws_ = nullptr;
     }
 
-    //    LOG(INFO)<<"batch size = "<<_batch_size<<","<<_output_channel;
     ws_ = zmalloc(_batch_size * _output_channel * sizeof(int), 256);
 
     if (ws_ == nullptr) {
@@ -291,7 +279,6 @@ SaberStatus VenderFc<X86, AK_INT8>::init(const std::vector<Tensor<X86> *>& input
         _need_weights_trans = true;
         _weights_trans.re_alloc(param.weights->valid_shape(), AK_INT8);
         utils::ScaleUtils::scale_fc_weights_to_nchw_host(_weights_trans, *param.weights);
-        //        LOG(INFO)<<"input shape "<<inputs[0]->valid_shape()<<" , weights shape "<<param.weights->valid_shape();
     }
 
     if (_need_weights_trans) {
@@ -369,18 +356,9 @@ SaberStatus VenderFc<X86, AK_INT8>::dispatch(const std::vector<Tensor<X86> *>& i
         auto weight = static_cast<const int8_t*>(param.weights->data()) + total_ic * _output_channel;
 
         if (_need_weights_trans) {
-            //            LOG(INFO)<<"weights trans";
             weight = static_cast<const int8_t*>(_weights_trans.data()) + total_ic * _output_channel;
-            //            print_tensor(_weights_trans);
         }
 
-        //        for(auto a:_scale){
-        //            LOG(INFO)<<"scale = "<<a;
-        //        }
-        //        LOG(INFO)<<"m,n,k = "<<_output_channel<<","<<_batch_size<<","<<IC;
-        //        print_tensor(_bias_scale);
-        /* c = scale * { op(A) + a_offset_scale * a_offset } *
-               { op(B) + b_offset_scale * b_offset } + beta * C + c_offset */
         if (i == 0) {
             cblas_gemm_s8u8s32(CblasColMajor,                       // Layout
                                _is_transpose_weights,                // a need to transpose or not
