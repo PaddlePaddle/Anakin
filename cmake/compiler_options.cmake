@@ -57,27 +57,34 @@ anakin_add_compile_option(-Wno-missing-field-initializers)
 anakin_add_compile_option(-Wno-extra)
 
 if(ENABLE_NOISY_WARNINGS)
-	anakin_add_compile_option(-Wcast-align)
-	anakin_add_compile_option(-Wstrict-aliasing=2)
-	anakin_add_compile_option(-Wundef)
-	anakin_add_compile_option(-Wsign-compare)
+    anakin_add_compile_option(-Wcast-align)
+    anakin_add_compile_option(-Wstrict-aliasing=2)
+    anakin_add_compile_option(-Wundef)
+    anakin_add_compile_option(-Wsign-compare)
 else()
-	anakin_add_compile_option(-Wno-undef)
-	anakin_add_compile_option(-Wno-narrowing)
-	anakin_add_compile_option(-Wno-unknown-pragmas)
-	anakin_add_compile_option(-Wno-delete-non-virtual-dtor)
-	anakin_add_compile_option(-Wno-comment)
-	anakin_add_compile_option(-Wno-sign-compare)
+    anakin_add_compile_option(-Wno-undef)
+    anakin_add_compile_option(-Wno-narrowing)
+    anakin_add_compile_option(-Wno-unknown-pragmas)
+    anakin_add_compile_option(-Wno-delete-non-virtual-dtor)
+    anakin_add_compile_option(-Wno-comment)
+    anakin_add_compile_option(-Wno-sign-compare)
     anakin_add_compile_option(-Wno-write-strings)
     anakin_add_compile_option(-Wno-ignored-qualifiers)
     anakin_add_compile_option(-Wno-enum-compare)
     anakin_add_compile_option(-Wno-missing-field-initializers)
 endif()
 
+if(USE_SGX)
+    # SGX build uses MKL instead of MKLMKL, possibly a higer version
+    # Some APIs may be deprecated by later MKL. We want to ignore
+    # these warnings
+    anakin_add_compile_option(-Wno-deprecated-declarations)
+endif()
+
 if(CMAKE_BUILD_TYPE MATCHES Debug)
     anakin_add_compile_option(-O0)
-	anakin_add_compile_option(-g)
-	anakin_add_compile_option(-gdwarf-2) # for old version gcc and gdb. see: http://stackoverflow.com/a/15051109/673852
+    anakin_add_compile_option(-g)
+    anakin_add_compile_option(-gdwarf-2) # for old version gcc and gdb. see: http://stackoverflow.com/a/15051109/673852
 else()
     if(USE_SGX)
       anakin_add_compile_option(-Os)
@@ -95,16 +102,16 @@ else()
 endif()
 
 if(TARGET_ANDROID)
-	anakin_add_compile_option(-pie)
+    anakin_add_compile_option(-pie)
     add_compile_options(-ldl)
-	anakin_add_compile_option(-lc)
+    anakin_add_compile_option(-lc)
     set(ANAKIN_EXTRA_CXX_FLAGS "${ANAKIN_EXTRA_CXX_FLAGS} ${ANDROID_CXX_FLAGS}")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections")
     set(MAKE_STATIC_LINKER_FLAGS "${MAKE_STATIC_LINKER_FLAGS} -Wl,--gc-sections")
 endif()
 
 if(TARGET_IOS)
-	# none temp
+    # none temp
 endif()
 
 if(BUILD_STATIC OR X86_COMPILE_482)
@@ -141,17 +148,10 @@ endif()
 
 # The -Wno-long-long is required in 64bit systems when including sytem headers.
 if(X86_64)
-	anakin_add_compile_option(-Wno-long-long)
+    anakin_add_compile_option(-Wno-long-long)
 endif()
 
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${ANAKIN_EXTRA_CXX_FLAGS}")
-
-#if(WIN32)
-#    if(MSVC)
-#    	message(STATUS "Using msvc compiler")
-#        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_SCL_SECURE_NO_WARNINGS")
-#    endif()
-#endif()
 
 if(USE_CUDA)
     if(CMAKE_BUILD_TYPE MATCHES Debug)

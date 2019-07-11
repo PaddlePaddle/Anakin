@@ -126,7 +126,6 @@ void Scheduler::Run() {
 
             // debug info
             for (const auto& op : this->_wait_que) {
-                std::ostringstream oss;
                 LOG(INFO) << "op.name=" << op.name;
                 int i = 0;
                 for (const auto& in : op_inputs[op.name]) {

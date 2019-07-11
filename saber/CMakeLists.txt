@@ -71,11 +71,11 @@ endif()
 
 if(USE_SGX)
     set(SGX_INCOMPATIBLE_SRC
-        ${ANAKIN_SABER}/funcs/impl/x86/mkl_gemm.cpp
-        ${ANAKIN_SABER}/funcs/impl/x86/mkldnn_helper.cpp
-        ${ANAKIN_SABER}/funcs/impl/x86/saber_lstmp.cpp
-        ${ANAKIN_SABER}/funcs/impl/x86/saber_lstm.cpp
-        ${ANAKIN_SABER}/funcs/impl/x86/mkl_packed_int8_gemm.cpp
+	    ${ANAKIN_SABER}/funcs/impl/x86/mkl_gemm.cpp
+	    ${ANAKIN_SABER}/funcs/impl/x86/mkldnn_helper.cpp
+	${ANAKIN_SABER}/funcs/impl/x86/saber_lstmp.cpp
+	#${ANAKIN_SABER}/funcs/impl/x86/saber_lstm.cpp
+	${ANAKIN_SABER}/funcs/impl/x86/mkl_packed_int8_gemm.cpp
     )
     foreach(toremove ${SGX_INCOMPATIBLE_SRC})
         list(REMOVE_ITEM ANAKIN_SABER_BASE_SRC ${toremove})
