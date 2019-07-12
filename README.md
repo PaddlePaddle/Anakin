@@ -34,6 +34,16 @@ Please refer to our [release announcement](https://github.com/PaddlePaddle/Anaki
       - Assembly level optimization. Saber is a underlying DNN library for Anakin, which
       is deeply optimized at assembly level.
 
+- **Security**
+
+    Anakin now supports Intel Software Guard Extensions
+    ([SGX](https://software.intel.com/en-us/sgx)). SGX is a set of instructions
+    that can set up a extremely secure execution enironment that prevents other
+    software from inspecting the execution state of your application. Even
+    privileged code like OS and VMM cannot pry into or tamper with the data and
+    code of Anakin. To learn more about Anakin for SGX, refer to the
+    [tutorial](docs/Manual/run_on_sgx.md). 
+
 ## NV GPU Benchmark
 ### Machine And Enviornment
 >  CPU: `Intel(R) Xeon(R) CPU 5117 @ 2.0GHz`  
