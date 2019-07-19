@@ -1,32 +1,36 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/priorbox.h"
 
 namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void PriorBox<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx, \
-        const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, \
-        std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<PriorBoxHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<PriorBoxHelper<NV, AK_FLOAT, \
-                  Precision::FP32>*>(this->_helper)->_param_priorbox;
-    impl->_funcs_priorbox(ins, outs, param, ctx);
-}
-#endif
-
-/// TODO ... specialization other type of operator
-
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-PriorBoxHelper<Ttype, Dtype, Ptype>::~PriorBoxHelper() {
+#define INSTANCE_PRIORBOX(Ttype, Ptype) \
+template<> \
+void PriorBox<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype> >& ins, \
+        std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<PriorBoxHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<PriorBoxHelper<Ttype, Ptype>*>(this->_helper)->_param_priorbox; \
+    impl->_funcs_priorbox(ins, outs, param, ctx); \
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing PriorBox op parameter.";
+template<typename Ttype, Precision Ptype>
+Status PriorBoxHelper<Ttype, Ptype>::InitParam() {
+    DLOG(WARNING) << "Parsing PriorBox op parameter.";
     auto min_size_ = GET_PARAMETER(PTuple<float>, min_size);
     auto max_size_ = GET_PARAMETER(PTuple<float>, max_size);
     auto as_ratio  = GET_PARAMETER(PTuple<float>, aspect_ratio);
@@ -38,56 +42,119 @@ Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto step_h_   = GET_PARAMETER(float, step_h);
     auto step_w_   = GET_PARAMETER(float, step_w);
     auto offset_   = GET_PARAMETER(float, offset);
+    auto order     = GET_PARAMETER(PTuple<std::string>, order);
+    std::vector<PriorType> order_;
+    for (int i = 0; i < order.size(); i++) {
+        if (order[i] == "MIN") {
+            order_.push_back(PRIOR_MIN);
+        } else if (order[i] == "MAX") {
+            order_.push_back(PRIOR_MAX);
+        } else if (order[i] == "COM") {
+            order_.push_back(PRIOR_COM);
+        }
+    }
+    if (std::is_same<Ttype, MLU>::value) {
+        order_ = {PRIOR_MIN, PRIOR_MAX, PRIOR_COM};
+    }
+    //add new parameter
+    PTuple<float> fixed_size_;
+    if (FIND_PARAMETER(fixed_size)) {
+        fixed_size_ = GET_PARAMETER(PTuple<float>, fixed_size);
+    }
+    PTuple<float> fixed_ratio_;
+    if (FIND_PARAMETER(fixed_ratio)) {
+        fixed_ratio_ = GET_PARAMETER(PTuple<float>, fixed_ratio);;
+    }
+    PTuple<float> density_;
+    if (FIND_PARAMETER(density)) {
+        density_ = GET_PARAMETER(PTuple<float>, density);
+    }
 
-    saber::PriorBoxParam<Tensor4d<Ttype, Dtype>> param_priorbox(min_size_.vector(), max_size_.vector(), \
-                                       as_ratio.vector(), var.vector(), flip_flag, clip_flag, \
-                                       image_w, image_h, step_w_, step_h_, offset_);
-    _param_priorbox = param_priorbox;
+    if (min_size_.size() <= 0) {//min
+        saber::PriorBoxParam<Ttype> param_priorbox( var.vector(), flip_flag, clip_flag, \
+                                       image_w, image_h, step_w_, step_h_, offset_, order_, \
+                                       std::vector<float>(), std::vector<float>(), std::vector<float>(), \
+                                       fixed_size_.vector(), fixed_ratio_.vector(), density_.vector());
+        _param_priorbox = param_priorbox;
+    }else{
+        saber::PriorBoxParam<Ttype> param_priorbox(var.vector(), flip_flag, clip_flag, \
+                                       image_w, image_h, step_w_, step_h_, offset_, order_,  \
+                                       min_size_.vector(), max_size_.vector(), as_ratio.vector(), \
+                                       std::vector<float>(), std::vector<float>(), std::vector<float>());
+        _param_priorbox = param_priorbox;
+    }
+
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status PriorBoxHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status PriorBoxHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
+        const std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_priorbox.init(ins, outs, _param_priorbox, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status PriorBoxHelper<Ttype, Dtype, Ptype>::InferShape(const
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status PriorBoxHelper<Ttype, Ptype>::InferShape(const
+        std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_priorbox.compute_output_shape(ins, outs, _param_priorbox));
     return Status::OK();
 }
 
 #ifdef USE_CUDA
-template class PriorBoxHelper<NV, AK_FLOAT, Precision::FP32>;
-template class PriorBoxHelper<NV, AK_FLOAT, Precision::FP16>;
-template class PriorBoxHelper<NV, AK_FLOAT, Precision::INT8>;
+INSTANCE_PRIORBOX(NV, Precision::FP32);
+template class PriorBoxHelper<NV, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, NV, Precision::FP32);
 #endif
+
+#ifdef AMD_GPU
+INSTANCE_PRIORBOX(AMD, Precision::FP32);
+template class PriorBoxHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
-template class PriorBoxHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class PriorBoxHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class PriorBoxHelper<ARM, AK_FLOAT, Precision::INT8>;
+INSTANCE_PRIORBOX(ARM, Precision::FP32);
+template class PriorBoxHelper<ARM, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, ARM, Precision::FP32);
 #endif
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, NV, AK_FLOAT, Precision::FP32);
+
+#if defined USE_X86_PLACE || defined BUILD_LITE
+INSTANCE_PRIORBOX(X86, Precision::FP32);
+template class PriorBoxHelper<X86, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, X86, Precision::FP32);
 #endif
-#ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, ARM, AK_FLOAT, Precision::FP32);
-#endif
+
+#ifdef USE_MLU
+INSTANCE_PRIORBOX(MLU, Precision::FP32);
+INSTANCE_PRIORBOX(MLU, Precision::FP16);
+template class PriorBoxHelper<MLU, Precision::FP32>;
+template class PriorBoxHelper<MLU, Precision::FP16>;
+template class PriorBoxHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 //! register op
 ANAKIN_REGISTER_OP(PriorBox)
 .Doc("PriorBox operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("priorbox")
+.__alias__<NV, Precision::FP32>("priorbox")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("priorbox")
+.__alias__<ARM, Precision::FP32>("priorbox")
 #endif
+#if defined USE_X86_PLACE || defined BUILD_LITE
+.__alias__<X86, Precision::FP32>("priorbox")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("priorbox")
+#endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("priorbox")
+#endif  // USE_MLU
 .num_in(1)
 .num_out(1)
 .Args<PTuple<float>>("min_size", " min_size of bbox ")

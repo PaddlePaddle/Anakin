@@ -1,366 +1,802 @@
-#include "tensor_op.h"
-#include "anakin_config.h"
-#include <cstdlib>
+#include "saber/core/tensor_op.h"
+#include <random>
+#include <math.h>
+#include <stdio.h>
 
 namespace anakin {
 
 namespace saber {
 
-template <class Tensor_t>
-void fill_tensor_host_const(Tensor_t& tensor, typename Tensor_t::Dtype value) {
+template <typename HostType>
+static void reorder_nhwc_nchw(const Tensor<HostType>& input,
+                              Tensor<HostType>& output) {
+    CHECK_EQ(input.get_dtype(), AK_FLOAT) << "only support AK_FLOAT";
+    CHECK_EQ(output.get_dtype(), AK_FLOAT) << "only support AK_FLOAT";
+    const float* input_ptr = static_cast<const float*>(input.data());
+    float* output_ptr = static_cast<float*>(output.mutable_data());
+    int n_value = input.num();
+    int c_value = input.channel();
+    int h_value = input.height();
+    int w_value = input.width();
 
-    typedef typename Tensor_t::Dtype Dtype;
-    Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
-    int size = tensor.size();
+    if (input.get_layout() == Layout_NHWC && output.get_layout() == Layout_NCHW) {
+        #pragma omp parallel for collapse(4) schedule(static)
 
-    for (int i = 0; i < size; ++i) {
-        data_ptr[i] = value;
+        for (int n = 0; n < n_value; ++n) {
+            for (int c = 0; c < c_value; ++c) {
+                for (int h = 0; h < h_value; ++h) {
+                    for (int w = 0; w < w_value; ++w) {
+                        int in_index = n * h_value * w_value * c_value + h * w_value * c_value + w * c_value + c;
+                        int out_index = n * c_value * h_value * w_value + c * h_value * w_value + h * w_value + w;
+                        output_ptr[out_index] = input_ptr[in_index];
+                    }
+                }
+            }
+        }
+    } else if (input.get_layout() == Layout_NCHW && output.get_layout() == Layout_NHWC) {
+        #pragma omp parallel for collapse(4) schedule(static)
+
+        for (int n = 0; n < n_value; ++n) {
+            for (int c = 0; c < c_value; ++c) {
+                for (int h = 0; h < h_value; ++h) {
+                    for (int w = 0; w < w_value; ++w) {
+                        int in_index = n * c_value * h_value * w_value + c * h_value * w_value + h * w_value + w;
+                        int out_index = n * h_value * w_value * c_value + h * w_value * c_value + w * c_value + c;
+                        output_ptr[out_index] = input_ptr[in_index];
+                    }
+                }
+            }
+        }
+    } else {
+        LOG(FATAL) << "not support layout " << input.get_layout() << "," << output.get_layout();
+    }
+
+}
+template <typename HostType>
+static void reorder_nchwc_nchw(Tensor<HostType>& input,
+                               Tensor<HostType>& output) {
+
+    CHECK_EQ(input.get_dtype(), AK_FLOAT) << "only support float type";
+    CHECK((input.get_layout() == Layout_NCHW_C16R || input.get_layout() == Layout_NCHW_C8R)
+          && output.get_layout() == Layout_NCHW) << "not support " << input.get_layout();
+
+    Shape shape = output.valid_shape();
+    int n_value = shape[0];
+    int c_value = shape[1];
+    int h_value = shape[2];
+    int w_value = shape[3];
+    Shape shape_input = input.valid_shape();
+    int aligned_length = shape_input.get_layout_aligned_length();
+    CHECK_GT(aligned_length, 0) << "input aligned should > 0";
+    int c_round_divk = shape_input[1];
+
+    c_round_divk = (shape_input.channel() + aligned_length - 1) / aligned_length;
+
+    float* output_ptr = static_cast<float*>(output.mutable_data());
+    const float* input_ptr = static_cast<const float*>(input.data());
+    #pragma omp parallel for collapse(4) schedule(static)
+
+    for (int n = 0; n < n_value; ++n) {
+        for (int c = 0; c < c_value; ++c) {
+            for (int h = 0; h < h_value; ++h) {
+                //#pragma ivdep
+                for (int w = 0; w < w_value; ++w) {
+                    int round_c = c / aligned_length;
+                    int remainder_c = c % aligned_length;
+                    int input_idx = n * c_round_divk * h_value * w_value * aligned_length + round_c * h_value *
+                                    w_value * aligned_length +
+                                    h * w_value * aligned_length + w * aligned_length + remainder_c;
+                    int output_idx = n * c_value * h_value * w_value + c * h_value * w_value  +
+                                     h * w_value  + w ;
+
+                    *(output_ptr + output_idx) = input_ptr[input_idx];
+                }
+            }
+        }
+    }
+
+}
+
+template <typename TargetType>
+void tensor_reorder(Tensor<TargetType>& input, Tensor<TargetType>& output) {
+    if (input.valid_shape() == output.valid_shape()) {
+        output.copy_from(input);
+        return;
+    }
+
+    LayoutType in_layout = input.get_layout();
+    LayoutType out_layout = output.get_layout();
+    bool nhwc_flag = (in_layout == Layout_NHWC && in_layout == Layout_NCHW)
+                     || (out_layout == Layout_NCHW && out_layout == Layout_NHWC);
+
+    if ((in_layout == Layout_NCHW_C16R || in_layout == Layout_NCHW_C8R) && out_layout == Layout_NCHW) {
+        reorder_nchwc_nchw(input, output);
+    } else if (nhwc_flag) {
+        reorder_nhwc_nchw(input, output);
+    } else {
+        LOG(FATAL) << "not support this " << in_layout << "," << out_layout;
     }
 }
 
-template <class Tensor_t>
-void fill_tensor_host_rand(Tensor_t& tensor) {
-    typedef typename Tensor_t::Dtype Dtype;
-    Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
-
-    for (int i = 0; i < tensor.size(); ++i) {
-        data_ptr[i] = static_cast<Dtype>(rand());
+template <typename TargetType>
+void* get_data_buff(Tensor<TargetType>& tensor, bool if_mutable = true) {
+    if (if_mutable == true) {
+        return tensor.mutable_data();
+    } else {
+        return tensor.data();
     }
 }
 
-template <class Tensor_t>
-void fill_tensor_host_seq(Tensor_t& tensor) {
-    typedef typename Tensor_t::Dtype Dtype;
-    Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
 
-    for (int i = 0; i < tensor.size(); ++i) {
-        data_ptr[i] = static_cast<Dtype>(i);
+#ifdef USE_MLU
+void* get_data_buff(Tensor<MLU>& tensor, bool if_mutable = true) {
+    int count = tensor.size() * type_length(tensor.get_dtype());
+
+    if (tensor.mutable_data()->cpu_data == nullptr) {
+        tensor.mutable_data()->malloc_buffer(count);
+    }
+
+    return tensor.mutable_data()->cpu_data;
+}
+#endif   // USE_MLU
+
+
+template <typename Dtype>
+void fill_tensor_host_const_impl(Dtype* dio, Dtype value, long long size) {
+    for (long long i = 0; i < size; ++i) {
+        dio[i] = value;
     }
 }
 
-template <class Tensor_t>
-void fill_tensor_host_rand(Tensor_t& tensor, typename Tensor_t::Dtype vstart, \
-                           typename Tensor_t::Dtype vend) {
-    typedef typename Tensor_t::Dtype Dtype;
-    Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
+template <typename TargetType>
+void fill_tensor_const(Tensor<TargetType>& tensor, float value,
+                       typename Tensor<TargetType>::API::stream_t stream) {
+
+    long long size = tensor.size();
+    void* dio = tensor.mutable_data();
+
+    if (std::is_same<TargetType, MLU>::value) {
+        dio = get_data_buff(tensor);
+    }
+
+    DataType type = tensor.get_dtype();
+
+    switch (type) {
+    case AK_UINT8:
+        fill_tensor_host_const_impl((unsigned char*)dio, static_cast<unsigned char>(value), size);
+        break;
+
+    case AK_INT8:
+        fill_tensor_host_const_impl((char*)dio, static_cast<char>(value), size);
+        break;
+
+    case AK_INT16:
+        fill_tensor_host_const_impl((short*)dio, static_cast<short>(value), size);
+        break;
+
+    case AK_UINT16:
+        fill_tensor_host_const_impl((unsigned short*)dio, static_cast<unsigned short>(value), size);
+        break;
+
+    case AK_HALF:
+        fill_tensor_host_const_impl((short*)dio, static_cast<short>(value), size);
+        break;
+
+    case AK_UINT32:
+        fill_tensor_host_const_impl((unsigned int*)dio, static_cast<unsigned int>(value), size);
+        break;
+
+    case AK_INT32:
+        fill_tensor_host_const_impl((int*)dio, static_cast<int>(value), size);
+        break;
+
+    case AK_FLOAT:
+        fill_tensor_host_const_impl((float*)dio, static_cast<float>(value), size);
+        break;
+
+    case AK_DOUBLE:
+        fill_tensor_host_const_impl((double*)dio, static_cast<double>(value), size);
+        break;
+
+    default:
+        LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+}
+
+template <typename Dtype>
+void fill_tensor_host_rand_impl(Dtype* dio, long long size) {
+    for (long long i = 0; i < size; ++i) {
+        Dtype rand_x = static_cast<Dtype>(rand() % 256);
+        dio[i] = (rand_x - 128) / 128;
+    }
+}
+template <>
+void fill_tensor_host_rand_impl<char>(char* dio, long long size) {
+    for (long long i = 0; i < size; ++i) {
+        dio[i] = rand() % 256 - 128;
+    }
+}
+template <>
+void fill_tensor_host_rand_impl<unsigned char>(unsigned char* dio, long long size) {
+    for (long long i = 0; i < size; ++i) {
+        dio[i] = rand() % 256;
+    }
+}
+template <typename Dtype>
+void fill_tensor_host_seq_impl(Dtype* dio, long long size) {
+    for (long long i = 0; i < size; ++i) {
+        dio[i] = static_cast<Dtype>(i);
+    }
+}
+
+template <typename TargetType>
+void fill_tensor_rand(Tensor<TargetType>& tensor,
+                      typename Tensor<TargetType>::API::stream_t stream) {
+    long long size = tensor.size();
+    void* dio = tensor.mutable_data();
+
+    if (std::is_same<TargetType, MLU>::value) {
+        dio = get_data_buff(tensor);
+    }
+
+    DataType type = tensor.get_dtype();
+
+    switch (type) {
+    case AK_UINT8:
+        fill_tensor_host_rand_impl((unsigned char*)dio, size);
+        break;
+
+    case AK_INT8:
+        fill_tensor_host_rand_impl((char*)dio, size);
+        break;
+
+    case AK_INT16:
+        fill_tensor_host_rand_impl((short*)dio, size);
+        break;
+
+    case AK_UINT16:
+        fill_tensor_host_rand_impl((unsigned short*)dio, size);
+        break;
+
+    case AK_UINT32:
+        fill_tensor_host_rand_impl((unsigned int*)dio, size);
+        break;
+
+    case AK_INT32:
+        fill_tensor_host_rand_impl((int*)dio, size);
+        break;
+
+    case AK_HALF:
+        fill_tensor_host_rand_impl((short*)dio, size);
+        break;
+
+    case AK_FLOAT:
+        fill_tensor_host_rand_impl((float*)dio, size);
+        break;
+
+    case AK_DOUBLE:
+        fill_tensor_host_rand_impl((double*)dio, size);
+        break;
+
+    default:
+        LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+}
+
+template <typename TargetType>
+void fill_tensor_seq(Tensor<TargetType>& tensor,
+                     typename Tensor<TargetType>::API::stream_t stream) {
+    long long size = tensor.size();
+    void* dio = tensor.mutable_data();
+
+    if (std::is_same<TargetType, MLU>::value) {
+        dio = get_data_buff(tensor);
+    }
+
+    DataType type = tensor.get_dtype();
+
+    switch (type) {
+    case AK_UINT8:
+        fill_tensor_host_seq_impl((unsigned char*)dio, size);
+        break;
+
+    case AK_INT8:
+        fill_tensor_host_seq_impl((char*)dio, size);
+        break;
+
+    case AK_INT16:
+        fill_tensor_host_seq_impl((short*)dio, size);
+        break;
+
+    case AK_UINT16:
+        fill_tensor_host_seq_impl((unsigned short*)dio, size);
+        break;
+
+    case AK_UINT32:
+        fill_tensor_host_seq_impl((unsigned int*)dio, size);
+        break;
+
+    case AK_INT32:
+        fill_tensor_host_seq_impl((int*)dio, size);
+        break;
+
+    case AK_HALF:
+        fill_tensor_host_seq_impl((short*)dio, size);
+        break;
+
+    case AK_FLOAT:
+        fill_tensor_host_seq_impl((float*)dio, size);
+        break;
+
+    case AK_DOUBLE:
+        fill_tensor_host_seq_impl((double*)dio, size);
+        break;
+
+    default:
+        LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+}
+
+template <typename Dtype>
+void fill_tensor_host_rand_impl2(Dtype* dio, Dtype vstart, Dtype vend, long long size) {
     std::random_device rd;
     std::mt19937 gen(rd());
+    //    std::mt19937 gen(1234);
     std::uniform_real_distribution<float> dis(0, 1.f);
-    int size = tensor.size();
-    for (int i = 0; i < size; ++i) {
-        Dtype random_num = vstart + (vend - vstart) * dis(gen);
-        data_ptr[i] = random_num;
+
+    for (long long i = 0; i < size; ++i) {
+        Dtype random_num = static_cast<Dtype>(vstart + (vend - vstart) * dis(gen));
+        dio[i] = random_num;
     }
 }
 
-template <class Tensor_t>
-void print_tensor_host(Tensor_t& tensor) {
+template <typename TargetType>
+void fill_tensor_rand(Tensor<TargetType>& tensor, float vstart, float vend, \
+                      typename Tensor<TargetType>::API::stream_t stream) {
 
-    typedef typename Tensor_t::Dtype Dtype;
-    LOG(INFO) << "host tensor data:" << tensor.size();
-    const Dtype* data_ptr = static_cast<const Dtype*>(tensor.get_buf()->get_data());
-    int size = tensor.size();
+    long long size = tensor.size();
+    void* dio = tensor.mutable_data();
 
+    if (std::is_same<TargetType, MLU>::value) {
+        dio = get_data_buff(tensor);
+    }
+
+    DataType type = tensor.get_dtype();
+
+    switch (type) {
+    case AK_UINT8:
+        fill_tensor_host_rand_impl2((unsigned char*)dio, static_cast<unsigned char>(vstart),
+                                    static_cast<unsigned char>(vend), size);
+        break;
+
+    case AK_INT8:
+        fill_tensor_host_rand_impl2((char*)dio, static_cast<char>(vstart), static_cast<char>(vend), size);
+        break;
+
+    case AK_INT16:
+        fill_tensor_host_rand_impl2((short*)dio, static_cast<short>(vstart), static_cast<short>(vend),
+                                    size);
+        break;
+
+    case AK_UINT16:
+        fill_tensor_host_rand_impl2((unsigned short*)dio, static_cast<unsigned short>(vstart),
+                                    static_cast<unsigned short>(vend), size);
+        break;
+
+    case AK_UINT32:
+        fill_tensor_host_rand_impl2((unsigned int*)dio, static_cast<unsigned int>(vstart),
+                                    static_cast<unsigned int>(vend), size);
+        break;
+
+    case AK_INT32:
+        fill_tensor_host_rand_impl2((int*)dio, static_cast<int>(vstart), static_cast<int>(vend), size);
+        break;
+
+    case AK_HALF:
+        fill_tensor_host_rand_impl2((short*)dio, static_cast<short>(vstart), static_cast<short>(vend),
+                                    size);
+        break;
+
+    case AK_FLOAT:
+        fill_tensor_host_rand_impl2((float*)dio, static_cast<float>(vstart), static_cast<float>(vend),
+                                    size);
+        break;
+
+    case AK_DOUBLE:
+        fill_tensor_host_rand_impl2((double*)dio, static_cast<double>(vstart), static_cast<double>(vend),
+                                    size);
+        break;
+
+    default:
+        LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+}
+
+template <typename Dtype>
+void print_tensor_host_impl(const Dtype* din, long long size, int width) {
     for (int i = 0; i < size; ++i) {
-        printf("%.2f ", static_cast<float>(data_ptr[i]));
+        printf("%.6f ", static_cast<float>(din[i]));
 
-        if ((i + 1) % tensor.width() == 0) {
+        if ((i + 1) % width == 0) {
             printf("\n");
         }
     }
 
     printf("\n");
+}
+template <>
+void print_tensor_host_impl<int8_t >(const int8_t* din, long long size, int width) {
+    for (int i = 0; i < size; ++i) {
+        printf("%d ", static_cast<int>(din[i]));
+        if ((i + 1) % width == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+}
+template <>
+void print_tensor_host_impl<uint8_t >(const uint8_t* din, long long size, int width) {
+    for (int i = 0; i < size; ++i) {
+        printf("%d ", static_cast<int>(din[i]));
+        if ((i + 1) % width == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+}
+template <>
+void print_tensor_host_impl<int32_t >(const int32_t* din, long long size, int width) {
+    for (int i = 0; i < size; ++i) {
+        printf("%d ", din[i]);
+        if ((i + 1) % width == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+}
+template <typename TargetType>
+void print_tensor(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream) {
+
+    LOG(INFO) << "host tensor data:" << tensor.size();
+    const void* data_ptr = tensor.data();
+    long long size = tensor.size();
+    int width = tensor.width();
+
+    if (tensor.get_layout() == Layout_NCHW_C8) {
+        width *= 8;
+    } else if (tensor.get_layout() == Layout_NHWC) {
+        width = tensor.channel();
+    }
+
+    DataType type = tensor.get_dtype();
+
+    switch (type) {
+    case AK_UINT8:
+        print_tensor_host_impl((const unsigned char*)data_ptr, size, width);
+        break;
+
+    case AK_INT8:
+        print_tensor_host_impl((const char*)data_ptr, size, width);
+        break;
+
+    case AK_UINT16:
+        print_tensor_host_impl((const unsigned short*)data_ptr, size, width);
+        break;
+
+    case AK_INT16:
+        print_tensor_host_impl((const short*)data_ptr, size, width);
+        break;
+
+    case AK_UINT32:
+        print_tensor_host_impl((const unsigned int*)data_ptr, size, width);
+        break;
+
+    case AK_INT32:
+        print_tensor_host_impl((const int*)data_ptr, size, width);
+        break;
+
+    case AK_FLOAT:
+        print_tensor_host_impl((const float*)data_ptr, size, width);
+        break;
+
+    case AK_DOUBLE:
+        print_tensor_host_impl((const double*)data_ptr, size, width);
+        break;
+
+    default:
+        LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+
+    printf("\n");
+}
+
+template <typename TargetType>
+void print_tensor_device(Tensor<TargetType>& tensor,
+                         typename Tensor<TargetType>::API::stream_t stream) {
+    CHECK(false) << "not imply print_tensor_device";
+}
+
+
+
+template <typename TargetType>
+void print_tensor_valid(Tensor<TargetType>& tensor,
+                        typename Tensor<TargetType>::API::stream_t stream) {
+
+    LOG(INFO) << "host tensor data:" << tensor.valid_size();
+    const void* data_ptr = (const void*)((const char*)tensor.data() + tensor.data_offset() *
+                                         type_length(tensor.get_dtype()));
+    long long size = tensor.valid_size();
+    int width = tensor.width();
+    DataType type = tensor.get_dtype();
+
+    if (tensor.is_continue_mem()) {
+        switch (type) {
+        case AK_UINT8:
+            print_tensor_host_impl((const unsigned char*)data_ptr, size, width);
+            break;
+
+        case AK_INT8:
+            print_tensor_host_impl((const char*)data_ptr, size, width);
+            break;
+
+        case AK_UINT16:
+            print_tensor_host_impl((const unsigned short*)data_ptr, size, width);
+            break;
+
+        case AK_INT16:
+            print_tensor_host_impl((const short*)data_ptr, size, width);
+            break;
+
+        case AK_UINT32:
+            print_tensor_host_impl((const unsigned int*)data_ptr, size, width);
+            break;
+
+        case AK_INT32:
+            print_tensor_host_impl((const int*)data_ptr, size, width);
+            break;
+
+        case AK_FLOAT:
+            print_tensor_host_impl((const float*)data_ptr, size, width);
+            break;
+
+        case AK_DOUBLE:
+            print_tensor_host_impl((const double*)data_ptr, size, width);
+            break;
+
+        default:
+            LOG(FATAL) << "data type: " << type << " is unsupported now";
+        }
+
+        printf("\n");
+    } else {
+        Tensor<TargetType> tvalid(tensor.valid_shape());
+        tvalid.copy_from(tensor);
+        print_tensor<TargetType>(tvalid, stream);
+    }
+
 }
 
 template <typename Dtype>
 void tensor_cmp_host(const Dtype* src1, const Dtype* src2, \
                      int size, double& max_ratio, double& max_diff) {
-
     const double eps = 1e-6f;
-    max_diff = fabs(src1[0] - src2[0]);
-    max_ratio = 2.0 * max_diff / (src1[0] + src2[0] + eps);
-
-    for (int i = 1; i < size; ++i) {
+#ifdef USE_MLU
+    const double threshold = 1e-5f;
+#endif
+    max_diff = 0;
+    max_ratio = 0;
+    for (int i = 0; i < size; ++i) {
+#ifdef USE_MLU
+        if (fabs(src1[i]) <= threshold || fabs(src2[i]) <= threshold) break;
+#endif
         double diff = fabs(src1[i] - src2[i]);
-
         if (max_diff < diff) {
             max_diff = diff;
-            max_ratio = 2.0 * max_diff / (src1[i] + src2[i] + eps);
+            max_ratio = fabs(2.0 * max_diff / (src1[i] + src2[i] + eps));
+            //LOG(INFO) << "compare two src1: "<< src1[i] << " src2: "<< src2[i] << " i = "<< i << " max_ratio: " << max_ratio ;
         }
     }
 }
 
-#define FILL_TENSOR_HOST(target, type, layout) \
-    template void fill_tensor_host_const<Tensor<target, type, layout>>\
-        (Tensor<target, type, layout>& tensor, DataTrait<type>::dtype value); \
-    template void fill_tensor_host_rand<Tensor<target, type, layout>>\
-        (Tensor<target, type, layout>& tensor); \
-    template void fill_tensor_host_rand<Tensor<target, type, layout>>\
-        (Tensor<target, type, layout>& tensor, DataTrait<type>::dtype vstart, \
-        DataTrait<type>::dtype vend); \
-    template void print_tensor_host<Tensor<target, type, layout>>\
-        (Tensor<target, type, layout>& tensor);\
-    template void fill_tensor_host_seq<Tensor<target, type, layout>>\
-        (Tensor<target, type, layout>& tensor);
+template <typename Dtype>
+void tensor_cmp_host(const Dtype* correct, const Dtype* sample, \
+                     int size, double& diff) {
 
-
-FILL_TENSOR_HOST(X86, AK_FLOAT, NCHW);
-FILL_TENSOR_HOST(X86, AK_FLOAT, NCHW_C16);
-FILL_TENSOR_HOST(X86, AK_FLOAT, NCHW_C8);
-FILL_TENSOR_HOST(X86, AK_FLOAT, NHWC);
-FILL_TENSOR_HOST(X86, AK_FLOAT, NHW);
-FILL_TENSOR_HOST(X86, AK_FLOAT, NW);
-FILL_TENSOR_HOST(X86, AK_FLOAT, HW);
-FILL_TENSOR_HOST(X86, AK_FLOAT, W);
-
-FILL_TENSOR_HOST(X86, AK_INT8, NCHW);
-FILL_TENSOR_HOST(X86, AK_INT8, NHWC);
-FILL_TENSOR_HOST(X86, AK_INT8, NHW);
-FILL_TENSOR_HOST(X86, AK_INT8, NW);
-FILL_TENSOR_HOST(X86, AK_INT8, HW);
-FILL_TENSOR_HOST(X86, AK_INT8, W);
-
-
-template void tensor_cmp_host<float>(const float* src1, const float* src2, \
-                                     int size, double& max_ratio, double& max_diff);
-template void tensor_cmp_host<char>(const char* src1, const char* src2, int size, \
-                                    double& max_ratio, double& max_diff);
-
-template void fill_tensor_host_const<Tensor<X86, AK_INT8, NCHW_C4>>(Tensor<X86, AK_INT8, NCHW_C4>&
-        tensor, char value);
-template void fill_tensor_host_rand<Tensor<X86, AK_INT8, NCHW_C4>>(Tensor<X86, AK_INT8, NCHW_C4>&
-        tensor);
-
-template <>
-void print_tensor_host<Tensor<X86, AK_INT8, NCHW_C4>>(Tensor<X86, AK_INT8, NCHW_C4>& tensor) {
-    typedef typename Tensor<X86, AK_INT8, NCHW_C4>::Dtype Dtype;
-    LOG(INFO) << "host tensor data:" << tensor.size();
-    const Dtype* data_ptr = tensor.get_buf()->get_data();
-    int size = tensor.size();
+    double sum_diff = 0.0;
+    double sum_abs = 0.0;
 
     for (int i = 0; i < size; ++i) {
-        printf("%.2f ", static_cast<float>(data_ptr[i]));
-
-        if ((i + 1) % (4 * tensor.width()) == 0) {
-            printf("\n");
-        }
+        double diff = fabs(correct[i] - sample[i]);
+        sum_diff += diff * diff;
+        sum_abs += fabsf(correct[i]) * fabsf(correct[i]);
     }
 
-    printf("\n");
-}
-#ifdef USE_X86_PLACE
-template <>
-void reorder<Tensor<X86, AK_FLOAT, NCHW>, Tensor<X86, AK_FLOAT, NCHW_C16>>(Tensor<X86, AK_FLOAT, NCHW>& src, Tensor<X86, AK_FLOAT, NCHW_C16>& dst) {
-    typedef typename Tensor<X86, AK_FLOAT, NCHW_C16>::Dtype Dtype;
-    int blksize = 16;
-    const Dtype *src_data = src.data();
-    Dtype *dst_data = dst.mutable_data();
-    int width = src.width();
-    int height = src.height();
-    const int spatial_size = height * width;
-    auto ker = [&](const Dtype *i, Dtype *o) {
-        for (int w = 0; w < src.width(); ++w) {
-            for (int c = 0; c < blksize; ++c) {
-                const size_t nchw_off = c * spatial_size + w;
-                o[w * blksize + c] = i[nchw_off];
-            }
-        }
-    };
-    int num = dst.num();
-    int channel = src.channel();
-    int channel_blk = channel / blksize;
-#pragma omp parallel for collapse(3) schedule(static)
-    for (int n = 0; n < num; ++n) {
-        for (int C = 0; C < channel_blk; ++C) {
-            for (int h = 0; h < height; ++h) {
-                int input_offset = ((n * channel + blksize * C) * height + h) * width;
-                int output_offset = ((n * channel_blk + C) * height + h) * blksize * width;
-                auto i = &src_data[input_offset];
-                auto o = &dst_data[output_offset];
-                ker(i, o);
-            }
-        }
-    }
-    return;
-}
-template <>
-void reorder<Tensor<X86, AK_FLOAT, NCHW_C16>, Tensor<X86, AK_FLOAT, NCHW>>(Tensor<X86, AK_FLOAT, NCHW_C16>& src, Tensor<X86, AK_FLOAT, NCHW>& dst) {
-    typedef typename Tensor<X86, AK_FLOAT, NCHW_C16>::Dtype Dtype;
-    int blksize = 16;
-    const Dtype *src_data = src.data();
-    Dtype *dst_data = dst.mutable_data();
-    int width = dst.width();
-    int height = dst.height();
-    const int spatial_size = height * width;
-    auto ker = [&](const Dtype *i, Dtype *o) {
-        for (int w = 0; w < width; ++w) {
-            for (int c = 0; c < blksize; ++c) {
-                const size_t nchw_off = c * spatial_size + w;
-                o[nchw_off] = i[w * blksize + c];
-            }
-        }
-    };
-    int num = dst.num();
-    int channel = dst.channel();
-    int channel_blk = channel / blksize;
-#pragma omp parallel for collapse(3) schedule(static)
-    for (int n = 0; n < num; ++n) {
-        for (int C = 0; C < channel_blk; ++C) {
-            for (int h = 0; h < height; ++h) {
-                int input_offset = ((n * channel_blk + C) * height + h) * blksize * width;
-                int output_offset = ((n * channel + blksize * C) * height + h) * width;
-                auto i = &src_data[input_offset];
-                auto o = &dst_data[output_offset];
-                ker(i, o);
-            }
-        }
-    }
-    return;
-}
-template <>
-void reorder<Tensor<X86, AK_FLOAT, NCHW_C8>, Tensor<X86, AK_FLOAT, NCHW>>(Tensor<X86, AK_FLOAT, NCHW_C8>& src, Tensor<X86, AK_FLOAT, NCHW>& dst) {
-    typedef typename Tensor<X86, AK_FLOAT, NCHW_C8>::Dtype Dtype;
-    int blksize = 8;
-    const Dtype *src_data = src.data();
-    Dtype *dst_data = dst.mutable_data();
-    int width = dst.width();
-    int height = dst.height();
-    const int spatial_size = height * width;
-    auto ker = [&](const Dtype *i, Dtype *o) {
-        for (int w = 0; w < width; ++w) {
-            for (int c = 0; c < blksize; ++c) {
-                const size_t nchw_off = c * spatial_size + w;
-                o[nchw_off] = i[w * blksize + c];
-            }
-        }
-    };
-    int num = dst.num();
-    int channel = dst.channel();
-    int channel_blk = channel / blksize;
-#pragma omp parallel for collapse(3) schedule(static)
-    for (int n = 0; n < num; ++n) {
-        for (int C = 0; C < channel_blk; ++C) {
-            for (int h = 0; h < height; ++h) {
-                int input_offset = ((n * channel_blk + C) * height + h) * blksize * width;
-                int output_offset = ((n * channel + blksize * C) * height + h) * width;
-                auto i = &src_data[input_offset];
-                auto o = &dst_data[output_offset];
-                ker(i, o);
-            }
-        }
-    }
-    return;
-}
-#endif
+    diff = sqrt(sum_diff / sum_abs);
 
-#ifdef USE_ARM_PLACE
-FILL_TENSOR_HOST(ARM, AK_FLOAT, NCHW);
-FILL_TENSOR_HOST(ARM, AK_FLOAT, NHWC);
-FILL_TENSOR_HOST(ARM, AK_FLOAT, NHW);
-FILL_TENSOR_HOST(ARM, AK_FLOAT, NW);
-FILL_TENSOR_HOST(ARM, AK_FLOAT, HW);
-FILL_TENSOR_HOST(ARM, AK_FLOAT, W);
+}
 
-FILL_TENSOR_HOST(ARM, AK_INT8, NCHW);
-FILL_TENSOR_HOST(ARM, AK_INT8, NHWC);
-FILL_TENSOR_HOST(ARM, AK_INT8, NHW);
-FILL_TENSOR_HOST(ARM, AK_INT8, NW);
-FILL_TENSOR_HOST(ARM, AK_INT8, HW);
-FILL_TENSOR_HOST(ARM, AK_INT8, W);
+template <typename Dtype>
+double tensor_mean_value_host_impl(const Dtype* din, long long size, double scale = 1.f) {
+    double sum = 0.0;
+
+    for (long long i = 0; i < size; ++i) {
+        sum += (double)din[i] * scale;
+    }
+
+    return sum / size;
+}
+
+
+template <typename TargetType>
+double tensor_mean_value(Tensor<TargetType>& tensor,
+                         typename Tensor<TargetType>::API::stream_t stream) {
+
+    const void* data_ptr = tensor.data();
+    long long size = tensor.size();
+    DataType type = tensor.get_dtype();
+    double scale = 1.0;
+
+    if (type == AK_INT8) {
+        CHECK_EQ(tensor.get_scale().size(), 1);
+        scale = tensor.get_scale()[0];
+    } else if (type == AK_UINT8) {
+        CHECK_EQ(tensor.get_scale().size(), 1);
+        scale = tensor.get_scale()[0] * (127.f / 255.f);
+    }
+
+    switch (type) {
+    case AK_UINT8:
+        return tensor_mean_value_host_impl((const unsigned char*)data_ptr, size, scale);
+
+    case AK_INT8:
+        return tensor_mean_value_host_impl((const char*)data_ptr, size, scale);
+
+    case AK_UINT16:
+        return tensor_mean_value_host_impl((const unsigned short*)data_ptr, size);
+
+    case AK_INT16:
+        return tensor_mean_value_host_impl((const short*)data_ptr, size);
+
+    case AK_UINT32:
+        return tensor_mean_value_host_impl((const unsigned int*)data_ptr, size);
+
+    case AK_INT32:
+        return tensor_mean_value_host_impl((const int*)data_ptr, size);
+
+    case AK_FLOAT:
+        return tensor_mean_value_host_impl((const float*)data_ptr, size);
+
+    case AK_DOUBLE:
+        return tensor_mean_value_host_impl((const double*)data_ptr, size);
+
+    default:
+        LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+
+    return 0.0;
+}
+
+template <typename TargetType>
+double tensor_mean_value_valid(Tensor<TargetType>& tensor,
+                               typename Tensor<TargetType>::API::stream_t stream) {
+
+    const void* data_ptr = (const void*)((const char*)tensor.data() + tensor.data_offset() *
+                                         type_length(tensor.get_dtype()));
+    long long size = tensor.valid_size();
+    DataType type = tensor.get_dtype();
+    double scale = 1.0;
+
+    if (type == AK_INT8) {
+        CHECK_EQ(tensor.get_scale().size(), 1);
+        scale = tensor.get_scale()[0];
+    } else if (type == AK_UINT8) {
+        CHECK_EQ(tensor.get_scale().size(), 1);
+        scale = tensor.get_scale()[0] * (127.f / 255.f);
+    }
+
+    if (tensor.is_continue_mem()) {
+        switch (type) {
+        case AK_UINT8:
+            return tensor_mean_value_host_impl((const unsigned char*)data_ptr, size, scale);
+
+        case AK_INT8:
+            return tensor_mean_value_host_impl((const char*)data_ptr, size, scale);
+
+        case AK_UINT16:
+            return tensor_mean_value_host_impl((const unsigned short*)data_ptr, size);
+
+        case AK_INT16:
+            return tensor_mean_value_host_impl((const short*)data_ptr, size);
+
+        case AK_UINT32:
+            return tensor_mean_value_host_impl((const unsigned int*)data_ptr, size);
+
+        case AK_INT32:
+            return tensor_mean_value_host_impl((const int*)data_ptr, size);
+
+        case AK_FLOAT:
+            return tensor_mean_value_host_impl((const float*)data_ptr, size);
+
+        case AK_DOUBLE:
+            return tensor_mean_value_host_impl((const double*)data_ptr, size);
+
+        default:
+            LOG(FATAL) << "data type: " << type << " is unsupported now";
+        }
+    } else {
+        Tensor<TargetType> tvalid(tensor.valid_shape());
+        tvalid.copy_from(tensor);
+        return tensor_mean_value<TargetType>(tvalid, stream);
+    }
+
+    return 0.0;
+}
+
+#ifdef USE_MLU
+template<>
+double tensor_mean_value_valid(Tensor<MLU>& tensor, typename Tensor<MLU>::API::stream_t stream) {
+    Shape shape = tensor.valid_shape();
+    tensor.sync();
+    Tensor<MLUHX86> temp(shape);
+    temp.copy_from(tensor);
+    return tensor_mean_value_valid(temp, stream);
+}
+#endif  // USE_MLU
+
+
+#define FILL_TENSOR_HOST(target) \
+    template void fill_tensor_const<target>(Tensor<target>& tensor, float value, typename Tensor<target>::API::stream_t stream); \
+    template void fill_tensor_seq<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
+    template void fill_tensor_rand<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
+    template void fill_tensor_rand<target>(Tensor<target>& tensor, float vstart, float vend, typename Tensor<target>::API::stream_t stream); \
+    template void print_tensor<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
+    template void print_tensor_valid<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
+    template double tensor_mean_value<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
+    template double tensor_mean_value_valid<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream);
+
+#if defined(BUILD_LITE) || defined(USE_X86_PLACE) || defined(USE_CUDA) ||defined(USE_BM_PLACE) || defined(USE_MLU)
+FILL_TENSOR_HOST(X86)
+template<>
+void tensor_reorder<X86>(Tensor<X86>& input, Tensor<X86>& output);
 #endif
 
 #ifdef USE_CUDA
-
+FILL_TENSOR_HOST(NVHX86)
 template<>
-SaberStatus
-DataTensorTransformHelper::convert_weights<Tensor<X86, AK_INT8, NCHW_C4>,
-                          Tensor<X86, AK_FLOAT, NCHW> >(Tensor<X86, AK_INT8, NCHW_C4>& out_tensor,
-                                  const Tensor<X86, AK_FLOAT, NCHW>& in_tensor,
-Context<NV> ctx) {
-    int input_channel = in_tensor.channel();
-    int output_channel = out_tensor.shape()[1];
-    //            LOG(INFO)<<"input_channel = "<<input_channel<<" output_channel = "<<output_channel;
-    _vector_weight_scale.resize(input_channel);
-
-    int weight_inner_dim = in_tensor.channel()
-                           * in_tensor.height()
-                           * in_tensor.width();
-    const float* in_weight_data = in_tensor.data();
-
-    for (int c = 0; c < input_channel; ++c) {
-        float max_val = -1.f;
-
-        for (int i = 0; i < weight_inner_dim; ++i) {
-            float read_data = fabs(in_weight_data[i]);
-            max_val = (read_data > max_val) ? read_data : max_val;
-        }
-
-        _vector_weight_scale[c] = max_val / 127.f;
-        in_weight_data += weight_inner_dim;
-        //                LOG(INFO)<<"max_val = "<<max_val<<" vector: "<<max_val / 127.f;
-    }
-
-    int o_num = out_tensor.num();
-    int o_channel = output_channel;
-    int o_height = out_tensor.height();
-    int o_width = out_tensor.width();
-
-    int out_n_stride = o_channel * o_height * o_width;
-    int out_c_stride = o_height * o_width;
-    int out_h_stride = o_width;
-
-    Shape in_stride = in_tensor.get_stride();
-
-    in_weight_data = in_tensor.data();
-    char* out_weight_data = out_tensor.mutable_data();
-
-    for (int idx = 0; idx < o_num * o_channel * o_height * o_width; ++idx) {
-
-        int n = (idx / (out_n_stride)) % o_num;
-        int in_offset = ((idx / (out_n_stride)) % o_num) * in_stride[0]
-                        + ((idx / (out_c_stride)) % o_channel) * (in_stride[1] * 4)
-                        + ((idx / (out_h_stride)) % o_height) * in_stride[2]
-                        + (idx % o_width) * in_stride[3];
-
-        int out_offset = ((idx / (out_n_stride)) % o_num) * out_n_stride
-                         + ((idx / (out_c_stride)) % o_channel) * out_c_stride
-                         + ((idx / (out_h_stride)) % o_height) * out_h_stride
-                         + (idx % o_width);
-        out_weight_data[out_offset * 4 + 0] = (char)(round(
-                in_weight_data[in_offset + 0 * in_stride[1]] / _vector_weight_scale[n]));
-        out_weight_data[out_offset * 4 + 1] = (char)(round(
-                in_weight_data[in_offset + 1 * in_stride[1]] / _vector_weight_scale[n]));
-        out_weight_data[out_offset * 4 + 2] = (char)(round(
-                in_weight_data[in_offset + 2 * in_stride[1]] / _vector_weight_scale[n]));
-        out_weight_data[out_offset * 4 + 3] = (char)(round(
-                in_weight_data[in_offset + 3 * in_stride[1]] / _vector_weight_scale[n]));
-
-    }
-
-    return SaberSuccess;
-}
-template<>
-SaberStatus
-DataTensorTransformHelper::convert_bias<Tensor<X86, AK_FLOAT, NCHW>,
-                          Tensor<X86, AK_FLOAT, NCHW> >(Tensor<X86, AK_FLOAT, NCHW>& out_tensor,
-                                  const Tensor<X86, AK_FLOAT, NCHW>& in_tensor,
-Context<NV> ctx) {
-    unsigned long weight_size = _vector_weight_scale.size();
-    unsigned long bias_size = in_tensor.size();
-    CHECK_GT(_in_scale, 0);
-    CHECK_GT(weight_size, 0);
-    CHECK_EQ(bias_size, weight_size);
-
-    const float* in_data = in_tensor.data();
-    float* out_data = out_tensor.mutable_data();
-
-    for (int i = 0; i < bias_size; ++i) {
-        out_data[i] = in_data[i] / _in_scale / _vector_weight_scale[i];
-    }
-
-    return SaberSuccess;
-}
+void tensor_reorder<NVHX86>(Tensor<NVHX86>& input, Tensor<NVHX86>& output);
 #endif
+
+#ifdef AMD_GPU
+FILL_TENSOR_HOST(AMDHX86)
+#endif
+
+#ifdef USE_ARM_PLACE
+FILL_TENSOR_HOST(ARM)
+#endif
+
+#ifdef USE_MLU
+FILL_TENSOR_HOST(MLUHX86)
+FILL_TENSOR_HOST(MLU)
+#endif
+
+#ifdef USE_BM_PLACE
+
+#endif
+
+template void tensor_cmp_host<float>(const float* correct, const float* sample, \
+                                     int size, double& diff);
+template void tensor_cmp_host<int>(const int* correct, const int* sample, \
+                                   int size, double& diff);
+
+template void tensor_cmp_host<float>(const float* src1, const float* src2, \
+                                     int size, double& max_ratio, double& max_diff);
+template void tensor_cmp_host<int>(const int* src1, const int* src2, \
+                                   int size, double& max_ratio, double& max_diff);
+template void tensor_cmp_host<signed char>(const signed char* src1, const signed char* src2,
+        int size, \
+        double& max_ratio, double& max_diff);
+template void tensor_cmp_host<char>(const char* src1, const char* src2, int size, \
+                                    double& max_ratio, double& max_diff);
 
 } //namespace saber
 

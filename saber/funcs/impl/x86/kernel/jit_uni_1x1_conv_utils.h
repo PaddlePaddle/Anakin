@@ -15,9 +15,9 @@ limitations under the License. */
 #define ANAKIN_SABER_FUNCS_IMPL_X86_JIT_UNI_1X1_CONV_UTIL_H
 
 #include <stdint.h>
-
 #include <float.h>
-#include "x86_utils.h"
+
+#include "saber/funcs/impl/x86/x86_utils.h"
 
 namespace anakin {
 namespace saber {
@@ -44,38 +44,6 @@ inline int best_divider(int value, int min_divider, int max_divider,
     return x_divider;
 }
 
-
-template <typename T, typename U, typename V>
-inline U this_block_size(const T offset, const U max, const V block_size) {
-    assert(offset < max);
-    const T block_boundary = offset + block_size;
-    if (block_boundary > max)
-        return max - offset;
-    else
-        return block_size;
-}
-
-template<typename T>
-inline T nd_iterator_init(T start) { return start; }
-
-template<typename T, typename U, typename W, typename... Args>
-inline T nd_iterator_init(T start, U &x, const W &X, Args &&... tuple) {
-    start = nd_iterator_init(start, utils::forward<Args>(tuple)...);
-    x = start % X;
-    return start / X;
-}
-
-inline bool nd_iterator_step() { return true; }
-
-template<typename U, typename W, typename... Args>
-inline bool nd_iterator_step(U &x, const W &X, Args &&... tuple) {
-    if (nd_iterator_step(utils::forward<Args>(tuple)...)) {
-        x = (x + 1) % X;
-        return x == 0;
-    }
-    return false;
-}
-
 } // namepsace jit
 
 #define JIT_TENSOR_MAX_DIMS 12
@@ -83,18 +51,17 @@ typedef int jit_dims_t[JIT_TENSOR_MAX_DIMS];
 typedef int jit_strides_t[JIT_TENSOR_MAX_DIMS];
 
 struct conv_1x1_desc {
-    jit_dims_t src_d;
-    int src_d_dims;
-    jit_dims_t dst_d;
-    int dst_d_dims;
-    jit_dims_t padding[2];
-    int strides[2];
-};
-
-struct reduce_to_unit_stride_t {
-    jit_strides_t src_dstrides;
-    conv_1x1_desc *conv_d_;
-    bool reduce_src_;
+    int n;
+    int ic;
+    int ih;
+    int iw;
+    int oc;
+    int oh;
+    int ow;
+    int stride_h;
+    int stride_w;
+    int t_pad;
+    int l_pad;
 };
 
 

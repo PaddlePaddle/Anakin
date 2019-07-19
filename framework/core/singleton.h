@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,8 +16,9 @@
 #ifndef ANAKIN_SINGLETON_H
 #define ANAKIN_SINGLETON_H 
 
-#include <mutex>
+#include "anakin_config.h"
 #include "framework/core/thread_safe_macros.h"
+#include <mutex>
 
 namespace anakin {
 

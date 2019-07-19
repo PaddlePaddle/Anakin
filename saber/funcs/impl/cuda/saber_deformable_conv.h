@@ -1,9 +1,7 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
    
    Unless required by applicable law or agreed to in writing, software
@@ -22,26 +20,13 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class SaberDeformableConv2D<NV, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>: \
-    public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, \
-        Tensor<NV, outDtype, LayOutType_out>, \
-        Tensor<NV, OpDtype, LayOutType_op>, \
-        DeformableConvParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+template <DataType OpDtype>
+class SaberDeformableConv2D<NV, OpDtype>: \
+    public ImplBase<NV, OpDtype, DeformableConvParam<NV> > {
 
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
+    typedef ImplBase<NV, OpDtype, DeformableConvParam<NV> > Impl_t;
 
     SaberDeformableConv2D()
         : _handle(NULL)
@@ -68,14 +53,14 @@ public:
      * @param     outputs                   [description]
      * @param     conv_param                [conv parameters]
      */
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            DeformableConvParam<OpTensor>& param, Context<NV>& ctx) {
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            DeformableConvParam<NV>& param, Context<NV>& ctx) {
 
         // ---- init cudnn resources ----
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         CUBLAS_CHECK(cublasCreate(&_handle));
-        CUBLAS_CHECK(cublasSetStream(_handle, this->_ctx.get_compute_stream()));
+        CUBLAS_CHECK(cublasSetStream(_handle, this->_ctx->get_compute_stream()));
 
         _kernel_dim = param.weight()->channel()
                       * param.weight()->height()
@@ -89,23 +74,23 @@ public:
                       * inputs[1]->height()
                       * inputs[1]->width();
 
-        Shape deform_col_buffer_shape = {1, _kernel_dim, outputs[0]->height(), outputs[0]->width()};
+        Shape deform_col_buffer_shape = std::vector<int>{1, _kernel_dim, outputs[0]->height(), outputs[0]->width()};
         _deform_col_buffer.re_alloc(deform_col_buffer_shape);
 
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            DeformableConvParam<OpTensor>& param, Context<NV>& ctx) {
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            DeformableConvParam<NV>& param, Context<NV>& ctx) {
 
-        if (!(ctx == this->_ctx)) {
-            this->_ctx = ctx;
+        if (!(&ctx == this->_ctx)) {
+            this->_ctx = &ctx;
             if (_handle != NULL) {
                 CUBLAS_CHECK(cublasDestroy(_handle));
             }
             CUBLAS_CHECK(cublasCreate(&_handle));
-            CUBLAS_CHECK(cublasSetStream(_handle, this->_ctx.get_compute_stream()));
+            CUBLAS_CHECK(cublasSetStream(_handle, this->_ctx->get_compute_stream()));
         }
 
         int in_channel = inputs[0]->channel();
@@ -131,18 +116,18 @@ public:
         if ((outputs[0]->height() != _deform_col_buffer.height())
                 || (outputs[0]->width() != _deform_col_buffer.width())) {
 
-            Shape deform_col_buffer_shape = {1, _kernel_dim, outputs[0]->height(), outputs[0]->width()};
+            Shape deform_col_buffer_shape = std::vector<int>{1, _kernel_dim, outputs[0]->height(), outputs[0]->width()};
             _deform_col_buffer.reshape(deform_col_buffer_shape);
         }
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            DeformableConvParam<OpTensor>& param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            DeformableConvParam<NV>& param);
 
 private:
-    DataTensor_in _deform_col_buffer;
+    Tensor<NV> _deform_col_buffer;
     cublasHandle_t _handle;
 
     int _conv_out_spatial_dim;

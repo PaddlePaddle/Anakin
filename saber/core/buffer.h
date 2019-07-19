@@ -1,31 +1,30 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. */
+   limitations under the License.
+*/
 
 #ifndef ANAKIN_SABER_CORE_BUFFER_H
 #define ANAKIN_SABER_CORE_BUFFER_H
-#include "core/target_wrapper.h"
+#include "saber/core/target_wrapper.h"
+#include "saber/core/data_traits.h"
 namespace anakin{
 
 namespace saber{
 
-//struct TargetWrapper;
-#define INSTANTIATE_BUFFER(TargetType) \
-  template class Buffer<TargetType>;
-
 template <typename TargetType>
 class Buffer {
 public:
+    typedef typename DataTraitBase<TargetType>::PtrDtype TPtr;
     typedef TargetWrapper<TargetType> API;
     //typedef typename TargetTypeTraits<TargetType>::target_type target_type;
 
@@ -37,12 +36,15 @@ public:
      * \brief constructor with buffer size, in Dtype
      */
     explicit Buffer(size_t size)
-    	: _data(nullptr), _own_data(true), _count(size), _capacity(size){
-    	SABER_CHECK(alloc(size));
+            : _data(nullptr), _own_data(true), _count(size), _capacity(size){
+        // alloc when size > 0
+        if (size != 0) {
+            SABER_CHECK(alloc(size));
+        }
         _id = API::get_device_id();
     }
 
-    explicit Buffer(void* data, size_t size, int id)
+    explicit Buffer(TPtr data, size_t size, int id)
     	: _own_data(false), _count(size), _capacity(size){
         _data = data;
         _id = API::get_device_id();
@@ -53,7 +55,7 @@ public:
      * \brief copy constructor
      */
     Buffer(Buffer<TargetType>& buf){
-        CHECK_EQ(buf._data != nullptr, true) << "input buffer is empty";
+        CHECK_GT(buf._count, 0) << "input buffer is empty";
         _count = buf._count;
         _id = API::get_device_id();
         if (buf._id == _id){
@@ -63,7 +65,7 @@ public:
         } else{
             _own_data = true;
             SABER_CHECK(re_alloc(buf._count));
-            API::sync_memcpy_p2p(_data, _id, buf.get_data(), buf._id, buf._count);
+            API::sync_memcpy_p2p(_data, 0, _id, buf.get_data(), 0, buf._id, buf._count);
         }
     }
 
@@ -80,7 +82,7 @@ public:
         } else{
             this->_own_data = true;
             SABER_CHECK(this->re_alloc(buf._count));
-            API::sync_memcpy_p2p(this->_data, this->_id, buf.get_data(), buf._id, \
+            API::sync_memcpy_p2p(this->_data, 0, this->_id, buf.get_data(), 0, buf._id, \
                 buf._count);
         }
         return *this;
@@ -97,7 +99,7 @@ public:
         } else{
             _own_data = true;
             SABER_CHECK(re_alloc(buf._count));
-            API::sync_memcpy_p2p(_data, _id, buf.get_data(), buf._id, buf._count);
+            API::sync_memcpy_p2p(_data, 0, _id, buf.get_data(), 0, buf._id, buf._count);
             return 0;
         }
     }
@@ -124,7 +126,7 @@ public:
      * \brief re-alloc memory, only if hold the data, can be relloc
      */
     SaberStatus re_alloc(size_t size){
-        if (size > _capacity || _data == nullptr){
+        if (size > _capacity){
             if (_own_data) {
                 CHECK_EQ(_id, API::get_device_id()) << \
                     "buffer is not declared in current device, could not re_alloc buffer";
@@ -148,7 +150,11 @@ public:
         _capacity = size;
         _own_data = true;
         _count = size;
-        return SaberSuccess;
+        if (_data) {
+            return SaberSuccess;
+        } else {
+            return SaberOutOfMem;
+        }
     }
 
     /**
@@ -174,10 +180,27 @@ public:
 
         typedef typename IF<std::is_same<target_category , __host_target>::value, API_t, API>::Type process_API;
 
-        LOG(INFO) << "sync memcpy h2h, size: " << buf.get_count();
+        process_API::sync_memcpy(_data, 0, _id, buf.get_data(), \
+            0, buf.get_id(), buf.get_count(), flag_type());
 
-        process_API::sync_memcpy(_data, _id, buf.get_data(), \
-            buf.get_id(), buf.get_count(), flag_type());
+        return SaberSuccess;
+    }
+
+    template <typename dtype>
+    SaberStatus from_vector(const std::vector<dtype> &data) {
+
+        typedef typename TargetTypeTraits<TargetType>::target_category target_category;
+        typedef typename TargetTypeTraits<TargetType>::target_type target_type_this;
+        typedef __HtoH then_type;
+        typedef __HtoD else_type;
+        typedef typename IF<std::is_same<target_category, __host_target>::value,
+                then_type, else_type>::Type flag_type;
+
+        size_t vec_cap = data.size() * sizeof(dtype);
+        if (_capacity < vec_cap) {
+            alloc(vec_cap);
+        }
+        API::sync_memcpy(_data, 0, _id, data.data(), 0, 0, vec_cap, flag_type());
 
         return SaberSuccess;
     }
@@ -185,12 +208,16 @@ public:
     /**
      * \brief return const data pointer
      */
-    const void* get_data(){return _data;}
+    const TPtr get_data()const {
+        return _data;
+    }
 
     /**
      * \brief return mutable data pointer
      */
-    void* get_data_mutable(){return _data;}
+    TPtr get_data_mutable()const{
+        return _data;
+    }
 
     /**
      * \brief return current size of memory, in size
@@ -205,7 +232,7 @@ public:
 private:
     //! \brief device id where data allocated
     int _id;
-    void* _data;
+    TPtr _data;
     bool _own_data;
     size_t _count;
     size_t _capacity;
@@ -224,6 +251,65 @@ private:
         return SaberSuccess;
     }
 };
+
+template <typename TargetType_dst, typename TargetType_src>
+static inline int MemShare(std::shared_ptr<Buffer<TargetType_dst>>& dst, \
+    const std::shared_ptr<Buffer<TargetType_src>>& src, __DtoD) {
+    //LOG(INFO) << "shared D2D";
+    if(dst->get_id() == src->get_id()){
+        dst = src;
+        return 1;
+    }
+    //LOG(INFO) << "copied D2D";
+    SABER_CHECK(dst->re_alloc(src->get_count()));
+    SABER_CHECK(dst->sync_copy_from(*src));
+    return 0;
+}
+
+template <typename TargetType_dst, typename TargetType_src>
+static inline int MemShare(std::shared_ptr<Buffer<TargetType_dst>>& dst, \
+    const std::shared_ptr<Buffer<TargetType_src>>& src, __HtoD) {
+    //LOG(INFO) << "copied H2D";
+    SABER_CHECK(dst->re_alloc(src->get_count()));
+    SABER_CHECK(dst->sync_copy_from(*src));
+    return 0;
+}
+
+template <typename TargetType_dst, typename TargetType_src>
+static inline int MemShare(std::shared_ptr<Buffer<TargetType_dst>>& dst, \
+    const std::shared_ptr<Buffer<TargetType_src>>& src, __HtoH) {
+    //LOG(INFO) << "shared H2H";
+    dst = src;
+    return 1;
+}
+
+template <typename TargetType_dst, typename TargetType_src>
+static inline int MemShare(std::shared_ptr<Buffer<TargetType_dst>>& dst, \
+    const std::shared_ptr<Buffer<TargetType_src>>& src, __DtoH) {
+    //LOG(INFO) << "copied D2H";
+    SABER_CHECK(dst->re_alloc(src->get_count()));
+    SABER_CHECK(dst->sync_copy_from(*src));
+    return 0;
+}
+
+template <typename TargetType_dst, typename TargetType_src>
+static inline int BufferMemShare(std::shared_ptr<Buffer<TargetType_dst>>& dst, \
+    const std::shared_ptr<Buffer<TargetType_src>>& src){
+
+    typedef typename TargetTypeTraits<TargetType_dst>::target_type target_type_dst;
+    typedef typename TargetTypeTraits<TargetType_src>::target_type target_type_src;
+    typedef typename TargetTypeTraits<TargetType_dst>::target_category target_category_dst;
+
+    typedef typename IF<std::is_same<target_type_dst, target_type_src>::value, __HtoH, __DtoH>::Type then_type;
+    typedef typename IF<std::is_same<target_type_dst, target_type_src>::value, __DtoD, __HtoD>::Type else_type;
+    typedef typename IF<std::is_same<target_category_dst, __host_target>::value, then_type, else_type>::Type flag_type;
+            CHECK_EQ(src == nullptr, false) << "input buffer is null!";
+    if (!dst){
+        dst = std::make_shared<Buffer<TargetType_dst>>();
+    }
+    return MemShare(dst, src, flag_type());
+}
+
 
 } //namespace saber
 

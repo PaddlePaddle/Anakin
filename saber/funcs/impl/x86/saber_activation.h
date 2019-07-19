@@ -20,43 +20,33 @@
 namespace anakin {
 namespace saber {
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class SaberActivation<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out> : public ImplBase<
-        Tensor<X86, inDtype, LayOutType_in>,
-        Tensor<X86, outDtype, LayOutType_out>,
-        Tensor<X86, OpDtype, LayOutType_op>,
-        ActivationParam<Tensor<X86, OpDtype, LayOutType_op> > >
-{
+template <DataType OpDtype>
+class SaberActivation<X86, OpDtype> :
+    public ImplBase<
+        X86, OpDtype,
+        ActivationParam<X86> > {
 public:
-    typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<X86, OpDtype, LayOutType_op> OpTensor;
+    typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
 
-    SaberActivation()
-    {}
+    SaberActivation() {}
 
-    ~SaberActivation() {
-    }
+    ~SaberActivation() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             ActivationParam<OpTensor> &param,
+    virtual SaberStatus init(const std::vector<Tensor<X86>*>& inputs,
+                             std::vector<Tensor<X86>*>& outputs,
+                             ActivationParam<X86> &param,
                              Context<X86> &ctx) override;
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               ActivationParam<OpTensor> &param,
+    virtual SaberStatus create(const std::vector<Tensor<X86>*>& inputs,
+                               std::vector<Tensor<X86>*>& outputs,
+                               ActivationParam<X86> &param,
                                Context<X86> &ctx) override;
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 ActivationParam<OpTensor> &param) override;
+    virtual SaberStatus dispatch(const std::vector<Tensor<X86>*>& inputs,
+                                 std::vector<Tensor<X86>*>& outputs,
+                                 ActivationParam<X86> &param) override;
+
+    Tensor<X86> _output_scale;
 
 private:
 

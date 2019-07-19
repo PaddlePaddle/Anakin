@@ -1,32 +1,36 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/detection_output.h"
 
 namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void DetectionOutput<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx,
-        const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-        std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<DetectionOutputHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<DetectionOutputHelper<NV, AK_FLOAT, \
-                  Precision::FP32>*>(this->_helper)->_param_detection_output;
-    impl->_funcs_detection_output(ins, outs, param, ctx);
-}
-#endif
-
-/// TODO ... specialization other type of operator
-
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-DetectionOutputHelper<Ttype, Dtype, Ptype>::~DetectionOutputHelper() {
+#define INSTANCE_DETECTIONOUTPUT(Ttype, Ptype) \
+template<> \
+void DetectionOutput<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype> >& ins, \
+        std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<DetectionOutputHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<DetectionOutputHelper<Ttype, Ptype>*>(this->_helper)->_param_detection_output; \
+    impl->_funcs_detection_output(ins, outs, param, ctx); \
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DetectionOutputHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Detectionoutput op parameter.";
+template<typename Ttype, Precision Ptype>
+Status DetectionOutputHelper<Ttype, Ptype>::InitParam() {
+    DLOG(WARNING) << "Parsing Detectionoutput op parameter.";
     auto flag_share_location = GET_PARAMETER(bool, share_location);
     auto flag_var_in_target  = GET_PARAMETER(bool, variance_encode_in_target);
     auto classes_num         = GET_PARAMETER(int, class_num);
@@ -47,57 +51,80 @@ Status DetectionOutputHelper<Ttype, Dtype, Ptype>::InitParam() {
     } else if (code_type_ == "CORNER_SIZE") {
         code_type = CORNER_SIZE;
     } else {
-        LOG(FATAL) << "unsupport type: " << code_type_;
+                LOG(FATAL) << "unsupport type: " << code_type_;
     }
 
-    DetectionOutputParam<Tensor4d<Ttype, Dtype>> param_det(classes_num, background_id_, \
+    DetectionOutputParam<Ttype> param_det(classes_num, background_id_, \
             keep_top_k_, nms_top_k_, nms_thresh_, conf_thresh_, \
             flag_share_location, flag_var_in_target, code_type, nms_eta_);
     _param_detection_output = param_det;
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DetectionOutputHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status DetectionOutputHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx, const std::vector<Tensor4dPtr<Ttype>> &ins,
+                                   std::vector<Tensor4dPtr<Ttype>> &outs) {
     SABER_CHECK(_funcs_detection_output.init(ins, outs, _param_detection_output, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DetectionOutputHelper<Ttype, Dtype, Ptype>::InferShape(\
-        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status DetectionOutputHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype>> &ins,
+                                         std::vector<Tensor4dPtr<Ttype>> &outs) {
     SABER_CHECK(_funcs_detection_output.compute_output_shape(ins, outs, _param_detection_output));
     return Status::OK();
 }
 
 #ifdef USE_CUDA
-template class DetectionOutputHelper<NV, AK_FLOAT, Precision::FP32>;
-template class DetectionOutputHelper<NV, AK_FLOAT, Precision::FP16>;
-template class DetectionOutputHelper<NV, AK_FLOAT, Precision::INT8>;
+INSTANCE_DETECTIONOUTPUT(NV, Precision::FP32);
+template class DetectionOutputHelper<NV, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, NV, Precision::FP32);
 #endif
+
+#ifdef USE_MLU
+INSTANCE_DETECTIONOUTPUT(MLU, Precision::FP32);
+INSTANCE_DETECTIONOUTPUT(MLU, Precision::FP16);
+template class DetectionOutputHelper<MLU, Precision::FP32>;
+template class DetectionOutputHelper<MLU, Precision::FP16>;
+ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
+#ifdef AMD_GPU
+INSTANCE_DETECTIONOUTPUT(AMD, Precision::FP32);
+template class DetectionOutputHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, AMD, Precision::FP32);
+#endif
+#if defined USE_X86_PLACE || defined BUILD_LITE
+INSTANCE_DETECTIONOUTPUT(X86, Precision::FP32);
+template class DetectionOutputHelper<X86, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, X86, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
-template class DetectionOutputHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class DetectionOutputHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class DetectionOutputHelper<ARM, AK_FLOAT, Precision::INT8>;
+INSTANCE_DETECTIONOUTPUT(ARM, Precision::FP32);
+template class DetectionOutputHelper<ARM, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, ARM, Precision::FP32);
 #endif
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, NV, AK_FLOAT, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, ARM, AK_FLOAT, Precision::FP32);
-#endif
+
 //! register op
 ANAKIN_REGISTER_OP(DetectionOutput)
 .Doc("DetectionOutput operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("detectionoutput")
+.__alias__<NV, Precision::FP32>("detectionoutput")
 #endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("detectionoutput")
+.__alias__<MLU, Precision::FP16>("detectionoutput")
+#endif  // USE_MLU
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("detectionoutput")
+.__alias__<ARM, Precision::FP32>("detectionoutput")
+#endif
+#if defined USE_X86_PLACE || defined BUILD_LITE
+.__alias__<X86, Precision::FP32>("detectionoutput")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("detectionoutput")
 #endif
 .num_in(1)
 .num_out(1)

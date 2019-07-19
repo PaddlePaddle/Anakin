@@ -116,24 +116,23 @@ __global__ void gpu_add_bias(float * out_data, const int count,
     }
 }
 template <>
-SaberStatus SaberDeformableConv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT,\
-     NCHW, NCHW, NCHW>::dispatch(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            DeformableConvParam<OpTensor>& param) {
-
+SaberStatus SaberDeformableConv2D<NV, AK_FLOAT>::dispatch(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            DeformableConvParam<NV>& param) {
+                                
     int in_channel = inputs[0]->channel();
     int conv_out_channel = outputs[0]->channel();
 
     const OpDataType* weight = (const float*)param.weight()->data();
-    const InDataType* data = inputs[0]->data();
-    const InDataType* offset = inputs[1]->data();
+    const OpDataType* data = (const float*)inputs[0]->data();
+    const OpDataType* offset = (const float*)inputs[1]->data();
 
-    InDataType* top_data = outputs[0]->mutable_data();
+    OpDataType* top_data = (float*)outputs[0]->mutable_data();
 
-    InDataType* deformable_col_buffer_data = _deform_col_buffer.mutable_data();
-    const InDataType* deform_col_buffer_data_const = _deform_col_buffer.data();
+    OpDataType* deformable_col_buffer_data = (float*)_deform_col_buffer.mutable_data();
+    const OpDataType* deform_col_buffer_data_const = (const float*)_deform_col_buffer.data();
 
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
 
     for (int n = 0; n < inputs[0]->num(); ++n) {
 
@@ -152,6 +151,8 @@ SaberStatus SaberDeformableConv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT,\
                         channel_per_group, _deform_col_buffer.height(),
                         _deform_col_buffer.width(),
                         deformable_col_buffer_data);
+        
+        OpDataType* out_data = top_data + n * _output_offset;
 
         for (int g = 0; g < param.group; ++g) {
             float alpha = 1.f;
@@ -161,12 +162,12 @@ SaberStatus SaberDeformableConv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT,\
                         conv_out_channel / param.group,
                         _kernel_dim / param.group,
                         &alpha,
-                        deform_col_buffer_data_const + _col_offset * g,
+                        deform_col_buffer_data_const + _col_offset / param.group * g,
                         _conv_out_spatial_dim,
-                        weight + _kernel_offset * g,
+                        weight + _kernel_offset / param.group * g,
                         _kernel_dim / param.group,
                         &beta,
-                        top_data + _output_offset * g,
+                        out_data + _output_offset / param.group * g,
                         _conv_out_spatial_dim));
         }
         if (param.bias()->size() > 0) {
@@ -174,7 +175,7 @@ SaberStatus SaberDeformableConv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT,\
             Shape out_stride = outputs[0]->get_stride();
             int out_count = outputs[0]->size();
             const float* bias_data = (const float*)param.bias()->data();
-            gpu_add_bias<<<CUDA_GET_BLOCKS(out_count), CUDA_NUM_THREADS, 0, cuda_stream>>> (top_data, out_count,
+            gpu_add_bias<<<CUDA_GET_BLOCKS(out_count), CUDA_NUM_THREADS, 0, cuda_stream>>> (out_data, out_count,
                             out_shape[0], out_shape[1],
                             out_shape[2], out_shape[3],
                             out_stride[0], out_stride[1],
@@ -186,6 +187,9 @@ SaberStatus SaberDeformableConv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT,\
 
     return SaberSuccess;
 }
+template class SaberDeformableConv2D<NV, AK_FLOAT>;
+DEFINE_OP_TEMPLATE(SaberDeformableConv2D, DeformableConvParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberDeformableConv2D, DeformableConvParam, NV, AK_INT8);
 
 }
 }

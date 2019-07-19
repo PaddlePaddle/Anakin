@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,47 +17,50 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_axpy.h"
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_axpy.h"
+#endif
 
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_axpy.h"
 #endif
 
 #ifdef USE_X86_PLACE
-//#include "saber/funcs/impl/x86/saber_activation.h"
+#include "saber/funcs/impl/x86/saber_axpy.h"
+#endif
+
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_axpy.h"
 #endif
    
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_axpy.h"
+#endif
+
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        DataType OpDtype>
 class Axpy : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        AxpyParam
-> {
+        AxpyParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
+            TargetType,
+            OpDtype,
             ImplBase,
             AxpyParam>::BaseFunc;
 
     Axpy() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef AxpyParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef AxpyParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -73,14 +76,12 @@ public:
         switch (implenum) {
             case VENDER_IMPL:
                 this->_impl.push_back(new VenderAxpy <TargetType,
-                        OpDtype, inDtype, outDtype,
-                        LayOutType_op, LayOutType_in, LayOutType_out>);
+                        OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
                 this->_impl.push_back(new SaberAxpy <TargetType,
-                        OpDtype, inDtype, outDtype,
-                        LayOutType_op, LayOutType_in, LayOutType_out>);
+                        OpDtype>);
                 return SaberSuccess;
 
             default:

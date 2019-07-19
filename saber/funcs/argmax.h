@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,47 +17,51 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_argmax.h"
 
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_argmax.h"
 #endif
 
 #ifdef USE_X86_PLACE
-//#include "saber/funcs/impl/x86/saber_activation.h"
+#include "saber/funcs/impl/x86/saber_argmax.h"
 #endif
+
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_argmax.h"
+#endif
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_argmax.h"
+#endif
+
+#ifdef USE_MLU
+#include "saber/funcs/impl/mlu/saber_argmax.h"
+#endif  // USE_MLU
 
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        DataType OpDtype>
 class Argmax : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        ArgmaxParam
-> {
+        ArgmaxParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
+            TargetType,
+            OpDtype,
             ImplBase,
             ArgmaxParam>::BaseFunc;
 
     Argmax() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef ArgmaxParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef ArgmaxParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -67,11 +71,22 @@ public:
 
         //! support inplace computation, output shape = input shape
 
-        int num_top_axes = input[0]->dims();
-        Shape output_shape = Shape::zero(num_top_axes);
-        for (int i = 0; i < num_top_axes; ++i) {
-            output_shape[i] = 1;
+        int top_k = param.top_k;
+        bool out_max_val = param.out_max_val;
+        bool has_axis = param.has_axis;
+        int axis = param.axis;
+        CHECK_GE(top_k, 1) << "top k must not less than 1.";
+        if(has_axis){
+           CHECK_GE(axis, 0) << "axis must not less than 0.";
+           CHECK_LE(axis, input[0]->dims()) << "axis must be less than or equal to the number od dims.";
+           CHECK_LE(top_k, input[0]->valid_shape()[axis]) << "top_k must be less than or equal to the dimension of the axis.";
+        } else{
+           CHECK_LE(top_k, input[0]->count_valid(1, input[0]->dims())) << "top_k must be less than or equal to the dimension of input.";
         }
+        //int num_top_axes = input[0]->dims();
+       // if(num_top_axes < 3) num_top_axes = 3;
+        Shape output_shape({1, 1, 1, 1}, Layout_NCHW);
+        //Shape output_shape = Shape::zero(num_top_axes);
         if (param.has_axis) {
             output_shape = input[0]->valid_shape();
             output_shape[param.axis] = param.top_k;
@@ -90,14 +105,12 @@ public:
         switch (implenum) {
             case VENDER_IMPL:
                 this->_impl.push_back(new VenderArgmax <TargetType,
-                        OpDtype, inDtype, outDtype,
-                        LayOutType_op, LayOutType_in, LayOutType_out>);
+                        OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
                 this->_impl.push_back(new SaberArgmax <TargetType,
-                        OpDtype, inDtype, outDtype,
-                        LayOutType_op, LayOutType_in, LayOutType_out>);
+                        OpDtype>);
                 return SaberSuccess;
 
             default:

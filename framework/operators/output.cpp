@@ -1,65 +1,99 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+   
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License. 
+*/
 #include "framework/operators/output.h"
 
 namespace anakin {
 
 namespace ops {
 
-template<>
-void Output<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT>>& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT>>& outs) {
-}
+#define INSTANCE_OUTPUT(Ttype, Ptype) \
+template<> \
+void Output<Ttype, Ptype>::operator()( \
+    OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype>>& ins, \
+    std::vector<Tensor4dPtr<Ttype>>& outs) {}
 
-
-/// TODO ... specialization other type of operator
-
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-OutputHelper<Ttype, Dtype, Ptype>::~OutputHelper() {
-}
-
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status OutputHelper<Ttype, Dtype, Ptype>::InitParam() {
+template<typename Ttype, Precision Ptype>
+Status OutputHelper<Ttype, Ptype>::InitParam() {
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status OutputHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-        const std::vector<Tensor4dPtr<Ttype, Dtype>>& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype>>& outs) {
-}
-
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status OutputHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >&
-        ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status OutputHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx,
+                                               const std::vector<Tensor4dPtr<Ttype>> &ins,
+                                               std::vector<Tensor4dPtr<Ttype>> &outs) {
     return Status::OK();
 }
 
-template class OutputHelper<NV, AK_FLOAT, Precision::FP32>;
-template class OutputHelper<NV, AK_FLOAT, Precision::FP16>;
-template class OutputHelper<NV, AK_FLOAT, Precision::INT8>;
+template<typename Ttype, Precision Ptype>
+Status OutputHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype>> &ins,
+                                std::vector<Tensor4dPtr<Ttype>> &outs) {
+    return Status::OK();
+}
 
-template class OutputHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class OutputHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class OutputHelper<ARM, AK_FLOAT, Precision::INT8>;
+#ifdef USE_CUDA
+INSTANCE_OUTPUT(NV, Precision::FP32);
+template class OutputHelper<NV, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, Precision::FP32);
+#endif
+#ifdef USE_MLU
+INSTANCE_OUTPUT(MLU, Precision::FP32);
+INSTANCE_OUTPUT(MLU, Precision::FP16);
+template class OutputHelper<MLU, Precision::FP32>;
+template class OutputHelper<MLU, Precision::FP16>;
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
 
-// register help
-ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, AK_FLOAT, Precision::FP32);
-ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, AK_FLOAT, Precision::FP16);
-ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, AK_FLOAT, Precision::INT8);
 
-ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, ARM, AK_FLOAT, Precision::FP32);
-ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, ARM, AK_FLOAT, Precision::FP16);
-ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, ARM, AK_FLOAT, Precision::INT8);
+#if defined USE_X86_PLACE || defined BUILD_LITE
+INSTANCE_OUTPUT(X86, Precision::FP32);
+template class OutputHelper<X86, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, X86, Precision::FP32);
+#endif
+
+#ifdef USE_ARM_PLACE
+INSTANCE_OUTPUT(ARM, Precision::FP32);
+template class OutputHelper<ARM, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, ARM, Precision::FP32);
+#endif //arm
+
+#ifdef AMD_GPU
+INSTANCE_OUTPUT(AMD, Precision::FP32);
+template class OutputHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, AMD, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(Output)
-.Doc("Output operator [ only a input data holder and reshape ] ")
-.__alias__<NV, AK_FLOAT, Precision::FP32>("output")
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("output");
+#ifdef USE_CUDA
+.__alias__<NV, Precision::FP32>("output")
+#endif
+#ifdef USE_ARM_PLACE
+.__alias__<ARM, Precision::FP32>("output")
+#endif
+#if defined USE_X86_PLACE || defined BUILD_LITE
+.__alias__<X86, Precision::FP32>("output")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("output")
+#endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("output")
+#endif  // USE_MLU
+.Doc("Output operator [ only a input data holder and reshape ] ");
 
 } /* namespace ops */
 

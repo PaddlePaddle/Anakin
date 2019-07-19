@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,59 +21,36 @@ namespace anakin{
 
 namespace saber{
     
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-class SaberConcat<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
-    public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, 
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        ConcatParam<Tensor<NV, OpDtype, LayOutType_op> > > 
+template <DataType OpDtype>
+class SaberConcat<NV, OpDtype> :
+    public ImplBase<NV, OpDtype, ConcatParam<NV>> 
 {
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberConcat() = default;
     ~SaberConcat() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                        std::vector<DataTensor_out *>& outputs,
-                        ConcatParam<OpTensor>& param, 
-                        Context<NV> &ctx) {
-        // get context
-        this->_ctx = ctx;
-        return create(inputs, outputs, param, ctx);
-    }
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                        std::vector<Tensor<NV> *>& outputs,
+                        ConcatParam<NV>& param, 
+                        Context<NV> &ctx);
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                        std::vector<DataTensor_out *>& outputs,
-                        ConcatParam<OpTensor>& param, 
-                        Context<NV>& ctx) {
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                        std::vector<Tensor<NV> *>& outputs,
+                        ConcatParam<NV>& param, 
+                        Context<NV>& ctx);
 
-        _num_concats = inputs[0]->count_valid(0, param.axis);
-        _concat_input_size = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
-        return SaberSuccess;
-    }
-
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in *>& inputs,
-                        std::vector<DataTensor_out *>& outputs,
-                        ConcatParam<OpTensor>& param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                        std::vector<Tensor<NV> *>& outputs,
+                        ConcatParam<NV>& param);
 
 private:
     int _num_concats;
     int _concat_input_size;
+    std::vector<Tensor<NV>> _input_v;
+    Tensor<NV> _output;
 };
-template class SaberConcat<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 } //namespace saber
 
 } //namespace anakin

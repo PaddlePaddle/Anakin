@@ -18,13 +18,16 @@ limitations under the License. */
 #include "saber/core/tensor.h"
 #include "saber/saber_types.h"
 #include "saber/funcs/impl/impl_base.h"
-#include "saber/funcs/impl/x86/jit_call_conf.h"
-#include "saber/funcs/impl/x86/kernel/jit_generator.h"
-#include "saber/funcs/impl/x86/kernel/jit_uni_1x1_conv_utils.h"
+#include "saber/funcs/impl/x86/kernel/jit_call_conf.h"
+#include "jit_generator.h"
+#include "jit_uni_1x1_conv_utils.h"
+
 
 namespace anakin {
 namespace saber {
 namespace jit {
+
+using namespace Xbyak;
 
 struct rtus_driver_t : public jit_generator {
 
@@ -60,11 +63,11 @@ struct rtus_driver_t : public jit_generator {
     Vmm reg_v;
 
     rtus_driver_t(int iw, int stride_w, int src_step_h,
-        int src_step_icb, int ws_step_icb, bool src_to_ws, size_t typesize)
-        : iw_(iw), stride_w_(stride_w), src_step_h_(src_step_h)
-        , src_step_icb_(src_step_icb), ws_step_icb_(ws_step_icb)
-        , src_to_ws_(src_to_ws), typesize_(typesize) {
-        using namespace Xbyak;
+                  int src_step_icb, int ws_step_icb,
+                  bool src_to_ws, size_t typesize)
+            : iw_(iw), stride_w_(stride_w), src_step_h_(src_step_h)
+            , src_step_icb_(src_step_icb), ws_step_icb_(ws_step_icb)
+            , src_to_ws_(src_to_ws), typesize_(typesize) {
         vlen_ = cpu_isa_traits<avx512_common>::vlen;
         vlen_shift_ = cpu_isa_traits<avx512_common>::vlen_shift;
         if (typesize_ == 2) {
@@ -79,8 +82,6 @@ struct rtus_driver_t : public jit_generator {
     }
 
     void loop_is() {
-        using namespace Xbyak;
-
         mov(reg_cur_src, reg_src);
         mov(reg_cur_iw, reg_iw_start);
         mov(reg_cur_os, reg_os);
@@ -134,8 +135,6 @@ struct rtus_driver_t : public jit_generator {
     }
 
     void generate() {
-        using namespace Xbyak;
-
 #if defined(_WIN32)
         assert(reg_src == abi_not_param1 && abi_not_param1 == rdi);
         push(rdi);
@@ -154,8 +153,9 @@ struct rtus_driver_t : public jit_generator {
 
         shl(reg_os, vlen_shift_);
 
-        if (!src_to_ws_)
+        if (!src_to_ws_) {
             uni_vpxor(reg_zero, reg_zero, reg_zero);
+        }
 
         Label icb_loop;
         L(icb_loop);
@@ -172,42 +172,39 @@ struct rtus_driver_t : public jit_generator {
         pop(rdi);
 #endif
 
+        uni_vzeroupper();
         ret();
-        this->ker_ = reinterpret_cast<decltype(ker_)>(const_cast<uint8_t*>(
-            this->getCode()));
+        this->ker_ = reinterpret_cast<decltype(ker_)>(const_cast<uint8_t*>(this->getCode()));
     }
 };
 
-
-inline void init_rtus_driver(rtus_driver_t **p_rtus_driver_,
-                             reduce_to_unit_stride_t &rtus_,
-                             jit_1x1_conv_conf_t &jcp_, size_t &ws_per_thread_, 
-                             float **p_scratch_, const Shape &src_d,
-                             int stride_h, int stride_w) {
-
-    if (!rtus_.reduce_src_) {
-        return;
-    }
-
-    const int max_threads = omp_get_max_threads();
+template <typename Dtype>
+inline void init_rtus_driver(rtus_driver_t **p_rtus_driver,
+                             jit_1x1_conv_conf_t &jcp,
+                             conv_1x1_desc &conv_d,
+                             size_t &ws_per_thread,
+                             Dtype **p_scratch) {
+    const int max_threads = anakin_get_max_threads();
     size_t factor = 0;
 
-    factor = jcp_.nb_reduce;
+    factor = jcp.nb_reduce;
 
-    size_t typesize = sizeof(decltype(**p_scratch_));
+    size_t typesize = sizeof(decltype(**p_scratch));
 
-    ws_per_thread_ = factor * jcp_.is * jcp_.ic_block;
-    *p_scratch_ = (float*)zmalloc(max_threads * ws_per_thread_ * typesize, 64);
+    ws_per_thread = factor * jcp.is * jcp.ic_block;
+    *p_scratch = (Dtype*)zmalloc(max_threads * ws_per_thread * typesize, 64);
 
-    const int ih = src_d[2];
-    const int iw = src_d[3];
+    const int ih = conv_d.ih;
+    const int iw = conv_d.iw;
 
-    const int src_step_h = stride_h * iw;
+    const int src_step_h = conv_d.stride_h * iw;
     const int src_step_icb = ih * iw;
-    const int ws_step_icb = jcp_.is;
+    const int ws_step_icb = jcp.is;
+
     const bool src_to_ws = true;
-    *p_rtus_driver_ = new rtus_driver_t(iw, stride_w, src_step_h,
-                                        src_step_icb, ws_step_icb, src_to_ws, typesize);
+
+    *p_rtus_driver = new rtus_driver_t(iw, conv_d.stride_w, src_step_h,
+                                       src_step_icb, ws_step_icb, src_to_ws, typesize);
 }
 
 

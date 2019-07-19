@@ -2,23 +2,52 @@
 
 namespace anakin {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void OperatorFunc<Ttype, Dtype, Ptype>::launch() {
+template<typename Ttype, Precision Ptype>
+void OperatorFunc<Ttype, Ptype>::launch() {
     (*op)(*ctx_p, ins, outs);
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void OperatorFunc<Ttype, Dtype, Ptype>::infer_shape() {
+template<typename Ttype, Precision Ptype>
+void OperatorFunc<Ttype, Ptype>::infer_shape() {
     op->_helper->InferShape(ins, outs);
 }
 
-template class OperatorFunc<NV, AK_FLOAT, Precision::FP32>;
-template class OperatorFunc<NV, AK_FLOAT, Precision::FP16>;
-template class OperatorFunc<NV, AK_FLOAT, Precision::INT8>;
+#ifdef USE_CUDA
+template class OperatorFunc<NV, Precision::FP32>;
+template class OperatorFunc<NV, Precision::FP16>;
+template class OperatorFunc<NV, Precision::INT8>;
+#endif
 
-template class OperatorFunc<ARM, AK_FLOAT, Precision::FP32>;
-template class OperatorFunc<ARM, AK_FLOAT, Precision::FP16>;
-template class OperatorFunc<ARM, AK_FLOAT, Precision::INT8>;
+#ifdef USE_MLU
+template class OperatorFunc<MLU, Precision::FP32>;
+template class OperatorFunc<MLU, Precision::FP16>;
+template class OperatorFunc<MLU, Precision::INT8>;
+#endif  // USE_MLU
+#ifdef USE_X86_PLACE
+template class OperatorFunc<X86, Precision::FP32>;
+template class OperatorFunc<X86, Precision::FP16>;
+template class OperatorFunc<X86, Precision::INT8>;
+#endif
+
+#ifdef AMD_GPU
+template class OperatorFunc<AMD, Precision::FP32>;
+template class OperatorFunc<AMD, Precision::FP16>;
+template class OperatorFunc<AMD, Precision::INT8>;
+#endif
+
+#ifdef USE_ARM_PLACE
+template class OperatorFunc<ARM, Precision::FP32>;
+template class OperatorFunc<ARM, Precision::FP16>;
+template class OperatorFunc<ARM, Precision::INT8>;
+
+#endif //arm
+
+#ifdef USE_BM_PLACE
+template class OperatorFunc<BM, Precision::FP32>;
+template class OperatorFunc<BM, Precision::FP16>;
+template class OperatorFunc<BM, Precision::INT8>;
+
+#endif //bm
 
 } /* namespace */
 

@@ -5,38 +5,140 @@ namespace anakin{
 
 namespace saber{
 
-template <typename Dtype, bool has_scale, bool shared>
-__global__ void normalize_kernel_no_across_spatial(const int size_in_channel, const int channels, \
-    const Dtype* scale, const Dtype* bottom_data, Dtype* top_data, const float eps, const int p){
+template <typename dtype, int thread_number>
+__global__ void group_normalize_kernel(const dtype* in_data, const dtype* scale, 
+                     const dtype* bias, int n, int c, int h, int w, int group, 
+                     int group_size, float eps, dtype* out_data, dtype* out_mean,
+                    dtype* out_var){
 
-    CUDA_KERNEL_LOOP(index, size_in_channel){
+    __shared__ dtype block_sums[thread_number];
+    __shared__ dtype block_squares[thread_number];
+    int group_index = blockIdx.x;
+    int thread_index = threadIdx.x;
+    block_squares[thread_index] = 0;
+    block_sums[thread_index] = 0;
+    __syncthreads();
+    
+    int batch_index = group_index / group;
+    int inner_group_index = group_index % group;
+    int real_channel = (c - inner_group_index * group_size) >= group_size ? 
+                                group_size : c - inner_group_index * group_size;
+    int compute_size = real_channel * w * h;
+    int group_start_ind = inner_group_index * group_size + batch_index * c;
+    int group_start_num = group_start_ind * h * w;
+    for (int i = thread_index; i < compute_size; i += thread_number){
+        block_sums[thread_index] += in_data[group_start_num + i];
+        block_squares[thread_index] += in_data[group_start_num + i] * in_data[group_start_num + i];
+    }
+    __syncthreads();
+    //reduce
+    int activate = thread_number / 2;
+    //this assume thread number be 2^n
+    while (activate >= 64){
+        if (thread_index < activate){
+            block_sums[thread_index] += block_sums[thread_index + activate];
+            block_squares[thread_index] += block_squares[thread_index + activate];
+        }
+        __syncthreads();
+        activate >>= 1;
+    }
+
+    if (activate >= 32){
+        if (thread_index < 32){
+            block_sums[thread_index] += block_sums[thread_index + 32];
+            block_squares[thread_index] += block_squares[thread_index + 32];
+        }
+    }
+    if (activate >= 16){
+        if (thread_index < 16){
+            block_sums[thread_index] += block_sums[thread_index + 16];
+            block_squares[thread_index] += block_squares[thread_index + 16];
+        }
+    }
+    if (activate >= 8){
+        if (thread_index < 8){
+            block_sums[thread_index] += block_sums[thread_index + 8];
+            block_squares[thread_index] += block_squares[thread_index + 8];
+        }
+    }
+    if (activate >= 4){
+        if (thread_index < 4){
+            block_sums[thread_index] += block_sums[thread_index + 4];
+            block_squares[thread_index] += block_squares[thread_index + 4];
+        }
+    }
+    if (activate >= 2){
+        if (thread_index < 2){
+            block_sums[thread_index] += block_sums[thread_index + 2];
+            block_squares[thread_index] += block_squares[thread_index + 2];
+        }
+    }
+    if (activate >= 1){
+        if (thread_index < 1){
+            block_sums[thread_index] += block_sums[thread_index + 1];
+            block_squares[thread_index] += block_squares[thread_index + 1];
+        }
+    }
+
+    dtype group_mean = block_sums[0] / compute_size;
+    dtype group_var = block_squares[0] / compute_size - group_mean * group_mean;
+    dtype group_var_inv = 1 / sqrt(group_var + eps);
+    for (int i = thread_index; i < compute_size; i += thread_number){
+        int c_index = i / (h * w);
+        dtype dest_val = (in_data[group_start_num + i] - group_mean) * group_var_inv;
+        if (scale){
+            dest_val *= scale[group_start_ind + c_index];
+        }
+        if (bias){
+            dest_val *= bias[group_start_ind + c_index];
+        }
+        out_data[group_start_num + i] = dest_val;
+    }
+    if (out_mean){
+        out_mean[group_index] = group_mean;   
+    }
+    if (out_var){
+        out_var[group_index] = group_var;
+    }
+
+}
+
+
+template <typename Dtype, bool has_scale, bool shared>
+__global__ void normalize_kernel_no_across_spatial(const int size_in_channel, const int n,\
+const int channels,const Dtype* scale, const Dtype* bottom_data, Dtype* top_data, const float eps, const int p){
+    CUDA_KERNEL_LOOP(index, size_in_channel*n){
         float sqr_sum = 0.f;
+        int num_index=index/size_in_channel;
+        int index_in_channel=index%size_in_channel;
+        int data_index=num_index*channels*size_in_channel+index_in_channel;
         for (int i = 0; i < channels; ++i) {
             if (p == 1) {
-                sqr_sum += fabsf(bottom_data[index + i * size_in_channel]);
+                sqr_sum += fabsf(bottom_data[data_index + i * size_in_channel]);
             } else {
-                sqr_sum += bottom_data[index + i * size_in_channel] * \
-                    bottom_data[index + i * size_in_channel];
+                sqr_sum += bottom_data[data_index + i * size_in_channel] * \
+                    bottom_data[data_index + i * size_in_channel];
             }
         }
         float norm;
         if (p == 1) {
             norm = 1.f / (sqr_sum + eps);
         } else {
-            norm = 1.f / (sqrtf(sqr_sum) + eps);
+            norm = 1.f / sqrtf(sqr_sum+ eps);
         }
+
         for (int i = 0; i < channels; ++i) {
             if (has_scale) {
                 if (shared) {
-                    top_data[index + i * size_in_channel] = \
-                        bottom_data[index + i * size_in_channel] * scale[0] * norm;
+                    top_data[data_index + i * size_in_channel] = \
+                        bottom_data[data_index + i * size_in_channel] * scale[0]*norm;
                 } else {
-                    top_data[index + i * size_in_channel] = \
-                        bottom_data[index + i * size_in_channel] * scale[i] * norm;
+                    top_data[data_index + i * size_in_channel] = \
+                        bottom_data[data_index + i * size_in_channel] * scale[i]*norm;
                 }
             } else {
-                top_data[index + i * size_in_channel] = \
-                        bottom_data[index + i * size_in_channel] * norm;
+                top_data[data_index + i * size_in_channel] = \
+                        bottom_data[data_index + i * size_in_channel] * norm;
             }
         }
 
@@ -223,34 +325,70 @@ __global__ void normalize_compute_norm_kernel(int n, int inner_size, \
 }
 
 template <>
-SaberStatus SaberNormalize<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch(\
+SaberStatus SaberNormalize<NV, AK_FLOAT>::dispatch(\
     const std::vector<DataTensor_in*>& inputs, \
     std::vector<DataTensor_out*>& outputs, \
-    NormalizeParam<OpTensor> &param) {
-    cudaStream_t stream = this->_ctx.get_compute_stream();
-    const float* src = inputs[0]->data();
-    float* dst = outputs[0]->mutable_data();
+    NormalizeParam<NV> &param) {
+    cudaStream_t stream = this->_ctx->get_compute_stream();
+    const float* src = static_cast<float*>(inputs[0]->data());
+    float* dst = static_cast<float*>(outputs[0]->mutable_data());
+
+    const float eps = param.eps;
+    int n = inputs[0] -> num();
+    int c = inputs[0] -> channel();
+    int h = inputs[0] -> height();
+    int w = inputs[0] -> width();
+
+    if (param.group > 0){
+        float* scale = nullptr;
+        float* bias = nullptr;
+        float* out_mean = nullptr;
+        float* out_var = nullptr;
+        int group_size = (c - 1) / param.group + 1;
+        if (param.has_scale){
+            scale = static_cast<float*>(param.scale->data());
+        }
+        if (param.has_bias){
+            bias = static_cast<float*>(param.bias->data());
+        }
+        if (outputs.size() > 1){
+            out_mean = static_cast<float*>(outputs[1]->data());
+        }
+        if (outputs.size() > 2){
+            out_var = static_cast<float*>(outputs[2]->data());
+        }
+
+        int blocks = n * param.group;
+        group_normalize_kernel<float, CUDA_NUM_THREADS>
+            <<<blocks, CUDA_NUM_THREADS, 2 * CUDA_NUM_THREADS * sizeof(float), stream>>>
+            (src, scale, bias, n, c, h, w, param.group, group_size, eps, 
+                dst, out_mean, out_var);
+        return SaberSuccess;
+
+    }
     if (!param.across_spatial) {
+        int num=inputs[0]->num();
         int size_in_channel = inputs[0]->width() * inputs[0]->height();
+        int thread_num=size_in_channel*num;
         int channel = inputs[0]->channel();
         if (param.has_scale) {
             if (param.channel_shared) {
                 normalize_kernel_no_across_spatial<float, true, true> \
-                    <<<CUDA_GET_BLOCKS(size_in_channel), CUDA_NUM_THREADS, 0, stream>>>\
-                    (size_in_channel, channel, param.scale->data(), src, dst, param.eps, param.p);
+                    <<<CUDA_GET_BLOCKS(thread_num), CUDA_NUM_THREADS, 0, stream>>>\
+                    (size_in_channel,num, channel, static_cast<float*>(param.scale->data()), src, dst, param.eps, param.p);
             } else {
                 normalize_kernel_no_across_spatial<float, true, false> \
-                    <<<CUDA_GET_BLOCKS(size_in_channel), CUDA_NUM_THREADS, 0, stream>>>\
-                    (size_in_channel, channel, param.scale->data(), src, dst, param.eps, param.p);
+                    <<<CUDA_GET_BLOCKS(thread_num), CUDA_NUM_THREADS, 0, stream>>>\
+                    (size_in_channel,num, channel, static_cast<float*>(param.scale->data()), src, dst, param.eps, param.p);
             }
         } else {
             normalize_kernel_no_across_spatial<float, false, false> \
-                <<<CUDA_GET_BLOCKS(size_in_channel), CUDA_NUM_THREADS, 0, stream>>>\
-                (size_in_channel, channel, nullptr, src, dst, param.eps, param.p);
+                <<<CUDA_GET_BLOCKS(thread_num), CUDA_NUM_THREADS, 0, stream>>>\
+                (size_in_channel, num,channel, nullptr, src, dst, param.eps, param.p);
         }
     } else {
 
-        float* norm_reduce_ptr = _norm_reduce.mutable_data();
+        float* norm_reduce_ptr = static_cast<float*>(_norm_reduce.mutable_data());
         const size_t share_mem_size = CUDA_NUM_THREADS * sizeof(float);
         //! compute sum across C * H * W or H * W
         int blockx = CUDA_NUM_THREADS;
@@ -287,13 +425,12 @@ SaberStatus SaberNormalize<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
 #else
         //compute norm and result individually
         //! compute square root
-        const float eps = param.eps;
         float pw = 0.5f;
         if (param.p == 1) {
             pw = 1.f;
         }
         gpu_pow_reverse<float><<<CUDA_GET_BLOCKS(_norm_size), CUDA_NUM_THREADS, 0, stream>>>\
-            (_norm_size, _norm_reduce.data(), _norm_reduce.mutable_data(), pw, eps);
+            (_norm_size, static_cast<float*>(_norm_reduce.data()), static_cast<float*>(_norm_reduce.mutable_data()), pw, eps);
 
         //! compute output with scale
         if (param.has_scale) {
@@ -301,24 +438,25 @@ SaberStatus SaberNormalize<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
             if (param.channel_shared) {
                 normalize_with_scale_kernel<float, true>\
                 <<<CUDA_GET_BLOCKS(_size), CUDA_NUM_THREADS, 0, stream>>>\
-                (_size, _compute_size, _channel_stride, _channels, _norm_reduce.data(), \
-                param.scale->data(), inputs[0]->data(), outputs[0]->mutable_data());
+                (_size, _compute_size, _channel_stride, _channels, static_cast<float*>(_norm_reduce.data()), \
+                static_cast<float*>(param.scale->data()), static_cast<float*>(inputs[0]->data()), static_cast<float*>(outputs[0]->mutable_data()));
             } else {//! scale is diffs across channel
                 normalize_with_scale_kernel<float, false>\
                 <<<CUDA_GET_BLOCKS(_size), CUDA_NUM_THREADS, 0, stream>>>\
-                (_size, _compute_size, _channel_stride, _channels, _norm_reduce.data(), \
-                param.scale->data(), inputs[0]->data(), outputs[0]->mutable_data());
+                (_size, _compute_size, _channel_stride, _channels, static_cast<float*>(_norm_reduce.data()), \
+                static_cast<float*>(param.scale->data()), static_cast<float*>(inputs[0]->data()), static_cast<float*>(outputs[0]->mutable_data()));
             }
         } else { //! without scale
             normalize_kernel<float><<<CUDA_GET_BLOCKS(_size), CUDA_NUM_THREADS, 0, stream>>>\
-                (_size, _compute_size, _norm_reduce.data(), \
-                inputs[0]->data(), outputs[0]->mutable_data());
+                (_size, _compute_size, static_cast<float*>(_norm_reduce.data()), \
+                static_cast<float*>(inputs[0]->data()), static_cast<float*>(outputs[0]->mutable_data()));
         }
 #endif
     }
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberNormalize, NormalizeParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberNormalize, NormalizeParam, NV, AK_INT8);
 } //namespace anakin
 
 } //namespace anakin

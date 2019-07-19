@@ -4,25 +4,23 @@ namespace anakin {
 
 namespace ops {
 
-template<>
-void Input<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx,
-        const std::vector<Tensor4dPtr<NV, AK_FLOAT>>& ins,
-        std::vector<Tensor4dPtr<NV, AK_FLOAT>>& outs) {
-}
+#define INSTANCE_INPUT(Ttype, Ptype) \
+template<> \
+void Input<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+      const std::vector<Tensor4dPtr<Ttype>>& ins, \
+      std::vector<Tensor4dPtr<Ttype>>& outs) {}
 
 
-/// TODO ... specialization other type of operator
-
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-InputHelper<Ttype, Dtype, Ptype>::~InputHelper() {
-}
-
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status InputHelper<Ttype, Dtype, Ptype>::InitParam() {
+template<typename Ttype, Precision Ptype>
+Status InputHelper<Ttype, Ptype>::InitParam() {
     LOG(WARNING) << "Parsing Input op parameter.";
     input_shape = GET_PARAMETER(PTuple<int>, input_shape);
+    if (CHECK_PARAMETER(max_len)) {
+        max_len = GET_PARAMETER(int , max_len);
+    }
+    if (CHECK_PARAMETER(max_batch)) {
+        max_batch = GET_PARAMETER(int , max_batch);
+    }
 
     for (int i = 0; i < input_shape.size(); i++) {
         LOG(INFO) << " |-- shape [" << i << "]: " << input_shape[i];
@@ -31,52 +29,94 @@ Status InputHelper<Ttype, Dtype, Ptype>::InitParam() {
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status InputHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-        const std::vector<Tensor4dPtr<Ttype, Dtype>>& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype>>& outs) {
+template<typename Ttype, Precision Ptype>
+Status InputHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx,
+                                              const std::vector<Tensor4dPtr<Ttype>> &ins,
+                                              std::vector<Tensor4dPtr<Ttype>> &outs) {
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status InputHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >&
-        ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status InputHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype>> &ins,
+                               std::vector<Tensor4dPtr<Ttype>> &outs) {
     saber::Shape out_shape;
-
     for (int i = 0; i < input_shape.size(); i++) {
         out_shape.push_back(input_shape[i]);
     }
-
     for (auto& tensor_p : outs) {
-        tensor_p->set_shape(out_shape);
+        DLOG(INFO)<<"init input shape "<<out_shape;
+        tensor_p->set_shape_without_layout(out_shape);
     }
-
+    if (max_len != 0 && max_batch != 0) {
+        std::vector<std::vector<int>> seq_offset(1, std::vector<int>(max_batch + 1, 0));
+        int i;
+        for (i = 0; i < max_batch; i++) {
+            seq_offset[0][i] = i * max_len;
+        }
+        seq_offset[0][i] = i * max_len;
+        for (auto& tensor_p : outs) {
+            tensor_p->set_seq_offset(seq_offset);
+        }
+    }
+    
     return Status::OK();
 }
 
-template class InputHelper<NV, AK_FLOAT, Precision::FP32>;
-template class InputHelper<NV, AK_FLOAT, Precision::FP16>;
-template class InputHelper<NV, AK_FLOAT, Precision::INT8>;
+#ifdef USE_CUDA
+INSTANCE_INPUT(NV, Precision::FP32);
+template class InputHelper<NV, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, NV, Precision::FP32);
+INSTANCE_INPUT(NV, Precision::INT8);
+template class InputHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, NV, Precision::INT8);
+#endif
+#ifdef USE_MLU
+INSTANCE_INPUT(MLU, Precision::FP32);
+template class InputHelper<MLU, Precision::FP32>;
+template class InputHelper<MLU, Precision::FP16>;
+template class InputHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, MLU, Precision::FP16);
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, MLU, Precision::INT8);
+#endif
 
-template class InputHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class InputHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class InputHelper<ARM, AK_FLOAT, Precision::INT8>;
 
-// register help
-ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, NV, AK_FLOAT, Precision::FP32);
-ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, NV, AK_FLOAT, Precision::FP16);
-ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, NV, AK_FLOAT, Precision::INT8);
+#ifdef USE_ARM_PLACE
+INSTANCE_INPUT(ARM, Precision::FP32);
+template class InputHelper<ARM, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, ARM, Precision::FP32);
+#endif //arm
 
-ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, ARM, AK_FLOAT, Precision::FP32);
-ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, ARM, AK_FLOAT, Precision::FP16);
-ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, ARM, AK_FLOAT, Precision::INT8);
+#if defined USE_X86_PLACE || defined BUILD_LITE
+INSTANCE_INPUT(X86, Precision::FP32);
+template class InputHelper<X86, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, X86, Precision::FP32);
+#endif
+
+#ifdef AMD_GPU
+INSTANCE_INPUT(AMD, Precision::FP32);
+template class InputHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, AMD, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(Input)
 .Doc("Input operator [ only a input data holder and reshape ] ")
-.__alias__<NV, AK_FLOAT, Precision::FP32>("input")
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("input")
+#ifdef USE_CUDA
+.__alias__<NV, Precision::FP32>("input")
+#endif
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("input")
+#endif  // USE_MLU
+#ifdef AMD_GPU
+    .__alias__<AMD, Precision::FP32>("input")
+#endif
+#ifdef USE_ARM_PLACE
+.__alias__<ARM, Precision::FP32>("input")
+#endif
+#if defined USE_X86_PLACE || defined BUILD_LITE
+.__alias__<X86, Precision::FP32>("input")
+#endif
 .Args<PTuple<int>>("input_shape", " shape of graph input.");
 
 } /* namespace ops */

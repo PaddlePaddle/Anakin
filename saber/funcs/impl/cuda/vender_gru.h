@@ -12,45 +12,37 @@
    See the License for the specific language governing permissions and
    limitations under the License. */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_GRU_H
-#define ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_GRU_H
-
+#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_VENDER_GRU_H
+#define ANAKIN_SABER_FUNCS_IMPL_CUDA_VENDER_GRU_H
+#include <vector>
 #include "saber/funcs/impl/impl_gru.h"
 #include "saber/funcs/impl/cuda/cudnn_helper.h"
-#include "cuda_fp16.h"
-
+#include "saber/funcs/impl/cuda/cuda_utils.h"
+#include "saber/saber_funcs_param.h"
 namespace anakin {
-
 namespace saber {
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class VenderGru<NV, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>: \
-    public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, \
-        Tensor<NV, outDtype, LayOutType_out>, \
-        Tensor<NV, OpDtype, LayOutType_op>, \
-        GruParam<Tensor<NV, OpDtype, LayOutType_op>>> {
-
+template<DataType OpDtype>
+class VenderGru<NV, OpDtype>: public ImplBase <
+    NV, OpDtype, GruParam<NV> > {
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor;
-    typedef Tensor<NV, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor::Dtype DataDtype;
-    typedef typename OpTensor::Dtype op_dtype;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
+    typedef Tensor<NV> OpTensor;
 
-    VenderGru()
-        : _handle(NULL), _rnnDesc(NULL), _hxDesc(NULL), _cxDesc(NULL), _hyDesc(NULL), \
-        _cyDesc(NULL), _wDesc(NULL), _dropoutDesc(NULL), _workspace_size_in_bytes(0) {}
+    VenderGru() : _handle(NULL), _rnnDesc(NULL), _hxDesc(NULL), _cxDesc(NULL), _hyDesc(NULL), \
+        _cyDesc(NULL), _wDesc(NULL), _dropoutDesc(NULL), _workspace_size_in_bytes(0),_need_trans(false)  {
+
+    }
 
     ~VenderGru() {
         if (_handle != NULL) {
             CUDNN_CHECK(cudnnDestroy(_handle));
         }
+
+        if (_dropoutDesc) {
+            CUDNN_CHECK(cudnnDestroyDropoutDescriptor(_dropoutDesc));
+        }
+
         if (_rnnDesc) {
             CUDNN_CHECK(cudnnDestroyRNNDescriptor(_rnnDesc));
         }
@@ -58,12 +50,15 @@ public:
         if (_hxDesc) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_hxDesc));
         }
+
         if (_cxDesc) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_cxDesc));
         }
+
         if (_hyDesc) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_hyDesc));
         }
+
         if (_cyDesc) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_cyDesc));
         }
@@ -73,56 +68,29 @@ public:
         }
     }
 
-    virtual SaberStatus init(const std::vector<DataTensor*>& inputs,
-                         std::vector<OutDataTensor*>& outputs,
-                         GruParam<OpTensor> &gru_param, Context<NV> &ctx) {
+    virtual SaberStatus init(const std::vector<OpTensor*>& inputs,
+                             std::vector<OpTensor*>& outputs,
+                             GruParam<NV>& param,
+                             Context<NV>& ctx) override;
 
-        _workspace_size_in_bytes = 0;
+    virtual SaberStatus create(const std::vector<OpTensor*>& inputs,
+                               std::vector<OpTensor*>& outputs,
+                               GruParam<NV>& param,
+                               Context<NV>& ctx) override;
 
-        this->_ctx = ctx;
-        // ---- get cuda resources ----
-
-        cudaStream_t cuda_stream;
-        cuda_stream = ctx.get_compute_stream();
-
-        CUDNN_CHECK(cudnnCreate(&_handle));
-        CUDNN_CHECK(cudnnSetStream(_handle, cuda_stream));
-
-
-
-        // ---- create cudnn Descs ----
-        CUDNN_CHECK(cudnnCreateDropoutDescriptor(&_dropoutDesc));
-        CUDNN_CHECK(cudnnCreateRNNDescriptor(&_rnnDesc));
-
-        cudnn::createTensorDesc<DataDtype>(&_hxDesc);
-        cudnn::createTensorDesc<DataDtype>(&_cxDesc);
-        cudnn::createTensorDesc<DataDtype>(&_hyDesc);
-        cudnn::createTensorDesc<DataDtype>(&_cyDesc);
-
-        cudnn::createFilterDesc<op_dtype>(&_wDesc);
-        return create(inputs, outputs, gru_param, ctx);
-    }
-
-    virtual SaberStatus create(const std::vector<DataTensor*>& inputs,
-                           std::vector<OutDataTensor*>& outputs,
-                           GruParam<OpTensor> &gru_param, Context<NV> &ctx);
-
-
-    virtual SaberStatus dispatch(const std::vector<DataTensor*>& inputs,
-                             std::vector<OutDataTensor*>& outputs,
-                             GruParam<OpTensor> &param);
+    virtual SaberStatus dispatch(const std::vector<OpTensor*>& inputs,
+                                 std::vector<OpTensor*>& outputs,
+                                 GruParam<NV>& param) override;
 
 private:
-
     cudnnHandle_t _handle;
 
-//! choose for lstm or gru or rnn
-
+    //! choose for lstm or gru or rnn
     cudnnDropoutDescriptor_t _dropoutDesc;
 
     cudnnRNNDescriptor_t _rnnDesc;
 
-//! gate desc have to be valid
+    //! gate desc have to be valid
     cudnnTensorDescriptor_t _hxDesc;
     cudnnTensorDescriptor_t _cxDesc;
     cudnnTensorDescriptor_t _hyDesc;
@@ -130,32 +98,39 @@ private:
     cudnnFilterDescriptor_t _wDesc;
     const int _cudnn_gru_weights_layernum = 6;
 
-//! input and output descs
-    std::unique_ptr<cudnn::TensorDescriptors<DataDtype>> _xDesc;
-    std::unique_ptr<cudnn::TensorDescriptors<DataDtype>> _yDesc;
+    //! input and output descs
+    std::unique_ptr<cudnn::TensorDescriptors<OpDataType>> _xDesc;
+    std::unique_ptr<cudnn::TensorDescriptors<OpDataType>> _yDesc;
 
-//! workspace for cudnn
-    const size_t _workspace_limit_bytes = 64 * 1024 * 1024;
+    int _word_size;
+    int _hidden_size;
+
+    OpTensor _inner_weight;
+    OpTensor _inner_weight_i2h;
+    OpTensor _inner_weight_h2h;
+    std::vector<cudnn::ParamsRegion> _inner_weight_region;
+    std::vector<cudnn::ParamsRegion> _inner_bias_region;
+
+    bool _need_trans;
+    OpTensor _temp_tensor_in;
+    OpTensor _temp_tensor_out;
+
+    //! workspace for cudnn
+    const size_t _workspace_limit_bytes = 4 * 1024 * 1024;
     size_t _workspace_size_in_bytes;
-    Tensor<NV, AK_INT8, NCHW> _workspace_tensor;  // underlying storage
+    OpTensor _workspace_tensor;  // underlying storage
 
-//! addition flag
+    //! addition flag
     const bool _use_tensor_core = true;
 
-//! function to transform weights layout to fit cudnn standard
-    int get_grnn_params_region(GruParam<OpTensor> &param) ;
-    void set_grnn_params_region(GruParam<OpTensor> &param, int wordSize);
-    void hw2seq(std::vector<DataTensor*> inputs, GruParam<OpTensor>& param, int word_size,
-            DataTensor &sequence, DataTensor &out_sequence, Context<NV>& ctx);
-    void seq2hw(std::vector<DataTensor*> outputs, std::vector<DataTensor*> inputs,
-            GruParam<OpTensor>& param, int hidden_size, DataTensor &sequence,
-            Context<NV>& ctx);
+    //! function to transform weights layout to fit cudnn standard
+    int get_grnn_params_region(GruParam<NV>& param) ;
+    void set_grnn_params_region(GruParam<NV>& param);
+    void trans_akweights_2_cudnnweights(GruParam<NV>& param);
+
+    SeqSortedseqTranseUtil _seq_utils;
 };
 
-template class VenderGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-
-} //namespace saber
-
-} //namespace anakin
-
-#endif //ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_GRU_H
+} // namespace saber
+} // namespace anakin
+#endif // ANAKIN_SABER_FUNCS_IMPL_CUDA_VENDER_GRU_H

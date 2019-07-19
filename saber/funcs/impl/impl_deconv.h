@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,7 +21,38 @@ namespace anakin{
 
 namespace saber{
 
-DEFINE_OP_CLASS(Deconv2D, ConvParam);
+template <typename TargetType, DataType OpDtype = AK_FLOAT>
+class SaberDeconv2D : public ImplBase<
+        TargetType, OpDtype,
+        ConvParam <TargetType> > {
+public:
+    SaberStatus trans_weights(Tensor<TargetType> &target_weights,
+                              Tensor<TargetType> &target_bias,
+                              int in_channel, int out_channel,
+                              int stride_h, int stride_w,
+                              int pad_h, int pad_w,
+                              int dilation_h, int dilation_w,
+                              int group) {
+        return SaberUnImplError;
+    }
+};
+
+template <typename TargetType,
+        DataType OpDtype = AK_FLOAT>
+class VenderDeconv2D : public ImplBase<
+        TargetType, OpDtype,
+        ConvParam <TargetType> > {
+public:
+    SaberStatus trans_weights(Tensor<TargetType> &target_weights,
+                              Tensor<TargetType> &target_bias,
+                              int in_channel, int out_channel,
+                              int stride_h, int stride_w,
+                              int pad_h, int pad_w,
+                              int dilation_h, int dilation_w,
+                              int group) {
+        return SaberUnImplError;
+    }
+};
 
 }
 }

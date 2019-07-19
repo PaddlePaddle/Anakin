@@ -1,10 +1,16 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2017 Baidu.com, Inc. All Rights Reserved
-# @file     cuda.cmake
-# @auther   cuichaowen
-# @date     2017-10-23
-# ----------------------------------------------------------------------------
-
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 # ----------------------------------------------------------------------------
 # section: Set nvcc arch info.
 # ----------------------------------------------------------------------------
@@ -71,19 +77,32 @@ endmacro()
 # section: Find cudnn.
 # ----------------------------------------------------------------------------
 macro(anakin_find_cudnn)
+
 	set(CUDNN_ROOT "" CACHE PATH "CUDNN root dir.")
   	find_path(CUDNN_INCLUDE_DIR cudnn.h PATHS ${CUDNN_ROOT} 
 						  $ENV{CUDNN_ROOT} 
 						  $ENV{CUDNN_ROOT}/include
 						  ${ANAKIN_ROOT}/third-party/cudnn/include NO_DEFAULT_PATH)
     if(BUILD_SHARED)
-        find_library(CUDNN_LIBRARY NAMES libcudnn.so 
+		if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+			find_library(CUDNN_LIBRARY NAMES libcudnn.dylib
+					PATHS ${CUDNN_INCLUDE_DIR}/../lib/ ${CUDNN_INCLUDE_DIR}/
+					DOC "library path for cudnn.")
+		else()
+        	find_library(CUDNN_LIBRARY NAMES libcudnn.so
                                PATHS ${CUDNN_INCLUDE_DIR}/../lib64/ ${CUDNN_INCLUDE_DIR}/
-                               DOC "library path for cudnn.") 
-    else()
-        find_library(CUDNN_LIBRARY NAMES libcudnn_static.a
-                               PATHS ${CUDNN_INCLUDE_DIR}/../lib64/
                                DOC "library path for cudnn.")
+		endif()
+    else()
+		if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+			find_library(CUDNN_LIBRARY NAMES libcudnn_static.a
+					PATHS ${CUDNN_INCLUDE_DIR}/../lib/
+					DOC "library path for cudnn.")
+		else()
+			find_library(CUDNN_LIBRARY NAMES libcudnn_static.a
+					PATHS ${CUDNN_INCLUDE_DIR}/../lib64/
+					DOC "library path for cudnn.")
+		endif()
     endif()
  
 	if(CUDNN_INCLUDE_DIR AND CUDNN_LIBRARY)
@@ -128,6 +147,7 @@ macro(anakin_find_cuda)
     	set(CUDA_BUILD_CUBIN ON) # defauld OFF
     endif()
 	find_package(CUDA 7.5 REQUIRED)
+    set(CUDA_HOST_COMPILER ${CMAKE_C_COMPILER})
     if(BUILD_SHARED)
 	    if(CUDA_FOUND)
 	    	include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
@@ -137,6 +157,9 @@ macro(anakin_find_cuda)
 	    	if(USE_CURAND)
 	    		list(APPEND ANAKIN_LINKER_LIBS ${CUDA_curand_LIBRARY})
 	    	endif()
+            if(BUILD_RPC) 
+                list(APPEND ANAKIN_LINKER_LIBS ${CUDA_INCLUDE_DIRS}/../lib64/stubs/libnvidia-ml.so) 
+            endif()
 	    	list(APPEND ANAKIN_LINKER_LIBS ${CUDA_CUDART_LIBRARY})
 	    else()
 	    	message(FATAL_ERROR "Cuda SHARED lib Could not found !")	
@@ -167,13 +190,25 @@ macro(anakin_find_cuda)
 
 	# build cuda part for local machine.
     if(BUILD_CROSS_PLANTFORM)
-        anakin_detect_arch()
+        #set nvida gpu arch
+        set(ANAKIN_ARCH_LIST "3.5;5.0;6.0;6.1")
+        if("${CUDA_VERSION}" GREATER 9.0 OR "${CUDA_VERSION}" EQUAL 9.0)
+           message("${CUDA_VERSION}")
+           set(ANAKIN_ARCH_LIST "3.5;5.0;6.0;6.1;7.0")#>=9.0
+        endif()
+        if("${CUDA_VERSION}" GREATER 10.0 OR "${CUDA_VERSION}" EQUAL 10.0)
+           set(ANAKIN_ARCH_LIST "3.5;5.0;6.0;6.1;7.0;7.5")#>=10.0
+           message("${CUDA_VERSION}")
+        endif()
+
         if(BUILD_FAT_BIN)
 		    message(STATUS "Building fat-bin for cuda code !")
 		    anakin_set_nvcc_archs_info(ANAKIN_ARCH_LIST)
         else()
             message(STATUS "Building cross-plantform target for cuda code !")
-            anakin_set_nvcc_archs_info(TARGET_GPUARCH)
+			anakin_detect_arch()
         endif()
+	else()
+		anakin_set_nvcc_archs_info(TARGET_GPUARCH)
     endif()
 endmacro()

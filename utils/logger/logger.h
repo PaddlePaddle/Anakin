@@ -1,16 +1,16 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef LOGGER_H
@@ -19,6 +19,8 @@
 #define LOGGER_SHUTDOWN 0
 
 #include "anakin_config.h"
+
+#ifndef USE_SGX
 #include "logger_core.h"
 
 #define SCOPE_LOGGER_CORE_FUNC 		logger::core::funcRegister
@@ -204,6 +206,43 @@ CHECK_SYMBOL_WARP(CHECK_GT_IMPL, >)
 #define VLOG_IS_ON(verbose) ((verbose) <= SCOPE_LOGGER_CORE_CONFIG::current_verbosity_cutoff())
 #endif
 
+#else // USE_SGX
 
+// define a nop logger for SGX build
+namespace logger {
+    inline void init(const char*){}
+
+    struct NopLogger {
+        template<typename T>
+        constexpr const NopLogger &operator<<(const T &) const {
+            return *this;
+        }
+
+        template<typename T>
+        T *operator&() {
+            static_assert(sizeof(T) == 0, "Taking the address of NopLogger is disallowed.");
+            return nullptr;
+        }
+    };
+
+    static constexpr NopLogger __NOP;
+}
+// namespace logger
+
+#define NOPLOG(X)             logger::__NOP
+#define LOG                   NOPLOG
+#define VLOG                  NOPLOG
+#define DLOG                  NOPLOG
+#define CHECK(X)              (((X) == true ? void(nullptr) : assert(false)), logger::__NOP)
+#define CHECK_NOTNULL(X)      CHECK((X) != nullptr)
+#define CHECK_EQ(X, Y)        CHECK(((X) == (Y)))
+#define CHECK_NE(X, Y)        CHECK(((X) != (Y)))
+#define CHECK_LT(X, Y)        CHECK(((X) <  (Y)))
+#define CHECK_LE(X, Y)        CHECK(((X) <= (Y)))
+#define CHECK_GT(X, Y)        CHECK(((X) >  (Y)))
+#define CHECK_GE(X, Y)        CHECK(((X) >= (Y)))
+#define ABORT_S()             CHECK(false)
+
+#endif // USE_SGX
 
 #endif // LOGGER_H

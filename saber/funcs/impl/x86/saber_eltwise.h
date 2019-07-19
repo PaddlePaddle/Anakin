@@ -20,24 +20,16 @@
 namespace anakin{
 namespace saber {
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class SaberEltwise<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out> : public ImplBase<
-        Tensor<X86, inDtype, LayOutType_in>,
-        Tensor<X86, outDtype, LayOutType_out>,
-        Tensor<X86, OpDtype, LayOutType_op>,
-        EltwiseParam<Tensor<X86, OpDtype, LayOutType_op> > >
+template <DataType OpDtype>
+class SaberEltwise<X86, OpDtype> : public ImplBase<
+        X86,
+        OpDtype,
+        EltwiseParam<X86> > 
 {
 public:
-    typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<X86, OpDtype, LayOutType_op> OpTensor;
-
+    typedef Tensor<X86> DataTensor_in;
+    typedef Tensor<X86> DataTensor_out;
+    typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
     SaberEltwise()
     {}
 
@@ -46,21 +38,36 @@ public:
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             EltwiseParam<OpTensor> &param,
+                             EltwiseParam<X86> &param,
                              Context<X86> &ctx) override;
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                                std::vector<DataTensor_out*>& outputs,
-                               EltwiseParam<OpTensor> &param,
+                               EltwiseParam<X86> &param,
                                Context<X86> &ctx) override;
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
-                                 EltwiseParam<OpTensor> &param) override;
+                                 EltwiseParam<X86> &param) override;
 private:
     void simple_sum(const std::vector<DataTensor_in*>& inputs,
                     std::vector<DataTensor_out*>& outputs,
-                    EltwiseParam<OpTensor> &param);
+                    EltwiseParam<X86> &param, bool with_relu);
+    void simple_prod(const std::vector<DataTensor_in*>& inputs,
+                    std::vector<DataTensor_out*>& outputs,
+                    EltwiseParam<X86> &param, bool with_relu);
+    void simple_max(const std::vector<DataTensor_in*>& inputs,
+                    std::vector<DataTensor_out*>& outputs,
+                    EltwiseParam<X86> &param, bool with_relu);
+    void simple_div(const std::vector<DataTensor_in*>& inputs,
+                    std::vector<DataTensor_out*>& outputs,
+                    EltwiseParam<X86> &param, bool with_relu);
+
+    void simple_mul(const std::vector<DataTensor_in*>& inputs,
+                    std::vector<DataTensor_out*>& outputs,
+                    EltwiseParam<X86> &param, bool with_relu);
+    bool _with_relu;
+    bool _other_activation;
 };
 
 }

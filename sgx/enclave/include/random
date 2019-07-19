@@ -1,0 +1,40 @@
+#ifndef ANAKIN_SGX_RANDOM_H
+#define ANAKIN_SGX_RANDOM_H
+
+#include <libcxx/random>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int rand();
+
+#ifdef __cplusplus
+}
+
+namespace std {
+
+using ::rand;
+
+struct random_device {
+    int operator()();
+};
+
+struct mt19937 {
+    mt19937(random_device rd);
+    mt19937(int seed);
+};
+
+template<typename T>
+struct uniform_real_distribution {
+    uniform_real_distribution(T start, T end) {}
+    
+    template<class Generator>
+    T operator()(Generator &g) { return static_cast<T>(0); }
+};
+
+}
+
+#endif
+
+#endif

@@ -34,6 +34,7 @@
 # dir
 build
 android_build
+nv_gpu_build
 ios_build
 gpu_build
 output

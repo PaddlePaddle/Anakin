@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,6 +31,30 @@
 namespace anakin{
 
 namespace cudnn{
+
+struct ParamsRegion {
+
+    ParamsRegion():_offset(NULL), _size(0){};
+    ParamsRegion(void *offset, size_t size):_offset(offset), _size(size){}
+    ~ParamsRegion(){}
+    ParamsRegion(const ParamsRegion &right): _offset(right._offset),_size(right._size){};
+
+    ParamsRegion &operator=(const ParamsRegion &right) {
+        _offset = right._offset;
+        _size=right._size;
+        return *this;
+    }
+    bool operator==(const ParamsRegion &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (_offset == right._offset);
+        comp_eq = comp_eq && (_size == right._size);
+        return  comp_eq;
+    }
+
+    void * _offset;
+    size_t _size;
+};
+
 
 template <typename T>
 class cudnnTypeWrapper;
@@ -82,28 +106,29 @@ public:
         return &v;
     }
 };
+
 template <typename T>
 class TensorDescriptors {
 public:
     TensorDescriptors(
             size_t n,
-            const std::vector<int>& dim,
-            const std::vector<int>& stride) {
+            const std::vector<std::vector<int>>& dim,
+            const std::vector<std::vector<int>>& stride) {
         descs_.resize(n);
-                CHECK_EQ(dim.size(), stride.size());
+        CHECK_EQ(dim.size(), stride.size());
         for (auto i = 0; i < n; ++i) {
             CUDNN_CHECK(cudnnCreateTensorDescriptor(&descs_[i]));
             CUDNN_CHECK(cudnnSetTensorNdDescriptor(
                     descs_[i],
                     cudnnTypeWrapper<T>::type,
-                    dim.size(),
-                    dim.data(),
-                    stride.data()));
+                    dim[i].size(),
+                    dim[i].data(),
+                    stride[i].data()));
         }
     }
     ~TensorDescriptors() {
         for (auto desc : descs_) {
-            cudnnDestroyTensorDescriptor(desc);
+            CUDNN_CHECK(cudnnDestroyTensorDescriptor(desc));
         }
     }
     const cudnnTensorDescriptor_t* descs() const {
@@ -300,6 +325,19 @@ inline void set_nd_pooling_des(cudnnPoolingDescriptor_t* pooling, saber::Pooling
     CUDNN_CHECK(cudnnSetPoolingNdDescriptor(*pooling, mode, CUDNN_NOT_PROPAGATE_NAN,
                     nbDims, windowDImA, paddingA, strideA));
 //    CUDNN_CHECK(cudnnSetPoolingNdDescriptor(*conv, group));
+}
+template <typename Dtype>
+inline void createLrnDesc(cudnnLRNDescriptor_t * desc) {
+
+    CUDNN_CHECK(cudnnCreateLRNDescriptor(desc));
+}
+template <typename Dtype>
+inline void setLrnDesc(cudnnLRNDescriptor_t* desc,
+                        int N,
+                        float alpha,
+                        float beta,
+                        float K) {
+    CUDNN_CHECK(cudnnSetLRNDescriptor(*desc, N, alpha, beta, K));
 }
 
 } // namespace saber

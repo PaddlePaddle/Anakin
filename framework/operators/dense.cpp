@@ -4,96 +4,183 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Dense<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<DenseHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<DenseHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_dense;
-    impl->_funcs_dense(ins, outs, param, ctx);
-}
-#endif
-
-/// TODO ... specialization other type of operator
-
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-DenseHelper<Ttype, Dtype, Ptype>::~DenseHelper() {
+#define INSTANCE_DENSE(Ttype, Ptype) \
+template<> \
+void Dense<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype> >& ins, \
+        std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<DenseHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<DenseHelper<Ttype, Ptype>*>(this->_helper)->_param_dense; \
+    SABER_CHECK(impl->_funcs_dense(ins, outs, param, ctx)); \
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DenseHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Dense op parameter.";
+template<typename Ttype, Precision Ptype>
+Status DenseHelper<Ttype, Ptype>::InitParam() {
+    DLOG(WARNING) << "Parsing Dense op parameter.";
     auto axis = GET_PARAMETER(int, axis);
-    auto out_dim = GET_PARAMETER(int, out_dim);
+    auto out_dim = GET_PARAMETER_WITH_DEFAULT(int, out_dim,0);
     auto bias_term = GET_PARAMETER(bool, bias_term);
 
-    auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
-
-        if (bias_term) {
-        auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
-        saber::FcParam<Tensor4d<Ttype, Dtype>> fc_param(&(weights.d_tensor()), &(bias.d_tensor()), out_dim,
+	using pblock_type = PBlock<Ttype>;
+    auto weights = GET_PARAMETER(pblock_type, weight_1);
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(out_dim, scale_tmp);
+        w.set_scale(w_scale);
+    }
+    if (bias_term) {
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
+        saber::FcParam<Ttype> fc_param(&(weights.d_tensor()), &(bias.d_tensor()), out_dim,
                                             axis);
         _param_dense = fc_param;
     } else {
-        Tensor4d<Ttype, Dtype>* bias = nullptr;
-        saber::FcParam<Tensor4d<Ttype, Dtype>> fc_param(&(weights.d_tensor()), bias, out_dim, axis);
+        Tensor4d<Ttype>* bias = nullptr;
+        saber::FcParam<Ttype> fc_param(&(weights.d_tensor()), bias, out_dim, axis);
         _param_dense = fc_param;
     }
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DenseHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status DenseHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
+        const std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
+    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, STATIC, SABER_IMPL, ctx));
+    return Status::OK();
+}
+#ifdef USE_CUDA
+template<>
+Status DenseHelper<NV, Precision::INT8>::Init(OpContext<NV>& ctx,
+        const std::vector<Tensor4dPtr<NV> >& ins,
+        std::vector<Tensor4dPtr<NV> >& outs) {
+    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
+#endif
+template<>
+Status DenseHelper<X86, Precision::FP32>::Init(OpContext<X86>& ctx,
+                                       const std::vector<Tensor4dPtr<X86> >& ins,
+                                       std::vector<Tensor4dPtr<X86> >& outs) {
     SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, VENDER_IMPL, ctx));
     return Status::OK();
 }
-
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DenseHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >&
+template<>
+Status DenseHelper<X86, Precision::FP16>::Init(OpContext<X86>& ctx,
+                                               const std::vector<Tensor4dPtr<X86> >& ins,
+                                               std::vector<Tensor4dPtr<X86> >& outs) {
+    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, VENDER_IMPL, ctx));
+    return Status::OK();
+}
+#ifndef USE_SGX
+template<>
+Status DenseHelper<X86, Precision::INT8>::Init(OpContext<X86>& ctx,
+                                               const std::vector<Tensor4dPtr<X86> >& ins,
+                                               std::vector<Tensor4dPtr<X86> >& outs) {
+    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, VENDER_IMPL, ctx));
+    return Status::OK();
+}
+#endif
+template<typename Ttype, Precision Ptype>
+Status DenseHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype> >&
         ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_dense.compute_output_shape(ins, outs, _param_dense));
     return Status::OK();
 }
 
 #ifdef USE_CUDA
-template class DenseHelper<NV, AK_FLOAT, Precision::FP32>;
-template class DenseHelper<NV, AK_FLOAT, Precision::FP16>;
-template class DenseHelper<NV, AK_FLOAT, Precision::INT8>;
+INSTANCE_DENSE(NV, Precision::FP32);
+INSTANCE_DENSE(NV, Precision::INT8);
+template class DenseHelper<NV, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, NV, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, NV, Precision::INT8);
+template class DenseHelper<NV, Precision::FP16>;
+template class DenseHelper<NV, Precision::INT8>;
 #endif
+#ifdef USE_MLU
+INSTANCE_DENSE(MLU, Precision::FP32);
+INSTANCE_DENSE(MLU, Precision::FP16);
+template class DenseHelper<MLU, Precision::FP32>;
+template class DenseHelper<MLU, Precision::FP16>;
+template class DenseHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
+
 
 #ifdef USE_ARM_PLACE
-template class DenseHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class DenseHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class DenseHelper<ARM, AK_FLOAT, Precision::INT8>;
+INSTANCE_DENSE(ARM, Precision::FP32);
+INSTANCE_DENSE(ARM, Precision::INT8);
+template<>
+Status DenseHelper<ARM, Precision::FP32>::Init(OpContext<ARM> &ctx,\
+        const std::vector<Tensor4dPtr<ARM> >& ins, \
+                std::vector<Tensor4dPtr<ARM> >& outs) {
+    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
+template<>
+Status DenseHelper<ARM, Precision::INT8>::Init(OpContext<ARM> &ctx,\
+        const std::vector<Tensor4dPtr<ARM> >& ins, \
+                std::vector<Tensor4dPtr<ARM> >& outs) {
+    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, ARM, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, ARM, Precision::INT8);
 #endif
 
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, NV, AK_FLOAT, Precision::FP32);
+#if defined USE_X86_PLACE || defined BUILD_LITE
+INSTANCE_DENSE(X86, Precision::FP32);
+template class DenseHelper<X86, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, X86, Precision::FP32);
+#ifndef USE_SGX
+INSTANCE_DENSE(X86, Precision::INT8);
+template class DenseHelper<X86, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, X86, Precision::INT8);
+#endif
 #endif
 
-#ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, ARM, AK_FLOAT, Precision::FP32);
+#ifdef AMD_GPU
+INSTANCE_DENSE(AMD, Precision::FP32);
+template<>
+Status DenseHelper<AMD, Precision::FP32>::Init(OpContext<AMD> &ctx,\
+        const std::vector<Tensor4dPtr<AMD> >& ins, \
+                std::vector<Tensor4dPtr<AMD> >& outs) {
+    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, VENDER_IMPL, ctx));
+    return Status::OK();
+}
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, AMD, Precision::FP32);
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(Dense)
 .Doc("Dense operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("fullconnect")
-.__alias__<NV, AK_FLOAT, Precision::FP32>("fc")
+.__alias__<NV, Precision::FP32>("fullconnect")
+.__alias__<NV, Precision::FP32>("fc")
+.__alias__<NV, Precision::INT8>("fc")
 #endif
+#ifdef USE_MLU
+        .__alias__<MLU, Precision::FP32>("fullconnect")
+.__alias__<MLU, Precision::FP32>("fc")
+#endif  // USE_MLU
+
+
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("fullconnect")
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("fc")
+.__alias__<ARM, Precision::FP32>("fullconnect")
+.__alias__<ARM, Precision::FP32>("fc")
+.__alias__<ARM, Precision::INT8>("fc")
 #endif
+#if defined USE_X86_PLACE || defined BUILD_LITE
+.__alias__<X86, Precision::FP32>("fullconnect")
+.__alias__<X86, Precision::FP32>("fc")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("fullconnect")
+.__alias__<AMD, Precision::FP32>("fc")
+#endif
+
 .num_in(1)
 .num_out(1)
 .Args<int>("axis", " axis to compute ")

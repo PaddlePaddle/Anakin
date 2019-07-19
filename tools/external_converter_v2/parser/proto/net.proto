@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+import "node.proto";
+import "tensor.proto";
+import "graph.proto";
+
+message CtxProto {
+    int32 device_id = 1;
+    int32 data_stream_id = 2;
+    int32 compute_stream_id = 3;
+};
+
+message FuncProto {
+    string name = 1;
+    string type = 2;
+    CtxProto context = 3;
+    repeated TensorProto tensor_ins = 6;
+    repeated TensorProto tensor_outs = 7;
+    repeated int32 lane_ins = 8;
+    repeated int32 lane_outs = 9;
+    int32 current_lane = 11;
+    bool need_sync = 12;
+    NodeProto node_info = 13;
+};
+
+message NetProto {
+    string name = 1;
+    GraphProto graph = 2;
+    repeated FuncProto funcs = 3;
+};
+

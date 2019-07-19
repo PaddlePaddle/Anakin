@@ -6,14 +6,28 @@ namespace anakin {
 
 namespace parser {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const NodeProto& node_proto) {
-    graph::NodePtr<Ttype, Dtype, Ptype> node_p = std::make_shared<graph::Node<Ttype, Dtype, Ptype>>();
+template<typename Ttype, Precision Ptype>
+NodeIO<Ttype, Ptype>& NodeIO<Ttype, Ptype>::operator>>(const NodeProto& node_proto) {
+    graph::NodePtr node_p = std::make_shared<graph::Node>();
+
+    auto it_end = _node_name2ptr_map.end();
+    auto it_find = _node_name2ptr_map.find(node_proto.name());
+    if(it_find == it_end) {
+        _node_name2ptr_map[node_proto.name()] = node_p;
+    }
+
     node_p->name() = node_proto.name();
     node_p->need_wait() = node_proto.need_wait();
     node_p->lane() = node_proto.lane();
-    auto it = node_proto.attr().begin();
+    switch (node_proto.bit_type()) {
+        case INT8: node_p->bit_type() = AK_INT8; break;
+        case FLOAT: node_p->bit_type() = AK_FLOAT; break;
+        default: node_p->bit_type() = AK_INVALID; break;
+    }
+    DLOG(INFO) << "read node: " << node_p->name() << \
+    " (type: " << node_p->bit_type() << " )";
 
+    auto it = node_proto.attr().begin();
     for (; it != node_proto.attr().end(); ++it) {
         auto& key = it->first;
         auto& value = it->second;
@@ -130,42 +144,108 @@ NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const NodeP
 
         case TENSOR: {
             auto& tensor = value.tensor();
-            auto& shape = tensor.shape();
-            CHECK_EQ(shape.dim().size(), 4) << "Weights parameter's shape len must equal to 4.";
-            auto& data = tensor.data();
-
-            switch (data.type()) {
-            case FLOAT: { /* At so far, we only support weights saved as float. */
-                saber::Shape saber_shape(1, 1, 1, 1);
-
-                // get shape
-                for (int i = 0; i < 4; i++) {
-                    saber_shape[i] = shape.dim().value()[i];
+            if(tensor.shared()) { // cope with shared weights(tensor)
+                auto target_node = _node_name2ptr_map[tensor.share_from()]-> template get_attr<PBlock<Ttype> >(key);
+                node_p->set_attr(key, target_node);
+                // record share info of weights
+                node_p->set_share_pair(key, tensor.share_from());
+            } else {
+                auto& real_shape = tensor.shape();
+                auto& valid_shape = tensor.valid_shape();
+                CHECK_EQ(real_shape.dim().size(), 4) << "Weights parameter's shape len must equal to 4.";
+                auto& data = tensor.data();
+                auto& scale = tensor.scale().f();
+                std::vector<float> scale_vector;
+                for (const float val: scale) {
+                    scale_vector.push_back(val);
                 }
 
-                auto* block = graph::GraphGlobalMem::Global().new_block<AK_FLOAT>(saber_shape);
-                // fill data to block
-                float* cpu_data = static_cast<float*>(block->h_tensor().mutable_data());
+                switch (data.type()) {
+                case FLOAT: { /* At so far, we only support weights saved as float. */
+                    saber::Shape saber_shape({1, 1, 1, 1});
 
-                for (int i = 0; i < data.size(); i++) {
-                    cpu_data[i] = data.f()[i];
-                }
+                    // get real_shape
+                    for (int i = 0; i < 4; i++) {
+                        saber_shape[i] = real_shape.dim().value()[i];
+                    }
 
-#ifdef USE_CUDA
-                //! map cpu data to GPU
-                //block->tensor().get_gpu_data();
-                block->d_tensor().set_shape(saber_shape);
-                block->d_tensor().copy_from(block->h_tensor());
+                    auto* block = graph::GraphGlobalMem<Ttype>::Global().template new_block<AK_FLOAT>(saber_shape);
+                    // fill data to block
+                    float* cpu_data = static_cast<float*>(block->h_tensor().mutable_data());
+
+                    for (int i = 0; i < data.size(); i++) {
+                        cpu_data[i] = data.f()[i];
+                    }
+                    block->d_tensor().set_scale(scale_vector);
+                    block->h_tensor().set_scale(scale_vector);
+
+#if defined(    USE_CUDA) || defined(AMD_GPU) || defined(USE_MLU)
+                    // map cpu data to GPU
+                    block->d_tensor().set_shape(saber_shape);
+                    block->d_tensor().copy_from(block->h_tensor());
 #endif
-                node_p->set_attr(key, *block);
-            }
-            break;
+                    if (valid_shape.dim().size() == 0) {
+                        // set valid shape (== real shape) for host and device
+                        block->d_tensor().set_shape(saber_shape);
+                        block->h_tensor().set_shape(saber_shape);
+                    } else {
+                        saber::Shape saber_valid_shape({1, 1, 1, 1});
+                        for (int i=0; i < 4; i++) {
+                            saber_valid_shape[i] = valid_shape.dim().value()[i];
+                        }
+                        // set valid shape for host and device
+                        block->d_tensor().set_shape(saber_valid_shape);
+                        block->h_tensor().set_shape(saber_valid_shape);
+                    }
 
-            default : {
-                LOG(FATAL) << "UnSupport data type(DateTypeProto:" << data.type() << ") in list ";
-            }
-            break;
-            }
+                    node_p->set_attr(key, *block);
+                }
+                break;
+                case INT8: { /* At so far, we only support weights saved as float. */
+                    saber::Shape saber_shape({1, 1, 1, 1});
+
+                    // get real_shape
+                    for (int i = 0; i < 4; i++) {
+                        saber_shape[i] = real_shape.dim().value()[i];
+                    }
+
+                    auto* block = graph::GraphGlobalMem<Ttype>::Global().template new_block<AK_INT8>(saber_shape);
+                    // fill data to block
+                    char* cpu_data = static_cast<char*>(block->h_tensor().mutable_data());
+                    for (int i = 0; i < data.size(); i++) {
+                        cpu_data[i] = data.c().data()[i];
+                    }
+                    block->d_tensor().set_scale(scale_vector);
+                    block->h_tensor().set_scale(scale_vector);
+
+#if defined(    USE_CUDA) || defined(AMD_GPU) || defined(USE_MLU)
+                    // map cpu data to GPU
+                    block->d_tensor().set_shape(saber_shape);
+                    block->d_tensor().copy_from(block->h_tensor());
+#endif
+                    if (valid_shape.dim().size() == 0) {
+                        // set valid shape (== real shape) for host and device
+                        block->d_tensor().set_shape(saber_shape);
+                        block->h_tensor().set_shape(saber_shape);
+                    } else {
+                        saber::Shape saber_valid_shape({1, 1, 1, 1});
+                        for (int i = 0; i < 4; i++) {
+                            saber_valid_shape[i] = valid_shape.dim().value()[i];
+                        }
+                        // set valid shape for host and device
+                        block->d_tensor().set_shape(saber_valid_shape);
+                        block->h_tensor().set_shape(saber_valid_shape);
+                    }
+
+                    node_p->set_attr(key, *block);
+                }
+                break;
+                default : {
+                    LOG(FATAL) << "UnSupport data type(DateTypeProto:" << data.type() << ") in list ";
+                }
+                break;
+                }
+            } // not shared
         }
         break;
 
@@ -183,15 +263,15 @@ NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const NodeP
     return *this;
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const
-        graph::NodePtr<Ttype, Dtype, Ptype> node_p) {
+template<typename Ttype, Precision Ptype>
+NodeIO<Ttype, Ptype>& NodeIO<Ttype, Ptype>::operator>>(const
+        graph::NodePtr& node_p) {
     _que.push(node_p);
     return *this;
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status NodeIO<Ttype, Dtype, Ptype>::operator<<(graph::Graph<Ttype, Dtype, Ptype>& graph) {
+template<typename Ttype, Precision Ptype>
+Status NodeIO<Ttype, Ptype>::operator<<(graph::Graph<Ttype, Ptype>& graph) {
     while (!this->empty()) {
         auto& node_p = _que.front();
         DLOG(WARNING) << "[NODE] Graph get node: " << node_p->name();
@@ -207,8 +287,8 @@ Status NodeIO<Ttype, Dtype, Ptype>::operator<<(graph::Graph<Ttype, Dtype, Ptype>
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status NodeIO<Ttype, Dtype, Ptype>::operator<<(GraphProto& graph) {
+template<typename Ttype, Precision Ptype>
+Status NodeIO<Ttype, Ptype>::operator<<(GraphProto& graph) {
     while (!this->empty()) {
         auto& node_p = _que.front();
         NodeProto* node_proto = graph.add_nodes();
@@ -216,15 +296,21 @@ Status NodeIO<Ttype, Dtype, Ptype>::operator<<(GraphProto& graph) {
         node_proto->set_name(node_p->name());
         node_proto->set_lane(node_p->lane());
         node_proto->set_need_wait(node_p->need_wait());
+
+        switch (node_p->bit_type()) {
+          case AK_INT8: node_proto->set_bit_type(INT8); break;
+          case AK_FLOAT: node_proto->set_bit_type(FLOAT); break;
+          default: node_proto->set_bit_type(FLOAT); break;
+        }
         // set node proto's  op proto
         OpProto* op = node_proto->mutable_op();
         op->set_name(node_p->get_op_name());
 
         // set node proto's attr
         auto node_proto_attr = node_proto->mutable_attr();
-        auto it = node_p->attr().parameter.begin();
+        auto it = node_p->attr().begin();
 
-        for (; it != node_p->attr().parameter.end(); ++it) {
+        for (; it != node_p->attr().end(); ++it) {
             auto& key = it->first;
             auto& value = it->second;
 
@@ -298,30 +384,69 @@ Status NodeIO<Ttype, Dtype, Ptype>::operator<<(GraphProto& graph) {
                 (*node_proto_attr)[key].set_type(CACHE_LIST);
                 (*node_proto_attr)[key].mutable_cache_list()->set_type(BOOLEN);
                 (*node_proto_attr)[key].mutable_cache_list()->set_size(tuple_bool.size());
-            } else if (value.type() == "anakin_block_float") { // default block have float data
-                auto block_float = any_cast<PBlock<float>>(value);
-                float* cpu_data = static_cast<float*>(block_float.h_tensor().mutable_data());
-                auto shape_saber = block_float.shape();
+            } else if (value.type() == "anakin_block") { // default block have float data
+                // cope with shared weights
+                if (node_p->check_shared(key)) {
+                    auto share_target = node_p->get_share_target(key);
+                    (*node_proto_attr)[key].mutable_tensor()->set_shared(true);
+                    (*node_proto_attr)[key].mutable_tensor()->set_share_from(share_target);
+                    (*node_proto_attr)[key].set_type(TENSOR);
+                } else {
+                    auto block_float = any_cast<PBlock<Ttype>>(value);
+                    float* cpu_data = static_cast<float*>(block_float.h_tensor().mutable_data());
+                    auto valid_shape = block_float.shape();
+                    auto real_shape = block_float.real_shape();
 
-                // set proto tensor shape
-                for (int i = 0; i < shape_saber.dims(); i++) {
-                    (*node_proto_attr)[key].mutable_tensor()->mutable_shape()->mutable_dim()->add_value(shape_saber[i]);
-                }
+                    if (valid_shape == real_shape) {
+                        // set proto tensor shape
+                        for (int i = 0; i < valid_shape.dims(); i++) {
+                            (*node_proto_attr)[key].mutable_tensor()->mutable_shape()->mutable_dim()->add_value(valid_shape[i]);
+                        }
 
-                (*node_proto_attr)[key].mutable_tensor()->mutable_shape()->mutable_dim()->set_size(
-                    shape_saber.size());
+                        (*node_proto_attr)[key].mutable_tensor()->mutable_shape()->mutable_dim()->set_size(
+                            valid_shape.size());
 
-                // set proto tensor data
-                for (int i = 0; i < shape_saber.count(); i++) {
-                    (*node_proto_attr)[key].mutable_tensor()->mutable_data()->add_f(cpu_data[i]);
-                }
+                        // set proto tensor data
+                        for (int i = 0; i < valid_shape.count(); i++) {
+                            (*node_proto_attr)[key].mutable_tensor()->mutable_data()->add_f(cpu_data[i]);
+                        }
 
-                (*node_proto_attr)[key].mutable_tensor()->mutable_data()->set_type(FLOAT);
-                (*node_proto_attr)[key].mutable_tensor()->mutable_data()->set_size(shape_saber.count());
-                (*node_proto_attr)[key].set_type(TENSOR);
+                        (*node_proto_attr)[key].mutable_tensor()->mutable_data()->set_type(FLOAT);
+                        (*node_proto_attr)[key].mutable_tensor()->mutable_data()->set_size(valid_shape.count());
+                        (*node_proto_attr)[key].set_type(TENSOR);
+                    } else {
+                        // set proto tensor valid shape
+                        for (int i = 0; i < valid_shape.dims(); i++) {
+                            (*node_proto_attr)[key].mutable_tensor()->mutable_valid_shape()->mutable_dim()->add_value(valid_shape[i]);
+                        }
+                        (*node_proto_attr)[key].mutable_tensor()->mutable_valid_shape()->mutable_dim()->set_size(
+                            valid_shape.size());
+
+                        // set proto tensor real shape
+                        for (int i = 0; i < real_shape.dims(); i++) {
+                            (*node_proto_attr)[key].mutable_tensor()->mutable_shape()->mutable_dim()->add_value(real_shape[i]);
+                        }
+                        (*node_proto_attr)[key].mutable_tensor()->mutable_shape()->mutable_dim()->set_size(
+                            real_shape.size());
+
+                        // set proto tensor data
+                        for (int i = 0; i < real_shape.count(); i++) {
+                            (*node_proto_attr)[key].mutable_tensor()->mutable_data()->add_f(cpu_data[i]);
+                        }
+
+                        (*node_proto_attr)[key].mutable_tensor()->mutable_data()->set_type(FLOAT);
+                        (*node_proto_attr)[key].mutable_tensor()->mutable_data()->set_size(real_shape.count());
+                        (*node_proto_attr)[key].set_type(TENSOR);
+                    }
+        }
             } else {
-                LOG(ERROR) << "node: " << node_p->name() << " (" << node_p->get_op_name() << ") \
-                              key : " << key << " value_type: " << value.type();
+                auto tuple_float = any_cast<PTuple<float>>(value);
+                (*node_proto_attr)[key].set_type(CACHE_LIST);
+                (*node_proto_attr)[key].mutable_cache_list()->set_type(FLOAT);
+                (*node_proto_attr)[key].mutable_cache_list()->set_size(tuple_float.size());
+
+                //LOG(ERROR) << "node: " << node_p->name() << " (" << node_p->get_op_name() << ") \
+                    key : " << key << " value_type: " << value.type();
             }
         }
 
@@ -331,13 +456,40 @@ Status NodeIO<Ttype, Dtype, Ptype>::operator<<(GraphProto& graph) {
     return Status::OK();
 }
 
-template class NodeIO<NV, AK_FLOAT, Precision::FP32>;
-template class NodeIO<NV, AK_FLOAT, Precision::FP16>;
-template class NodeIO<NV, AK_FLOAT, Precision::INT8>;
+#ifdef USE_CUDA
+template class NodeIO<NV, Precision::FP32>;
+template class NodeIO<NV, Precision::FP16>;
+template class NodeIO<NV, Precision::INT8>;
+#endif
 
-template class NodeIO<ARM, AK_FLOAT, Precision::FP32>;
-template class NodeIO<ARM, AK_FLOAT, Precision::FP16>;
-template class NodeIO<ARM, AK_FLOAT, Precision::INT8>;
+#ifdef USE_MLU
+template class NodeIO<MLU, Precision::FP32>;
+template class NodeIO<MLU, Precision::FP16>;
+template class NodeIO<MLU, Precision::INT8>;
+#endif
+#ifdef AMD_GPU
+template class NodeIO<AMD, Precision::FP32>;
+template class NodeIO<AMD, Precision::FP16>;
+template class NodeIO<AMD, Precision::INT8>;
+#endif
+
+#if defined USE_X86_PLACE || defined BUILD_LITE
+template class NodeIO<X86, Precision::FP32>;
+template class NodeIO<X86, Precision::FP16>;
+template class NodeIO<X86, Precision::INT8>;
+#endif
+
+#ifdef USE_ARM_PLACE
+template class NodeIO<ARM, Precision::FP32>;
+template class NodeIO<ARM, Precision::FP16>;
+template class NodeIO<ARM, Precision::INT8>;
+#endif
+
+#ifdef USE_BM_PLACE
+template class NodeIO<BM, Precision::FP32>;
+template class NodeIO<BM, Precision::FP16>;
+template class NodeIO<BM, Precision::INT8>;
+#endif
 
 } /* parser */
 

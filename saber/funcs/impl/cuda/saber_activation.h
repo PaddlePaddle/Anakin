@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,54 +22,30 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-class SaberActivation<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
+template <DataType OpDtype>
+class SaberActivation<NV, OpDtype> :
     public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, 
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        ActivationParam<Tensor<NV, OpDtype, LayOutType_op> > > 
-{
+        NV, OpDtype,
+        ActivationParam<NV> > {
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
+    SaberActivation() = default;
+    ~SaberActivation() = default;
 
-    SaberActivation()
-    {}
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            ActivationParam<NV>& param, Context<NV>& ctx);
 
-    ~SaberActivation() {}
-
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            ActivationParam<OpTensor>& param, Context<NV>& ctx) {
-        this->_ctx = ctx;
-        return SaberSuccess;
-    }
-
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            ActivationParam<OpTensor>& param, Context<NV> &ctx) {
-        this->_ctx = ctx;
-        return SaberSuccess;
-    }
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            ActivationParam<NV>& param, Context<NV> &ctx);
     
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                          std::vector<DataTensor_out*>& outputs,
-                          ActivationParam<OpTensor>& param);
-
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
+                          std::vector<Tensor<NV>*>& outputs,
+                          ActivationParam<NV>& param);
+private:
+    Tensor<NV> _int8_input;
 };
-
-//template class SaberActivation<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 
 }
 

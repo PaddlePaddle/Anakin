@@ -4,30 +4,19 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Deconvolution<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<DeconvolutionHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<DeconvolutionHelper<NV, AK_FLOAT, Precision::FP32>*>
-                  (this->_helper)->_param_deconv;
-    impl->_funcs_deconv(ins, outs, param, ctx);
-}
-#endif
-
-/// TODO ... specialization other type of operator
-
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-DeconvolutionHelper<Ttype, Dtype, Ptype>::~DeconvolutionHelper() {
+#define INSTANCE_DECONV(Ttype, Ptype) \
+template<> \
+void Deconvolution<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype> >& ins, \
+        std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<DeconvolutionHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<DeconvolutionHelper<Ttype, Ptype>*>(this->_helper)->_param_deconv; \
+    impl->_funcs_deconv(ins, outs, param, ctx); \
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DeconvolutionHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Deconvolution op parameter.";
+template<typename Ttype, Precision Ptype>
+Status DeconvolutionHelper<Ttype, Ptype>::InitParam() {
+    DLOG(WARNING) << "Parsing Deconvolution op parameter.";
     auto group = GET_PARAMETER(int, group);
     auto bias_term = GET_PARAMETER(bool, bias_term);
     auto padding = GET_PARAMETER(PTuple<int>, padding);
@@ -37,18 +26,25 @@ Status DeconvolutionHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
 
-    auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
-
+	using pblock_type = PBlock<Ttype>;
+    auto weights = GET_PARAMETER(pblock_type, weight_1);
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
     if (bias_term) {
-        auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
-        saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
                                               &(weights.d_tensor()), &(bias.d_tensor()));
         _param_deconv = conv_param;
     } else {
-        Tensor4d<Ttype, Dtype>* bias = new Tensor4d<Ttype, Dtype>();;
-        saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
+        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
                                               &(weights.d_tensor()), bias);
@@ -58,10 +54,32 @@ Status DeconvolutionHelper<Ttype, Dtype, Ptype>::InitParam() {
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DeconvolutionHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status DeconvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
+        const std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
+    if (std::is_same<Ttype,X86>::value){
+        SABER_CHECK(_funcs_deconv.init(ins, outs, _param_deconv, SPECIFY, SABER_IMPL, ctx));
+        return Status::OK();
+    }
+    SABER_CHECK(_funcs_deconv.init(ins, outs, _param_deconv, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
+
+template<typename Ttype, Precision Ptype>
+Status DeconvolutionHelper<Ttype, Ptype>::InferShape(const
+        std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
+    SABER_CHECK(_funcs_deconv.compute_output_shape(ins, outs, _param_deconv));
+    return Status::OK();
+}
+
+#ifdef USE_CUDA
+INSTANCE_DECONV(NV, Precision::FP32);
+template<>
+Status DeconvolutionHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx,
+        const std::vector<Tensor4dPtr<NV> >& ins,
+        std::vector<Tensor4dPtr<NV >>& outs) {
     bool p = true;
     p = p && (_param_deconv.weight()->width() == 4);
     p = p && (_param_deconv.weight()->height() == 4);
@@ -85,55 +103,65 @@ Status DeconvolutionHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
 
     return Status::OK();
 }
+template class DeconvolutionHelper<NV, Precision::FP32>;
+template class DeconvolutionHelper<NV, Precision::FP16>;
+template class DeconvolutionHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, NV, Precision::FP32);
+#endif
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DeconvolutionHelper<Ttype, Dtype, Ptype>::InferShape(const
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    SABER_CHECK(_funcs_deconv.compute_output_shape(ins, outs, _param_deconv));
-    return Status::OK();
-}
+#ifdef USE_MLU
+INSTANCE_DECONV(MLU, Precision::FP32);
+INSTANCE_DECONV(MLU, Precision::FP16);
+template class DeconvolutionHelper<MLU, Precision::FP32>;
+template class DeconvolutionHelper<MLU, Precision::FP16>;
+template class DeconvolutionHelper<MLU, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, MLU, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, MLU, Precision::FP16);
+#endif  // USE_MLU
 
-#ifdef USE_CUDA
-template class DeconvolutionHelper<NV, AK_FLOAT, Precision::FP32>;
-template class DeconvolutionHelper<NV, AK_FLOAT, Precision::FP16>;
-template class DeconvolutionHelper<NV, AK_FLOAT, Precision::INT8>;
+#ifdef USE_X86_PLACE
+INSTANCE_DECONV(X86, Precision::FP32);
+template class DeconvolutionHelper<X86, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, X86, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-template class DeconvolutionHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class DeconvolutionHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class DeconvolutionHelper<ARM, AK_FLOAT, Precision::INT8>;
+INSTANCE_DECONV(ARM, Precision::FP32);
+INSTANCE_DECONV(ARM, Precision::INT8);
+template class DeconvolutionHelper<ARM, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, ARM, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, ARM, Precision::INT8);
 #endif
 
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, NV, AK_FLOAT, Precision::FP32);
+#if defined BUILD_LITE
+INSTANCE_DECONV(X86, Precision::FP32);
+template class DeconvolutionHelper<X86, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, X86, Precision::FP32);
 #endif
-
-#ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, ARM, AK_FLOAT, Precision::FP32);
-#endif
-
 //! register op
 ANAKIN_REGISTER_OP(Deconvolution)
 .Doc("Deconvolution operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("deconvolution")
+.__alias__<NV, Precision::FP32>("deconvolution")
 #endif
+
+#ifdef USE_MLU
+.__alias__<MLU, Precision::FP32>("deconvolution")
+#endif  // USE_MLU
+
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("deconvolution")
+.__alias__<ARM, Precision::FP32>("deconvolution")
 #endif
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")
 .Args<bool>("bias_term", " whether conv weights have bias")
 .Args<PTuple<int>>("padding", "padding of conv (x, y)")
-                .Args<PTuple<int>>("strides", "strides of conv (x)")
-                .Args<PTuple<int>>("dilation_rate", "dilation rate of conv (x)")
-                .Args<int>("filter_num", "filter(kernel) number of weights")
-                .Args<PTuple<int>>("kernel_size", "kernel size of kernel (x, y)")
-                .Args<int>("axis", "axis of conv");
+.Args<PTuple<int>>("strides", "strides of conv (x)")
+.Args<PTuple<int>>("dilation_rate", "dilation rate of conv (x)")
+.Args<int>("filter_num", "filter(kernel) number of weights")
+.Args<PTuple<int>>("kernel_size", "kernel size of kernel (x, y)")
+.Args<int>("axis", "axis of conv");
 
 } /* namespace ops */
 

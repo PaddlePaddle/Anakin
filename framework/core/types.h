@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -36,6 +36,14 @@ enum class Precision : int {
 enum class OpRunType : int {
     SYNC,           ///< the net exec synchronous (for GPU, means single-stream)
     ASYNC           ///< ASYNC the net exec asynchronous (for GPU, means mutli-stream)
+};
+
+/**
+ *  \brief service run pattern
+ */
+enum class ServiceRunPattern: int {
+    SYNC,
+    ASYNC
 };
 
 /** 

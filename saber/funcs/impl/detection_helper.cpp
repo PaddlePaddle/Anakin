@@ -109,26 +109,22 @@ void apply_nms_fast(const dtype* bboxes, const dtype* scores, int num,
 }
 
 template <typename dtype>
-void nms_detect(const dtype* bbox_cpu_data, const dtype* conf_cpu_data, std::vector<dtype>& result,
-                \
-                int batch_num, int class_num, int num_priors, int background_id, \
+void nms_detect(const dtype* bbox_cpu_data, const dtype* conf_cpu_data, std::vector<dtype>& result, \
+                const std::vector<int>& priors, int class_num, int background_id, \
                 int keep_topk, int nms_topk, float conf_thresh, float nms_thresh, \
                 float nms_eta, bool share_location) {
 
     int num_kept = 0;
     std::vector<std::map<int, std::vector<int>>> all_indices;
-
-    for (int i = 0; i < batch_num; ++i) {
+    long long conf_offset = 0;
+    long long bbox_offset = 0;
+    for (int i = 0; i < priors.size(); ++i) {
         std::map<int, std::vector<int>> indices;
         int num_det = 0;
-        const int conf_idx = i * class_num * num_priors;
-        int bbox_idx;
+        int num_priors = priors[i];
 
-        if (share_location) {
-            bbox_idx = i * num_priors * 4;
-        } else {
-            bbox_idx = conf_idx * 4;
-        }
+        int conf_idx = class_num * conf_offset;
+        int bbox_idx = share_location? bbox_offset * 4 : bbox_offset * 4 * class_num;
 
         for (int c = 0; c < class_num; ++c) {
             if (c == background_id) {
@@ -182,6 +178,8 @@ void nms_detect(const dtype* bbox_cpu_data, const dtype* conf_cpu_data, std::vec
             all_indices.push_back(indices);
             num_kept += num_det;
         }
+        conf_offset += num_priors;
+        bbox_offset += num_priors;
     }
 
     if (num_kept == 0) {
@@ -193,15 +191,12 @@ void nms_detect(const dtype* bbox_cpu_data, const dtype* conf_cpu_data, std::vec
 
     int count = 0;
 
-    for (int i = 0; i < batch_num; ++i) {
-        const int conf_idx = i * class_num * num_priors;
-        int bbox_idx;
-
-        if (share_location) {
-            bbox_idx = i * num_priors * 4;
-        } else {
-            bbox_idx = conf_idx * 4;
-        }
+    conf_offset = 0;
+    bbox_offset = 0;
+    for (int i = 0; i < priors.size(); ++i) {
+        int num_priors = priors[i];
+        int conf_idx = class_num * conf_offset;
+        int bbox_idx = share_location? bbox_offset * 4 : bbox_offset * 4 * class_num;
 
         for (auto it = all_indices[i].begin(); it != all_indices[i].end(); ++it) {
             int label = it->first;
@@ -227,6 +222,8 @@ void nms_detect(const dtype* bbox_cpu_data, const dtype* conf_cpu_data, std::vec
                 ++count;
             }
         }
+        conf_offset += num_priors;
+        bbox_offset += num_priors;
     }
 }
 
@@ -238,7 +235,7 @@ template void apply_nms_fast(const float* bboxes, const float* scores, int num,
 
 template void nms_detect(const float* bbox_cpu_data, const float* conf_cpu_data,
                          std::vector<float>& result, \
-                         int batch_num, int class_num, int num_priors, int background_id, \
+                         const std::vector<int>& priors, int class_num, int background_id, \
                          int keep_topk, int nms_topk, float conf_thresh, float nms_thresh, float nms_eta,
                          bool share_location);
 

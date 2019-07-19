@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #ifndef ANAKIN_THREAD_POOL_H
 #define ANAKIN_THREAD_POOL_H 
 
+#include "anakin_config.h"
 #include <vector>
 #include <thread>
 #include <queue>
@@ -47,7 +48,6 @@ public:
      */
     template<typename functor, typename ...ParamTypes>
     typename std::future<typename function_traits<functor>::return_type> RunAsync(functor function, ParamTypes ...args);
-
     
     /// Stop the pool.
     void stop();

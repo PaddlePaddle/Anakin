@@ -4,10 +4,15 @@
 #include "tls.h"
 #include "parameter.h"
 #include "thread_pool.h"
+
+#ifdef USE_CUDA
 #include "cuda_funcs.h"
 #include "sass_funcs.h"
+#endif
+
 #include "tensor.h"
 
+#if 0 //#ifdef USE_CUDA
 TEST(CoreComponentsTest, sass_test) {
     LOG(INFO) << "test for cuda code function";
     //anakin::saber::Tensor<3, RTCUDA, float, NCHW> ts;
@@ -19,6 +24,7 @@ TEST(CoreComponentsTest, sass_test) {
     LOG(INFO) << "test for sass code function 2";
     invoke_test_2();
 }
+#endif
 
 TEST(CoreComponentsTest, core_base_types_any_test) {
     LOG(INFO) << "test for any class .";

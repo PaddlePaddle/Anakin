@@ -21,7 +21,7 @@ __global__ void softmax_max_kernel(int total_size, const dtype* in_data, dtype* 
         for (int i = 0; i < axis_size; ++i) {
             max_data = in_data[real_index] > max_data? in_data[real_index] : max_data;
             real_index += inner_num;
-        }
+    }
         out_data[idx] = max_data;
     }
 }
@@ -206,19 +206,13 @@ __global__ void sharemem_softmax_kernel(int total_size, \
             }
         }
 
-        //! subtract
-        #pragma unroll
-        for (int i = 0; i < axis_size; ++i) {
-            data[i * blocksize] -= max_data;
-        }
-
-        //! summarize
+        //! subtract then summarize
         dtype sum = 0;
         #pragma unroll
         for (int i = 0; i < axis_size; ++i) {
             //dtype *dt = &data[i][thread_idx];
             dtype *dt = data + i * blocksize;
-            *dt = expf(*dt);
+            *dt = expf(*dt - max_data);
             sum += *dt;
         }
 
@@ -268,7 +262,7 @@ __global__ void sharemem_softmax_roi_kernel(int total_size, \
         for (int i = 0; i < axis_size; ++i) {
             data[i * blocksize] = in_data[input_real_index];
             input_real_index += input_stride_real[softmax_axis];
-        }
+    }
 
         //! get maximum value in softmax channel
         dtype max_data = data[0];
@@ -280,19 +274,13 @@ __global__ void sharemem_softmax_roi_kernel(int total_size, \
             }
         }
 
-        //! subtract
-        #pragma unroll
-        for (int i = 0; i < axis_size; ++i) {
-            data[i * blocksize] -= max_data;
-        }
-
-        //! summarize
+        //! subtract then summarize
         dtype sum = 0;
         #pragma unroll
         for (int i = 0; i < axis_size; ++i) {
             //dtype *dt = &data[i][thread_idx];
             dtype *dt = data + i * blocksize;
-            *dt = expf(*dt);
+            *dt = expf(*dt - max_data);
             sum += *dt;
         }
 
@@ -305,51 +293,106 @@ __global__ void sharemem_softmax_roi_kernel(int total_size, \
     }
 }
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberSoftmax<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    SoftmaxParam<OpTensor>& param) {
+template <>
+SaberStatus SaberSoftmax<NV, AK_FLOAT>::create(
+        const std::vector<Tensor<NV> *>& inputs,
+        std::vector<Tensor<NV> *>& outputs,
+        SoftmaxParam<NV>& param, Context<NV>& ctx) {
 
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    //! compute size
+    Shape shape_in = inputs[0]->valid_shape();
+    Shape shape_out = outputs[0]->valid_shape();
+    CHECK_EQ(shape_in == shape_out, true) << "valid shapes must be the same";
+    _outer_num = inputs[0]->count_valid(0, param.axis);
+    _inner_num = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
+    _axis_size = shape_in[param.axis];
+
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, API::get_device_id());
+    size_t sharedmem_size = deviceProp.sharedMemPerBlock;
+    _max_dimsize = sharedmem_size / sizeof(float) / CUDA_NUM_THREADS;
+
+    Shape sh_tmp({1, 1, 1, _outer_num * _inner_num});
+    if (_axis_size > _max_dimsize){
+        //! re_alloc device memory
+        _max_data.reshape(sh_tmp);
+        _sum_data.reshape(sh_tmp);
+    }
+
+    //! CHECK whether the input or output tensor is with continuous buffer or not
+    _is_continue_buf = outputs[0]->is_continue_mem() && inputs[0]->is_continue_mem();
+    _dims = shape_in.size();
+    if (!_is_continue_buf) {
+        Shape sh_input_real_stride = inputs[0]->get_stride();
+        Shape sh_output_real_stride = outputs[0]->get_stride();
+
+        //! re_alloc device memory
+        Shape sh({1, 1, 1, _dims});
+        _valid_shape.reshape(sh);
+        _input_stride.reshape(sh);
+        _output_stride.reshape(sh);
+
+        CUDA_CHECK(cudaMemcpy(_valid_shape.mutable_data(), inputs[0]->valid_shape().data(), \
+                sizeof(int) * _dims, cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(_input_stride.mutable_data(), sh_input_real_stride.data(), \
+                sizeof(int) * _dims, cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(_output_stride.mutable_data(), sh_output_real_stride.data(), \
+                sizeof(int) * _dims, cudaMemcpyHostToDevice));
+    }
+    return SaberSuccess;
+}
+
+template <>
+SaberStatus SaberSoftmax<NV, AK_FLOAT>::init(
+    const std::vector<Tensor<NV> *>& inputs,
+    std::vector<Tensor<NV> *>& outputs,
+    SoftmaxParam<NV>& param, Context<NV>& ctx) {
+
+    //! get context
+    this->_ctx = &ctx;
+    return create(inputs, outputs, param, ctx);
+}
+
+
+template <>
+SaberStatus SaberSoftmax<NV, AK_FLOAT>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    SoftmaxParam<NV>& param) {
+
+    cudaStream_t stream = this->_ctx->get_compute_stream();
     //! inputs only has one tensor
     int total_threads = this->_inner_num * this->_outer_num;
-    const InDataType* data_in = inputs[0]->data();
-    InDataType* data_out = outputs[0]->mutable_data();
-    InDataType* max_data = this->_max_data.mutable_data();
-    InDataType* sum_data = this->_sum_data.mutable_data();
-    const int* valid_shape = _valid_shape.data();
-    const int* input_stride = _input_stride.data();
-    const int* output_stride = _output_stride.data();
+    const float* data_in = (const float* )inputs[0]->data();
+    float* data_out = (float*)outputs[0]->mutable_data();
+    float* max_data = (float*)this->_max_data.mutable_data();
+    float* sum_data = (float*)this->_sum_data.mutable_data();
+    const int* valid_shape = (const int*)_valid_shape.data();  
+    const int* input_stride = (const int*)_input_stride.data();
+    const int* output_stride = (const int*)_output_stride.data();
 
     if (_is_continue_buf) {
         //! softmax kernel without roi
         if (this->_axis_size <= _max_dimsize){
-            int sharemem_size = this->_axis_size * CUDA_NUM_THREADS * sizeof(InDataType);
-            sharemem_softmax_kernel<InDataType>\
+            int sharemem_size = this->_axis_size * CUDA_NUM_THREADS * sizeof(float);
+            sharemem_softmax_kernel<float>\
                 <<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, sharemem_size, stream>>>(
                     total_threads, data_in, data_out,
                             this->_inner_num, this->_outer_num, this->_axis_size);
         } else {
             //! firstly, get maximum data
-            InDataType min_data = std::numeric_limits<InDataType>::min();
-            softmax_max_kernel<InDataType>\
+            float min_data = std::numeric_limits<float>::min();
+            softmax_max_kernel<float>\
                 <<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 0, stream>>>(
                     total_threads, data_in, max_data, min_data, \
                 this->_inner_num, this->_outer_num, this->_axis_size);
             //! then, compute exp and sum data
-            softmax_sub_exp_sum_kernel<InDataType>
+            softmax_sub_exp_sum_kernel<float>
                     <<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 0, stream>>>(
                     total_threads, data_in, data_out, max_data, sum_data, \
                 this->_inner_num, this->_outer_num, this->_axis_size);
             //! lastly, compute divided output
-            softmax_divid_output_kernel<InDataType>\
+            softmax_divid_output_kernel<float>\
                 <<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 0, stream>>>(
                     total_threads, data_out, sum_data, \
                 this->_inner_num, this->_outer_num, this->_axis_size);
@@ -357,28 +400,28 @@ SaberStatus SaberSoftmax<NV, OpDtype, inDtype, outDtype,\
     } else {
         //! softmax kernel with roi
         if (this->_axis_size <= _max_dimsize){
-            int sharemem_size = this->_axis_size * CUDA_NUM_THREADS * sizeof(InDataType);
-            sharemem_softmax_roi_kernel<InDataType>\
+            int sharemem_size = this->_axis_size * CUDA_NUM_THREADS * sizeof(float);
+            sharemem_softmax_roi_kernel<float>\
                 <<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, sharemem_size, stream>>>(
                     total_threads, data_in, data_out,
                     input_stride, output_stride, valid_shape, \
                     param.axis, _axis_size, _dims);
         } else {
             //! firstly, get maximum data
-            InDataType min_data = std::numeric_limits<InDataType>::min();
-            softmax_max_roi_kernel<InDataType>\
+            float min_data = std::numeric_limits<float>::min();
+            softmax_max_roi_kernel<float>\
                 <<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 0, stream>>>(
                     total_threads, data_in, max_data, min_data, \
                     input_stride, output_stride, valid_shape, \
                     param.axis, _axis_size, _dims);
             //! then, compute exp and sum data
-            softmax_sub_exp_sum_roi_kernel<InDataType>
+            softmax_sub_exp_sum_roi_kernel<float>
                     <<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 0, stream>>>(
                     total_threads, data_in, data_out, max_data, sum_data, \
                     input_stride, output_stride, valid_shape, \
                     param.axis, _axis_size, _dims);
             //! lastly, compute divided output
-            softmax_divid_output_roi_kernel<InDataType>\
+            softmax_divid_output_roi_kernel<float>\
                 <<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 0, stream>>>(
                     total_threads, data_out, sum_data, \
                     input_stride, output_stride, valid_shape, \
@@ -386,10 +429,41 @@ SaberStatus SaberSoftmax<NV, OpDtype, inDtype, outDtype,\
         }
     }
 
-    //outputs[0]->record_event(stream);
     return SaberSuccess;
 }
 
+// ============================================= int8
+template <>
+SaberStatus SaberSoftmax<NV, AK_INT8>::create(
+        const std::vector<Tensor<NV> *>& inputs,
+        std::vector<Tensor<NV> *>& outputs,
+        SoftmaxParam<NV>& param, Context<NV>& ctx) {
+
+    return SaberSuccess;
+}
+
+template <>
+SaberStatus SaberSoftmax<NV, AK_INT8>::init(
+        const std::vector<Tensor<NV> *>& inputs,
+        std::vector<Tensor<NV> *>& outputs,
+        SoftmaxParam<NV>& param, Context<NV>& ctx) {
+
+    this->_ctx = &ctx;
+    return create(inputs, outputs, param, ctx);
+}
+
+template <>
+SaberStatus SaberSoftmax<NV, AK_INT8>::dispatch(
+        const std::vector<Tensor<NV> *>& inputs,
+        std::vector<Tensor<NV> *>& outputs,
+        SoftmaxParam<NV>& param) {
+
+    return SaberSuccess;
+}
+
+template class SaberSoftmax<NV, AK_FLOAT>;
+template class SaberSoftmax<NV, AK_INT8>;
+DEFINE_OP_TEMPLATE(SaberSoftmax, SoftmaxParam, NV, AK_HALF);
 } //namespace anakin
 
 } //namespace anakin

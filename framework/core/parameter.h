@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -33,14 +33,14 @@ using namespace saber;
 /// Basic type define comes from lib saber by hac-sys-baidu.
 #ifndef USE_SABER
 #define USE_SABER
-template<typename Ttype, DataType Dtype>
-using Tensor4d = Tensor<Ttype, Dtype>;/// saber::Tensor<4, Ttype, Dtype, NCHW>;
+template<typename Ttype>
+using Tensor4d = Tensor<Ttype>;
 /// Global type to tensor pointer.
-template<typename Ttype, DataType Dtype>
-using Tensor4dPtr = Tensor4d<Ttype, Dtype>*;/// std::shared_ptr<Tensor4d<Ttype, Dtype> >;
+template<typename Ttype>
+using Tensor4dPtr = Tensor4d<Ttype>*;
 
-template<typename Ttype, DataType Dtype>
-using TensorSharedPtr = std::shared_ptr<Tensor4d<Ttype, Dtype> >;
+template<typename Ttype>
+using TensorSharedPtr = std::shared_ptr<Tensor4d<Ttype> >;
 
 using Shape4d = Shape;/// saber::Shape<4>;
 
@@ -85,9 +85,28 @@ public:
         _size = elems.size();
         _elems = std::move(elems);
     }
+    bool operator==(const PTuple& right){
+        if (_size != right.size()){
+            return false;
+        }
+        for (int i = 0; i < _size; ++i){
+            if (_elems[i] != right[i]){
+                return false;
+            }
+        }
+        return true;
+    }
+    bool operator!=(const PTuple& right){
+        return !(this->operator==(right));
+    }
 
-    inline int size() { return _size; }
+    inline int size() const { return _size; }
     inline typename std_vector_type_warpper<T>::type& operator[](int index) {
+        CHECK_GE(index, 0) << "index("<<index<<") must >= the size("<< _size <<") of PTuple";
+        CHECK_LT(index, _size) << "index("<<index<<") must < the size("<< _size <<") of PTuple";
+        return _elems[index];
+    }
+    inline typename std_vector_type_warpper<T>::type operator[](int index) const {
         CHECK_GE(index, 0) << "index("<<index<<") must >= the size("<< _size <<") of PTuple";
         CHECK_LT(index, _size) << "index("<<index<<") must < the size("<< _size <<") of PTuple";
         return _elems[index];
@@ -110,8 +129,8 @@ public:
 
 private:
     std::vector<typename std_vector_type_warpper<T>::ret_type>& _get_vector(Bool2Type<true>) {
-        for(auto& item : _elems) {
-            if(item == "true") {
+        for (auto& item : _elems) {
+            if (item == "true") {
                 _ret_elems.push_back(true);
             } else {
                 _ret_elems.push_back(false);
@@ -164,64 +183,86 @@ private:
 
 template<typename T>
 struct DataTypeRecover; /// declare for PBlock
-/** 
+
+/**
  *  \brief a simple wrapper of tensor use in weights parameter.
  *   default layout [ NCHW ]
  */
-template<typename T>
+template<typename Ttype>
 class PBlock {
 public:
-    typedef Tensor4d<NV, DataTypeRecover<T>::type> d_type;
-    typedef Tensor4d<NVHX86, DataTypeRecover<T>::type> h_type;
+    inline bool host_only() { return true; }
 
+    inline void map_to_host() {}
+};
 
-    PBlock() {
-        _d_inner_tensor = std::make_shared<d_type>();
-        _h_inner_tensor = std::make_shared<h_type>();
+#ifdef USE_CUDA
+template<>
+class PBlock<NV> {
+public:
+    typedef Tensor4d<NV> d_type;
+    typedef Tensor4d<NVHX86> h_type;
+
+    PBlock(DataType Dtype = AK_FLOAT) {
+        _d_inner_tensor = std::make_shared<d_type>(Dtype); 
+        _h_inner_tensor = std::make_shared<h_type>(Dtype);
     }
-    PBlock(Shape4d& shape) {
-        _d_inner_tensor = std::make_shared<d_type>(shape);
-        _h_inner_tensor = std::make_shared<h_type>(shape);
+
+    PBlock(Shape4d& shape, DataType Dtype = AK_FLOAT) {
+        _d_inner_tensor = std::make_shared<d_type>(shape, Dtype);
+        _h_inner_tensor = std::make_shared<h_type>(shape, Dtype);
     }
+
+    inline bool host_only() { return false; }
+
+    inline void map_to_host() {
+        if (_h_inner_tensor->get_dtype() != _d_inner_tensor->get_dtype()) {
+            _h_inner_tensor->set_dtype(_d_inner_tensor->get_dtype());
+        }
+        _h_inner_tensor->re_alloc(this->real_shape(), _h_inner_tensor->get_dtype());
+        auto save_valid_shape = _d_inner_tensor->valid_shape();
+        _d_inner_tensor->set_shape(this->real_shape());
+        _h_inner_tensor->copy_from(*_d_inner_tensor);
+        _d_inner_tensor->set_shape(save_valid_shape);
+        _h_inner_tensor->set_shape(save_valid_shape);
+    }
+    inline void map_to_device() {
+        if (_d_inner_tensor->get_dtype() != _h_inner_tensor->get_dtype()) {
+            _d_inner_tensor->set_dtype(_h_inner_tensor->get_dtype());
+        }
+        _d_inner_tensor->re_alloc(this->real_shape(), _d_inner_tensor->get_dtype());
+        auto save_valid_shape = _h_inner_tensor->valid_shape();
+        _h_inner_tensor->set_shape(this->real_shape());
+        _d_inner_tensor->copy_from(*_h_inner_tensor);
+        _h_inner_tensor->set_shape(save_valid_shape);
+        _d_inner_tensor->set_shape(save_valid_shape);
+    }
+
+    /// share from others TODO
+    void share_from(const PBlock<NV>& p_block, const std::string& target) {
+        *this = p_block;
+        this->_shared = true;
+        this->_share_from = target;
+    }
+
+    bool is_shared() { return this->_shared; }
+
+    std::string share_target() { return this->_share_from; }
 
     /// shallow copy construction
-    PBlock(PBlock<T>& p_block) { *this = p_block; }
+    PBlock(PBlock<NV>& p_block) { *this = p_block; }
 
-    PBlock(const PBlock<T>& p_block) { *this = p_block; }
+    PBlock(const PBlock<NV>& p_block) { *this = p_block; }
 
     /// assign
-    PBlock<T>& operator=(const PBlock<T>& p_block) {
+    PBlock<NV>& operator=(const PBlock<NV>& p_block) {
         _d_inner_tensor = p_block._d_inner_tensor;
         _h_inner_tensor = p_block._h_inner_tensor;
-        /*_d_inner_tensor = std::make_shared<d_type>();
-        _h_inner_tensor = std::make_shared<h_type>();
-        _d_inner_tensor->set_shape(p_block._d_inner_tensor->shape());
-        _d_inner_tensor->share_from(*(p_block._d_inner_tensor));
-        _h_inner_tensor->set_shape(p_block._h_inner_tensor->shape()); 
-        _h_inner_tensor->share_from(*(p_block._h_inner_tensor));*/
-        /*_d_inner_tensor->share_sub_buffer(*(p_block._d_inner_tensor), 
-                                          p_block._d_inner_tensor->shape(),
-                                          p_block._d_inner_tensor->offset());
-        _h_inner_tensor->share_sub_buffer(*(p_block._h_inner_tensor),
-                                          p_block._h_inner_tensor->shape(),
-                                          p_block._h_inner_tensor->offset());*/
     }
 
-    PBlock<T>& operator=(PBlock<T>& p_block) {
+    PBlock<NV>& operator=(PBlock<NV>& p_block) {
         _d_inner_tensor = p_block._d_inner_tensor;
         _h_inner_tensor = p_block._h_inner_tensor;
-        /*_d_inner_tensor = std::make_shared<d_type>();
-        _h_inner_tensor = std::make_shared<h_type>();
-        _d_inner_tensor->set_shape(p_block._d_inner_tensor->shape());
-        _d_inner_tensor->share_from(*(p_block._d_inner_tensor));
-        _h_inner_tensor->set_shape(p_block._h_inner_tensor->shape()); 
-        _h_inner_tensor->share_from(*(p_block._h_inner_tensor));*/
-        /*_d_inner_tensor->share_sub_buffer(*(p_block._d_inner_tensor), 
-                                          p_block._d_inner_tensor->shape(),
-                                          p_block._d_inner_tensor->offset());
-        _h_inner_tensor->share_sub_buffer(*(p_block._h_inner_tensor),
-                                          p_block._h_inner_tensor->shape(),
-                                          p_block._h_inner_tensor->offset());*/
     }
 
     /// Get tensor.
@@ -229,13 +270,123 @@ public:
     h_type& h_tensor() { return *(_h_inner_tensor); }
 
     /// Get host data to vector.
-    std::vector<T> vector() {
-        std::vector<T> ret;
-        auto* data = _h_inner_tensor->mutable_data();
+    std::vector<float> vector() {
+        std::vector<float> ret;
+        DataTraitBase<NV>::PtrDtype data = _h_inner_tensor->mutable_data();
         for (int i = 0; i <_h_inner_tensor->valid_size(); i++) {
-            ret.push_back(data[i]);
+            ret.push_back(((float*)data)[i]);
         }
         return ret;
+    }
+
+    /// re-allocate the storage
+    void re_alloc(Shape4d shape) {
+        _d_inner_tensor->re_alloc(shape);
+        _h_inner_tensor->re_alloc(shape);
+    }
+
+    /// Get shape.
+    Shape4d shape() const { 
+        CHECK(_d_inner_tensor->valid_shape() == _h_inner_tensor->valid_shape()) 
+            << " [Fatal Err]  device shape is not equal to that of host in PBlock";
+        return _d_inner_tensor->valid_shape(); 
+    }
+
+    ///get data type
+    DataType data_type(){
+        return _h_inner_tensor -> get_dtype();
+    }
+
+    /// get real shape
+    Shape4d real_shape() {
+        return _d_inner_tensor->shape();
+    }
+
+    /// Get size.
+    size_t count() const { 
+        return this->shape().count();
+    }
+
+    ~PBlock() {}
+
+private:
+    std::shared_ptr<d_type> _d_inner_tensor;
+    std::shared_ptr<h_type> _h_inner_tensor;
+    bool _shared{false};
+    std::string _share_from;
+};
+#endif
+
+#ifdef AMD_GPU
+template<>
+class PBlock<AMD> {
+public:
+    typedef Tensor4d<AMD> d_type;
+    typedef Tensor4d<X86> h_type;
+
+    PBlock(DataType Dtype = AK_FLOAT) {
+        _d_inner_tensor = std::make_shared<d_type>(Dtype); 
+        _h_inner_tensor = std::make_shared<h_type>(Dtype);
+    }
+
+    PBlock(Shape4d& shape, DataType Dtype = AK_FLOAT) {
+        _d_inner_tensor = std::make_shared<d_type>(shape, Dtype);
+        _h_inner_tensor = std::make_shared<h_type>(shape, Dtype);
+    }
+
+    inline bool host_only() { return false; }
+
+    inline void map_to_host() { 
+        _h_inner_tensor->re_alloc(this->real_shape());
+        auto save_valid_shape = _d_inner_tensor->valid_shape();
+        _d_inner_tensor->set_shape(this->real_shape());
+        _h_inner_tensor->copy_from(*_d_inner_tensor);
+        _d_inner_tensor->set_shape(save_valid_shape);
+        _h_inner_tensor->set_shape(save_valid_shape);
+    }
+    inline void map_to_device() { 
+        _d_inner_tensor->re_alloc(this->real_shape());
+        auto save_valid_shape = _h_inner_tensor->valid_shape();
+        _h_inner_tensor->set_shape(this->real_shape());
+        _d_inner_tensor->copy_from(*_h_inner_tensor);
+        _h_inner_tensor->set_shape(save_valid_shape);
+        _d_inner_tensor->set_shape(save_valid_shape);
+    }
+
+    /// shallow copy construction
+    PBlock(PBlock<AMD>& p_block) { *this = p_block; }
+
+    PBlock(const PBlock<AMD>& p_block) { *this = p_block; }
+
+    /// assign
+    PBlock<AMD>& operator=(const PBlock<AMD>& p_block) {
+        _d_inner_tensor = p_block._d_inner_tensor;
+        _h_inner_tensor = p_block._h_inner_tensor;
+    }
+
+    PBlock<AMD>& operator=(PBlock<AMD>& p_block) {
+        _d_inner_tensor = p_block._d_inner_tensor;
+        _h_inner_tensor = p_block._h_inner_tensor;
+    }
+
+    /// Get tensor.
+    d_type& d_tensor() { return *(_d_inner_tensor); }
+    h_type& h_tensor() { return *(_h_inner_tensor); }
+
+    /// Get host data to vector.
+    std::vector<float> vector() {
+        std::vector<float> ret;
+        DataTraitBase<AMD>::PtrDtype data = _h_inner_tensor->mutable_data();
+        for (int i = 0; i <_h_inner_tensor->valid_size(); i++) {
+            ret.push_back(((float*)data)[i]);
+        }
+        return ret;
+    }
+
+    /// re-allocate the storage
+    void re_alloc(Shape4d shape) {
+        _d_inner_tensor->re_alloc(shape);
+        _h_inner_tensor->re_alloc(shape);
     }
 
     /// Get shape.
@@ -245,18 +396,382 @@ public:
         return _d_inner_tensor->valid_shape(); 
     }
 
+    ///get data type
+    DataType data_type(){
+        return _h_inner_tensor -> get_dtype();
+    }
+
+    /// get real shape
+    Shape4d real_shape() {
+        return _d_inner_tensor->shape();
+    }
+
+
     /// Get size.
     size_t count() { 
         return this->shape().count();
     }
 
     ~PBlock() {}
+
+private: 
+    std::shared_ptr<d_type> _d_inner_tensor; 
+    std::shared_ptr<h_type> _h_inner_tensor;
+    bool _shared{false};
+    std::string _share_from;
+};
+#endif
+
+#if defined USE_X86_PLACE || defined BUILD_LITE
+template<>
+class PBlock<X86> {
+public:
+    typedef Tensor4d<X86> type;
+
+    PBlock(DataType Dtype = AK_FLOAT) {
+        _inner_tensor = std::make_shared<type>(Dtype); 
+    }
+
+    PBlock(Shape4d& shape, DataType Dtype = AK_FLOAT) {
+        _inner_tensor = std::make_shared<type>(shape, Dtype);
+    }
+
+    inline bool host_only() { return true; }
+    
+    inline void map_to_host() {}
+    inline void map_to_device() {}
+
+    /// shallow copy construction
+    PBlock(PBlock<X86>& p_block) { *this = p_block; }
+
+    PBlock(const PBlock<X86>& p_block) { *this = p_block; }
+
+    /// assign
+    PBlock<X86>& operator=(const PBlock<X86>& p_block) {
+        _inner_tensor = p_block._inner_tensor;
+        return *this;
+    }
+
+    PBlock<X86>& operator=(PBlock<X86>& p_block) {
+        _inner_tensor = p_block._inner_tensor;
+        return *this;
+    }
+
+    /// Get tensor.
+    type& d_tensor() { return *(_inner_tensor); }
+    type& h_tensor() { return *(_inner_tensor); }
+
+    /// Get host data to vector.
+    std::vector<float> vector() {
+        std::vector<float> ret;
+        DataTraitBase<X86>::PtrDtype data = _inner_tensor->mutable_data();
+        for (int i = 0; i <_inner_tensor->valid_size(); i++) {
+            ret.push_back(((float*)data)[i]);
+        }
+        return ret;
+    }
+
+    // reallocate storage   
+    void re_alloc(Shape4d shape) {
+        _inner_tensor->re_alloc(shape);
+    }
+
+    /// Get shape.
+    Shape4d shape() {
+        return _inner_tensor->valid_shape();
+    }
+    ///get data type
+    DataType data_type(){
+        return _inner_tensor -> get_dtype();
+    }
+    /// get real shape
+    Shape4d real_shape() {
+        return _inner_tensor->shape();
+    }
+
+
+    /// Get size.
+    size_t count() {
+        return this->shape().count();
+    }
+
+    ~PBlock() {}
+
+private:
+    std::shared_ptr<type> _inner_tensor;
+    bool _shared{false};
+    std::string _share_from;
+};
+#endif
+
+#ifdef USE_ARM_PLACE
+template<>
+class PBlock<ARM> {
+public:
+    typedef Tensor4d<ARM> type;
+
+    PBlock(DataType Dtype = AK_FLOAT) {
+        _inner_tensor = std::make_shared<type>(Dtype); 
+    }
+
+    PBlock(Shape4d& shape, DataType Dtype = AK_FLOAT) {
+        _inner_tensor = std::make_shared<type>(shape, Dtype);
+    }
+
+    inline bool host_only() { return true; }
+    inline void map_to_host() {}
+    inline void map_to_device() {}
+
+    /// shallow copy construction
+    PBlock(PBlock<ARM>& p_block) { *this = p_block; }
+
+    PBlock(const PBlock<ARM>& p_block) { *this = p_block; }
+
+    /// assign
+    PBlock<ARM>& operator=(const PBlock<ARM>& p_block) {
+        this->_inner_tensor = p_block._inner_tensor;
+        return *this;
+    }
+
+    PBlock<ARM>& operator=(PBlock<ARM>& p_block) {
+        this->_inner_tensor = p_block._inner_tensor;
+        return *this;
+    }
+
+    /// Get tensor.
+    type& d_tensor() { return *(_inner_tensor); }
+    type& h_tensor() { return *(_inner_tensor); }
+
+    /// Get host data to vector.
+    std::vector<float> vector() {
+        std::vector<float> ret;
+        DataTraitBase<ARM>::PtrDtype data = _inner_tensor->mutable_data();
+        for (int i = 0; i <_inner_tensor->valid_size(); i++) {
+            ret.push_back(((float*)data)[i]);
+        }
+        return ret;
+    }
+
+    // reallocate the storage
+    void re_alloc(Shape4d shape) {
+        _inner_tensor->re_alloc(shape);
+    }
+
+    ///get data type
+    DataType data_type(){
+        return _inner_tensor -> get_dtype();
+    }
+    /// Get shape.
+    Shape4d shape() {
+        return _inner_tensor->valid_shape();
+    }
+
+    Shape4d real_shape() {
+        return _inner_tensor->shape();
+    }
+
+    /// Get size.
+    size_t count() {
+        return this->shape().count();
+    }
+
+    ~PBlock() {}
+
+private:
+    std::shared_ptr<type> _inner_tensor;
+    bool _shared{false};
+    std::string _share_from;
+};
+#endif
+
+#ifdef USE_BM_PLACE
+template<>
+class PBlock<BM> {
+public:
+    typedef Tensor4d<BM> d_type;
+    typedef Tensor4d<BMX86> h_type;
+
+    PBlock(DataType Dtype = AK_FLOAT) {
+        _d_inner_tensor = std::make_shared<d_type>(Dtype);
+        _h_inner_tensor = std::make_shared<h_type>(Dtype);
+    }
+
+    PBlock(Shape4d& shape, DataType Dtype = AK_FLOAT) {
+        _d_inner_tensor = std::make_shared<d_type>(shape, Dtype);
+        _h_inner_tensor = std::make_shared<h_type>(shape, Dtype);
+    }
+
+    inline bool host_only() { return true; }
+
+    inline void map_to_host() {
+        if (_h_inner_tensor->get_dtype() != _d_inner_tensor->get_dtype()) {
+            _h_inner_tensor->set_dtype(_d_inner_tensor->get_dtype());
+        }
+        _h_inner_tensor->re_alloc(this->real_shape());
+        auto save_valid_shape = _d_inner_tensor->valid_shape();
+        _d_inner_tensor->set_shape(this->real_shape());
+        _h_inner_tensor->copy_from(*_d_inner_tensor);
+        _d_inner_tensor->set_shape(save_valid_shape);
+        _h_inner_tensor->set_shape(save_valid_shape);
+    }
+
+    /// shallow copy construction
+    PBlock(PBlock<BM>& p_block) { *this = p_block; }
+
+    PBlock(const PBlock<BM>& p_block) { *this = p_block; }
+
+    /// assign
+    PBlock<BM>& operator=(const PBlock<BM>& p_block) {
+        _d_inner_tensor = p_block._d_inner_tensor;
+        _h_inner_tensor = p_block._h_inner_tensor;
+    }
+
+    PBlock<BM>& operator=(PBlock<BM>& p_block) {
+        _d_inner_tensor = p_block._d_inner_tensor;
+        _h_inner_tensor = p_block._h_inner_tensor;
+    }
+
+    /// Get tensor.
+    d_type& d_tensor() { return *(_d_inner_tensor);}
+    h_type& h_tensor() { return *(_h_inner_tensor); }
+
+    /// Get host data to vector.
+    std::vector<float> vector() {
+        std::vector<float> ret;
+        DataTraitBase<BMX86>::PtrDtype data = _h_inner_tensor->mutable_data();
+
+        for (int i = 0; i < _h_inner_tensor->valid_size(); i++) {
+            ret.push_back(((float*)data)[i]);
+        }
+
+        return ret;
+    }
+
+    // reallocate storage
+    void re_alloc(Shape4d shape) {
+        _d_inner_tensor->re_alloc(shape);
+        _h_inner_tensor->re_alloc(shape);
+    }
+
+    /// Get shape.
+    Shape4d shape() {
+        return _h_inner_tensor->valid_shape();
+    }
+
+    /// get real shape
+    Shape4d real_shape() {
+        return _h_inner_tensor->shape();
+    }
+
+
+    /// Get size.
+    size_t count() {
+        return this->shape().count();
+    }
+
+    ~PBlock() {}
+
 private:
     std::shared_ptr<d_type> _d_inner_tensor;
     std::shared_ptr<h_type> _h_inner_tensor;
 };
+#endif  // USE_BM
 
-/** 
+
+#ifdef USE_MLU
+template<>
+class PBlock<MLU> {
+public:
+    typedef Tensor4d<MLU> d_type;
+    typedef Tensor4d<MLUHX86> h_type;
+
+    PBlock(DataType Dtype = AK_FLOAT) {
+        _d_inner_tensor = std::make_shared<d_type>(Dtype);
+        _h_inner_tensor = std::make_shared<h_type>(Dtype);
+    }
+
+    PBlock(Shape4d& shape, DataType Dtype = AK_FLOAT) {
+        _d_inner_tensor = std::make_shared<d_type>(shape, Dtype);
+        _h_inner_tensor = std::make_shared<h_type>(shape, Dtype);
+    }
+
+    inline bool host_only() { return true; }
+
+    inline void map_to_host() {
+        if (_h_inner_tensor->get_dtype() != _d_inner_tensor->get_dtype()) {
+            _h_inner_tensor->set_dtype(_d_inner_tensor->get_dtype());
+        }
+        _h_inner_tensor->re_alloc(this->real_shape());
+        auto save_valid_shape = _d_inner_tensor->valid_shape();
+        _d_inner_tensor->set_shape(this->real_shape());
+        _h_inner_tensor->copy_from(*_d_inner_tensor);
+        _d_inner_tensor->set_shape(save_valid_shape);
+        _h_inner_tensor->set_shape(save_valid_shape);
+    }
+
+    /// shallow copy construction
+    PBlock(PBlock<MLU>& p_block) { *this = p_block; }
+
+    PBlock(const PBlock<MLU>& p_block) { *this = p_block; }
+
+    /// assign
+    PBlock<MLU>& operator=(const PBlock<MLU>& p_block) {
+        _d_inner_tensor = p_block._d_inner_tensor;
+        _h_inner_tensor = p_block._h_inner_tensor;
+    }
+
+    PBlock<MLU>& operator=(PBlock<MLU>& p_block) {
+        _d_inner_tensor = p_block._d_inner_tensor;
+        _h_inner_tensor = p_block._h_inner_tensor;
+    }
+
+    /// Get tensor.
+    d_type& d_tensor() { return *(_d_inner_tensor);}
+    h_type& h_tensor() { return *(_h_inner_tensor); }
+
+    /// Get host data to vector.
+    std::vector<float> vector() {
+        std::vector<float> ret;
+        DataTraitBase<X86>::PtrDtype data = _h_inner_tensor->mutable_data();
+
+        for (int i = 0; i < _h_inner_tensor->valid_size(); i++) {
+            ret.push_back(((float*)data)[i]);
+        }
+
+        return ret;
+    }
+
+    // reallocate storage
+    void re_alloc(Shape4d shape) {
+        _d_inner_tensor->re_alloc(shape);
+        _h_inner_tensor->re_alloc(shape);
+    }
+
+    /// Get shape.
+    Shape4d shape() {
+        return _h_inner_tensor->valid_shape();
+    }
+
+    /// get real shape
+    Shape4d real_shape() {
+        return _h_inner_tensor->shape();
+    }
+
+
+    /// Get size.
+    size_t count() {
+        return this->shape().count();
+    }
+
+    ~PBlock() {}
+
+private:
+    std::shared_ptr<d_type> _d_inner_tensor;
+    std::shared_ptr<h_type> _h_inner_tensor;
+};
+#endif  // USE_MLU
+
+/**
  *  \brief Enum type.
  */
 struct Enum {

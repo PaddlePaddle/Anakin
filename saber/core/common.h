@@ -1,34 +1,37 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_SABER_CORE_COMMON_H
 #define ANAKIN_SABER_CORE_COMMON_H
 
 #include <iostream>
+#include <string>
 #include <vector>
 #include <type_traits>
 #include <typeinfo>
 #include <stdlib.h>
+#include <map>
+#include <list>
 
 #include "utils/logger/logger.h"
 #include "anakin_config.h"
 #include "saber/saber_types.h"
 
-namespace anakin{
+namespace anakin {
 
-namespace saber{
+namespace saber {
 
 #define SABER_CHECK(condition) \
     do { \
@@ -36,26 +39,29 @@ namespace saber{
     CHECK_EQ(error, SaberSuccess) << " " << saber_get_error_string(error); \
 } while (0)
 
-inline const char* saber_get_error_string(SaberStatus error_code){
+inline const char* saber_get_error_string(SaberStatus error_code) {
     switch (error_code) {
-        case SaberSuccess:
-            return "ANAKIN_SABER_STATUS_SUCCESS";
-        case SaberNotInitialized:
-            return "ANAKIN_SABER_STATUS_NOT_INITIALIZED";
-        case SaberInvalidValue:
-            return "ANAKIN_SABER_STATUS_INVALID_VALUE";
-        case SaberMemAllocFailed:
-            return "ANAKIN_SABER_STATUS_MEMALLOC_FAILED";
-        case SaberUnKownError:
-            return "ANAKIN_SABER_STATUS_UNKNOWN_ERROR";
-        case SaberOutOfAuthority:
-            return "ANAKIN_SABER_STATUS_OUT_OF_AUTHORITH";
-        case SaberOutOfMem:
-            return "ANAKIN_SABER_STATUS_OUT_OF_MEMORY";
-        case SaberUnImplError:
-            return "ANAKIN_SABER_STATUS_UNIMPL_ERROR";
+    case SaberSuccess:
+        return "ANAKIN_SABER_STATUS_SUCCESS";
+    case SaberNotInitialized:
+        return "ANAKIN_SABER_STATUS_NOT_INITIALIZED";
+    case SaberInvalidValue:
+        return "ANAKIN_SABER_STATUS_INVALID_VALUE";
+    case SaberMemAllocFailed:
+        return "ANAKIN_SABER_STATUS_MEMALLOC_FAILED";
+    case SaberUnKownError:
+        return "ANAKIN_SABER_STATUS_UNKNOWN_ERROR";
+    case SaberOutOfAuthority:
+        return "ANAKIN_SABER_STATUS_OUT_OF_AUTHORITH";
+    case SaberOutOfMem:
+        return "ANAKIN_SABER_STATUS_OUT_OF_MEMORY";
+    case SaberUnImplError:
+        return "ANAKIN_SABER_STATUS_UNIMPL_ERROR";
+    case SaberWrongDevice:
+        return "ANAKIN_SABER_STATUS_WRONG_DEVICE";
+    default:
+        return "ANAKIN SABER UNKOWN ERRORS";
     }
-    return "ANAKIN SABER UNKOWN ERRORS";
 }
 
 template <bool If, typename ThenType, typename ElseType>
@@ -90,6 +96,9 @@ const int CUDA_NUM_THREADS = 512;
 /// CUDA: number of blocks for threads.
 inline int CUDA_GET_BLOCKS(const int N) {
     return (N + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS;
+}
+inline int CUDA_GET_BLOCKS(const int N,const int base) {
+    return (N + base - 1) / base;
 }
 
 #define CUDA_CHECK(condition) \
@@ -135,14 +144,87 @@ const char* cublas_get_errorstring(cublasStatus_t error);
 const char* cudnn_get_errorstring(cudnnStatus_t status);
 #endif //USE_CUDNN
 
-#ifdef USE_AMD
-#include <hip/hip_runtime_api.h>
+#ifdef AMD_GPU
+
+#ifdef __APPLE__
+#include <OpenCL/cl_ext.h>
+#include <OpenCL/cl.h>
+#else
+#include <CL/cl_ext.h>
+#include <CL/cl.h>
 #endif
 
+#define AMD_CHECK_MSG(condition, msg) \
+  /* Code block avoids redefinition of cudaError_t error */ \
+  do { \
+    cl_int error = condition; \
+    CHECK_EQ(error, CL_SUCCESS) << " " << msg << " (err=" << opencl_get_error_string(error) << ")"; \
+  } while (0)
+
+
+#define AMD_CHECK(condition) \
+  /* Code block avoids redefinition of cudaError_t error */ \
+  do { \
+    cl_int error = condition; \
+    CHECK_EQ(error, CL_SUCCESS) << " " <<  opencl_get_error_string(error); \
+  } while (0)
+#endif
+
+
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif //openmp
 
 #ifdef USE_ARM_PLACE
+#include <arm_neon.h>
+#include <sstream>
+namespace std {
+template <typename T>
+std::string to_string(T value)
+{
+    std::ostringstream os;
+    os << value;
+    return os.str();
+}
+}
+#endif //ARM
 
-#endif
+#ifdef USE_BM_PLACE
 
+#include "bmlib_runtime.h"
+
+#define BM_CHECK(condition) \
+  do { \
+    int error = condition; \
+    CHECK_EQ(error, 0) << " Failed with error code:" << error; \
+  } while (0)
+
+#define BM_CHECK_PTR(condition) \
+  do { \
+    CHECK_NE(condition, NULL) << " Failed with null ptr"; \
+  } while (0)
+
+#define BM_CHECK_STATUS(condition) \
+  do { \
+     bm_status_t error = condition; \
+    CHECK_EQ(error, BM_SUCCESS) << " Failed with error code:" << error; \
+  } while (0)
+
+#endif // USE_BM_PLACE
+
+#ifdef USE_MLU
+#include <cnml.h>
+#include <cnrt.h>
+
+#define MLU_CHECK(condition) \
+  do { \
+    cnmlStatus_t status = condition; \
+    CHECK_EQ(status, CNML_STATUS_SUCCESS) << cnml_get_errorstring(status); \
+  } while (0)
+
+const char* cnml_get_errorstring(cnmlStatus_t status);
+const char* cnrt_get_errorstring(cnrtRet_t status);
+
+#endif  // USE_MLU
 #endif //ANAKIN_SABER_CORE_COMMON_H
-

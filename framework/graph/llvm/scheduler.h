@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -50,7 +50,9 @@ struct HashIO {
  */
 class Scheduler : public ScheduleBase<io, node, HashIO> {
 public:
-    Scheduler() {}
+    Scheduler()
+        : _vgraph(nullptr)
+    {}
     virtual ~Scheduler() {}
 
     /// register the graph's read and write io resource.
@@ -70,6 +72,9 @@ public:
 
     /// check if io is fixed
     bool is_fixed(io&);
+
+    /// check if io's share_from target is fixed
+    bool is_target_fixed(io&);
 
     /// ...TODO
     //

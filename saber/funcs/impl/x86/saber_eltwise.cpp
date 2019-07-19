@@ -1,136 +1,364 @@
-
 #include "saber/funcs/impl/x86/saber_eltwise.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
 
 
-namespace anakin{
+namespace anakin {
 namespace saber {
 
-template class SaberEltwise<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberEltwise<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::init(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        EltwiseParam<OpTensor> &param,
-        Context<X86> &ctx)
-{
+template <DataType OpDtype>
+SaberStatus SaberEltwise<X86, OpDtype>::init(
+    const std::vector<DataTensor_in*>& inputs,
+    std::vector<DataTensor_out*>& outputs,
+    EltwiseParam<X86>& param,
+    Context<X86>& ctx) {
     // get context
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
+    _with_relu = param.has_eltwise && param.activation_param.active == Active_relu;
+    _other_activation = param.has_eltwise && param.activation_param.active != Active_relu
+                        && param.activation_param.active != Active_unknow;
+
+    if (_other_activation) {
+        LOG(FATAL) << "not support other_activation";
+    }
+
     return create(inputs, outputs, param, ctx);
 }
 
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberEltwise<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::create(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        EltwiseParam<OpTensor>& param,
-        Context<X86> &ctx)
-{
+template <DataType OpDtype>
+SaberStatus SaberEltwise<X86, OpDtype>::create(
+    const std::vector<DataTensor_in*>& inputs,
+    std::vector<DataTensor_out*>& outputs,
+    EltwiseParam<X86>& param,
+    Context<X86>& ctx) {
     this->_param = &param;
-    if (this->_param->operation != Eltwise_sum) {
-                LOG(INFO) << "eltwise type "
-                          << this->_param->operation << " is not supported now";
-        return SaberUnImplError;
-    }
-    typedef typename DataTensor_in::Dtype DataType_in;
-    typedef typename DataTensor_out::Dtype DataType_out;
-    typedef typename OpTensor::Dtype DataType_op;
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
 
     return SaberSuccess;
 }
 
-template <DataType OpDtype ,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-void SaberEltwise<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::simple_sum(
-        const std::vector<DataTensor_in*>& inputs,
+template <DataType OpDtype>
+void SaberEltwise<X86, OpDtype>::simple_sum(const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
-        EltwiseParam<OpTensor>& param){
+        EltwiseParam<X86>& param, bool with_relu) {
+    const int input_num = inputs.size();
+    const size_t inner_size = inputs[0]->valid_size();
+    OpDataType* target = (OpDataType*) outputs[0]->mutable_data();
+    std::vector<const OpDataType*> in_ptrs(input_num);
 
-    const int num_arrs = inputs.size();
-    const size_t nelems = inputs[0]->size();
-    const size_t block_size = 16 * 1024 / sizeof(float);
-    const size_t blocks_number = nelems / block_size;
-    const size_t tail = nelems % block_size;
-#pragma omp parallel
-    {
-        const int ithr = omp_get_thread_num();
-        const int nthr = omp_get_num_threads();
-        size_t start{0}, end{0};
-        utils::balance211(blocks_number, nthr, ithr, start, end);
+    for (int i = 0; i < input_num; ++i) {
+        in_ptrs[i] = (OpDataType*) inputs[i]->data();
+    }
 
-        for (size_t nb = start; nb < end; ++nb) {
-            size_t start_e = nb * block_size;
-            size_t end_e = start_e + block_size;
-            // #pragma omp simd
-            for (size_t e = start_e; e < end_e; e++) {
-                outputs[0]->mutable_data()[e] = param.coeff[0] * inputs[0]->mutable_data()[e];
-            }
-            for (int a = 1; a < num_arrs; a++) {
-                // #pragma omp simd
-                for (size_t e = start_e; e < end_e; e++) {
-                    outputs[0]->mutable_data()[e] += param.coeff[a] * inputs[a]->mutable_data()[e];
-                }
-            }
+    const OpDataType* coeff = static_cast<const OpDataType*>(param.coeff.data());
+    //TODO:can be SIMD to improve cache efficient
+#pragma omp parallel for schedule(static)
+    for (int inner_id = 0; inner_id < inner_size; ++inner_id) {
+
+        OpDataType tmp = coeff[0] * in_ptrs[0][inner_id];
+
+        for (int input_id = 1; input_id < input_num; ++input_id) {
+            tmp += coeff[input_id] * in_ptrs[input_id][inner_id];
         }
 
-        if (tail != 0 && ithr == nthr - 1) {
-            size_t start_e = nelems - tail;
-            size_t end_e = nelems;
-            // #pragma omp simd
-            for (size_t e = start_e; e < end_e; e++) {
-                outputs[0]->mutable_data()[e] = param.coeff[0] * inputs[0]->mutable_data()[e];
-            }
-            for (int a = 1; a < num_arrs; a++) {
-                // #pragma omp simd
-                for (size_t e = start_e; e < end_e; e++) {
-                    outputs[0]->mutable_data()[e] += param.coeff[a] * inputs[a]->mutable_data()[e];
-                }
-            }
+        if (with_relu) {
+            target[inner_id] = tmp > 0 ? tmp : 0;
+        } else {
+            target[inner_id] = tmp;
+        }
+
+    }
+}
+template <>
+void SaberEltwise<X86, AK_INT8>::simple_sum(const std::vector<DataTensor_in*>& inputs,
+                                            std::vector<DataTensor_out*>& outputs,
+                                            EltwiseParam<X86>& param, bool with_relu) {
+    const int input_num = inputs.size();
+    const size_t inner_size = inputs[0]->valid_size();
+    OpDataType* target = (OpDataType*) outputs[0]->mutable_data();
+    std::vector<const OpDataType*> in_ptrs(input_num);
+    std::vector<float> ins_scale(input_num);
+
+
+    CHECK(outputs[0]->get_dtype()==AK_INT8);
+    CHECK(outputs[0]->get_layout()==Layout_NHWC);
+    CHECK(outputs[0]->get_scale().size()>0);
+    float out_scale;
+
+    for (int i = 0; i < input_num; ++i) {
+        in_ptrs[i] = (OpDataType*) inputs[i]->data();
+        CHECK(inputs[i]->get_scale().size()>0);
+        CHECK(inputs[i]->get_layout()==Layout_NHWC);
+        CHECK(inputs[i]->get_dtype()==AK_INT8);
+        ins_scale[i] = inputs[i]->get_scale()[0];
+    }
+
+    const float* coeff = static_cast<const float*>(param.coeff.data());
+    //TODO:can be SIMD to improve cache efficient
+#pragma omp parallel for schedule(static)
+    for (int inner_id = 0; inner_id < inner_size; ++inner_id) {
+
+        float tmp = coeff[0] * (float)(in_ptrs[0][inner_id])*ins_scale[0];
+
+        for (int input_id = 1; input_id < input_num; ++input_id) {
+            tmp += coeff[input_id] * (float)(in_ptrs[input_id][inner_id])*ins_scale[input_id];
+        }
+
+        if (with_relu) {
+            target[inner_id] = saturate<int8_t >(roundf(tmp > 0 ? tmp : 0));
+        } else {
+            target[inner_id] = saturate<int8_t >(roundf(tmp));
+        }
+
+    }
+}
+template <DataType OpDtype>
+void SaberEltwise<X86, OpDtype>::simple_prod(const std::vector<DataTensor_in*>& inputs,
+        std::vector<DataTensor_out*>& outputs,
+        EltwiseParam<X86>& param, bool with_relu) {
+    const int input_num = inputs.size();
+    const size_t inner_size = inputs[0]->valid_size();
+    OpDataType* target = (OpDataType*) outputs[0]->mutable_data();
+    std::vector<const OpDataType*> in_ptrs(input_num);
+
+    for (int i = 0; i < input_num; ++i) {
+        in_ptrs[i] = (OpDataType*) inputs[i]->data();
+    }
+#pragma omp parallel for schedule(static)
+    for (int inner_id = 0; inner_id < inner_size; ++inner_id) {
+        OpDataType tmp = in_ptrs[0][inner_id];
+
+        for (int input_id = 1; input_id < input_num; ++input_id) {
+            tmp *= in_ptrs[input_id][inner_id];
+        }
+
+        if (with_relu) {
+            target[inner_id] = tmp > 0 ? tmp : 0;
+        } else {
+            target[inner_id] = tmp;
         }
     }
 }
 
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberEltwise<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(
-        const std::vector<DataTensor_in*>& inputs,
+template <DataType OpDtype>
+void SaberEltwise<X86, OpDtype>::simple_max(const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
-        EltwiseParam<OpTensor> &param)
-{
+        EltwiseParam<X86>& param, bool with_relu) {
+    const int input_num = inputs.size();
+    volatile const size_t inner_size = inputs[0]->valid_size();
+    OpDataType* target = (OpDataType*) outputs[0]->mutable_data();
+    std::vector<const OpDataType*> in_ptrs(input_num);
+
+    for (int i = 0; i < input_num; ++i) {
+        in_ptrs[i] = (OpDataType*) inputs[i]->data();
+    }
+#pragma omp parallel for schedule(static)
+    for (int inner_id = 0; inner_id < inner_size; ++inner_id) {
+        OpDataType tmp = in_ptrs[0][inner_id];
+
+        for (int input_id = 1; input_id < input_num; ++input_id) {
+            tmp = tmp >= in_ptrs[input_id][inner_id] ? tmp : in_ptrs[input_id][inner_id];
+        }
+
+        if (with_relu) {
+            target[inner_id] = tmp > 0 ? tmp : 0;
+        } else {
+            target[inner_id] = tmp;
+        }
+    }
+}
+
+template <DataType OpDtype>
+void SaberEltwise<X86, OpDtype>::simple_div(const std::vector<DataTensor_in*>& inputs,
+        std::vector<DataTensor_out*>& outputs,
+        EltwiseParam<X86>& param, bool with_relu) {
+    const int input_num = inputs.size();
+    volatile const size_t inner_size = inputs[0]->valid_size();
+    OpDataType* target = (OpDataType*) outputs[0]->mutable_data();
+    std::vector<const OpDataType*> in_ptrs(input_num);
+
+    for (int i = 0; i < input_num; ++i) {
+        in_ptrs[i] = (OpDataType*) inputs[i]->data();
+    }
+    if (inputs[1]->valid_size() == inputs[0]->valid_size()) {
+#pragma omp parallel for schedule(static)
+        for (int inner_id = 0; inner_id < inner_size; ++inner_id) {
+            OpDataType tmp = in_ptrs[0][inner_id];
+
+            for (int input_id = 1; input_id < input_num; ++input_id) {
+                tmp /= in_ptrs[input_id][inner_id];
+            }
+
+            if (with_relu) {
+                target[inner_id] = tmp > 0 ? tmp : 0;
+            } else {
+                target[inner_id] = tmp;
+            }
+        }
+    } else {
+        CHECK_EQ(inputs.size(), 2) << "elt with axis not support fusion";
+        int outer_num = inputs[0]->count_valid(0, param.axis);
+        int mid_num = outputs[0]->valid_size();
+        int inner_num = inputs[0]->count_valid(param.axis, inputs[0]->dims()) / mid_num;
+        for (int outer_id = 0; outer_id < outer_num; ++outer_id) {
+#pragma omp parallel for schedule(static)
+            for (int mid_id = 0; mid_id < mid_num; mid_id++) {
+                OpDataType div_data = in_ptrs[1][mid_id];
+                for (int inner_id = 0; inner_id < inner_num; inner_id++) {
+                    int index = (outer_id * mid_num + mid_id) * inner_num + inner_id;
+                    OpDataType tmp = in_ptrs[0][index] / div_data;
+                    if (with_relu) {
+                        target[index] = tmp > 0 ? tmp : 0;
+                    } else {
+                        target[index] = tmp;
+                    }
+                }
+            }
+
+        }
+    }
+}
+
+template <DataType OpDtype>
+void SaberEltwise<X86, OpDtype>::simple_mul(const std::vector<DataTensor_in*>& inputs,
+        std::vector<DataTensor_out*>& outputs,
+        EltwiseParam<X86>& param, bool with_relu) {
+    const int input_num = inputs.size();
+    volatile const size_t inner_size = inputs[0]->valid_size();
+    OpDataType* target = (OpDataType*) outputs[0]->mutable_data();
+    std::vector<const OpDataType*> in_ptrs(input_num);
+
+    for (int i = 0; i < input_num; ++i) {
+        in_ptrs[i] = (OpDataType*) inputs[i]->data();
+    }
+    if (inputs[1]->valid_size() == inputs[0]->valid_size()) {
+#pragma omp parallel for schedule(static)
+        for (int inner_id = 0; inner_id < inner_size; ++inner_id) {
+            OpDataType tmp = in_ptrs[0][inner_id];
+
+            for (int input_id = 1; input_id < input_num; ++input_id) {
+                tmp *= in_ptrs[input_id][inner_id];
+            }
+
+            if (with_relu) {
+                target[inner_id] = tmp > 0 ? tmp : 0;
+            } else {
+                target[inner_id] = tmp;
+            }
+        }
+    } else {
+        CHECK_EQ(inputs.size(), 2) << "elt with axis not support fusion";
+        int outer_num = inputs[0]->count_valid(0, param.axis);
+        //int mid_num = inputs[1]->valid_size();
+        int mid_num = inputs[1]->count_valid(param.axis, inputs[1]->dims());
+        int inner_num = inputs[0]->count_valid(param.axis, inputs[0]->dims()) / mid_num;
+        for (int outer_id = 0; outer_id < outer_num; ++outer_id) {
+#pragma omp parallel for schedule(static)
+            for (int mid_id = 0; mid_id < mid_num; mid_id++) {
+                OpDataType div_data = in_ptrs[1][mid_id];
+                for (int inner_id = 0; inner_id < inner_num; inner_id++) {
+                    int index = (outer_id * mid_num + mid_id) * inner_num + inner_id;
+                    OpDataType tmp = in_ptrs[0][index] * div_data;
+                    if (with_relu) {
+                        target[index] = tmp > 0 ? tmp : 0;
+                    } else {
+                        target[index] = tmp;
+                    }
+                }
+            }
+
+        }
+    }
+}
+template <DataType OpDtype>
+SaberStatus SaberEltwise<X86, OpDtype>::dispatch(
+    const std::vector<DataTensor_in*>& inputs,
+    std::vector<DataTensor_out*>& outputs,
+    EltwiseParam<X86>& param) {
     CHECK_EQ(outputs.size(), (size_t)1);
     switch (param.operation) {
-        case Eltwise_sum:
-            simple_sum(inputs, outputs, param);
-            return SaberSuccess;
-        default:
-            return SaberUnImplError;
+    case Eltwise_sum:
+        simple_sum(inputs, outputs, param, _with_relu);
+        break;
+
+    case Eltwise_prod:
+        simple_prod(inputs, outputs, param, _with_relu);
+        break;
+
+    case Eltwise_max:
+        simple_max(inputs, outputs, param, _with_relu);
+        break;
+
+    case Eltwise_div:
+        simple_div(inputs, outputs, param, _with_relu);
+        break;
+
+    case Eltwise_mul:
+        simple_mul(inputs, outputs, param, _with_relu);
+        break;
+
+    default:
+        LOG(FATAL) << "unknown elementwise operation. ";
     }
-      
+
+    return SaberSuccess;
+
 }
+
+template <>
+SaberStatus SaberEltwise<X86, AK_INT8>::create(
+        const std::vector<DataTensor_in*>& inputs,
+        std::vector<DataTensor_out*>& outputs,
+        EltwiseParam<X86>& param,
+        Context<X86>& ctx) {
+    this->_param = &param;
+    this->_ctx = &ctx;
+
+    return SaberSuccess;
+}
+
+
+template <>
+SaberStatus SaberEltwise<X86, AK_INT8>::init(
+        const std::vector<DataTensor_in*>& inputs,
+        std::vector<DataTensor_out*>& outputs,
+        EltwiseParam<X86>& param,
+        Context<X86>& ctx) {
+    // get context
+    this->_ctx = &ctx;
+    _with_relu = param.has_eltwise && param.activation_param.active == Active_relu;
+    _other_activation = param.has_eltwise && param.activation_param.active != Active_relu
+                        && param.activation_param.active != Active_unknow;
+
+    if (_other_activation) {
+                LOG(FATAL) << "not support other_activation";
+    }
+
+    return create(inputs, outputs, param, ctx);
+}
+
+template <>
+SaberStatus SaberEltwise<X86, AK_INT8>::dispatch(
+        const std::vector<DataTensor_in*>& inputs,
+        std::vector<DataTensor_out*>& outputs,
+        EltwiseParam<X86>& param) {
+            CHECK_EQ(outputs.size(), (size_t)1);
+    switch (param.operation) {
+        case Eltwise_sum:
+            simple_sum(inputs, outputs, param, _with_relu);
+            break;
+
+        default:
+            LOG(FATAL) << "unknown elementwise operation. ";
+    }
+
+    return SaberSuccess;
+
+}
+
+
+template class SaberEltwise<X86, AK_FLOAT>;
+template class SaberEltwise<X86, AK_INT8>;
+DEFINE_OP_TEMPLATE(SaberEltwise, EltwiseParam, X86, AK_HALF);
 
 }
 } // namespace anakin

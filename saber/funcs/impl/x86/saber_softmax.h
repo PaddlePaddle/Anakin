@@ -20,22 +20,14 @@
 namespace anakin{
 namespace saber {
 
-template <DataType OpDtype ,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class SaberSoftmax<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out> : public ImplBase<
-        Tensor<X86, inDtype, LayOutType_in>,
-        Tensor<X86, outDtype, LayOutType_out>,
-        Tensor<X86, OpDtype, LayOutType_op>,
-        SoftmaxParam<Tensor<X86, OpDtype, LayOutType_op> > > {
+template <DataType OpDtype>
+class SaberSoftmax<X86, OpDtype> : 
+    public ImplBase<X86, OpDtype, SoftmaxParam<X86>> 
+{
 public:
-    typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<X86, OpDtype, LayOutType_op> OpTensor;
+    typedef Tensor<X86> DataTensor_in;
+    typedef Tensor<X86> DataTensor_out;
+    typedef Tensor<X86> OpTensor;
 
     SaberSoftmax()
     {}
@@ -45,24 +37,27 @@ public:
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             SoftmaxParam<OpTensor>& param,
+                             SoftmaxParam<X86>& param,
                              Context<X86> &ctx) override;
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                                std::vector<DataTensor_out*>& outputs,
-                               SoftmaxParam<OpTensor>& param,
+                               SoftmaxParam<X86>& param,
                                Context<X86> &ctx) override;
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
-                                 SoftmaxParam<OpTensor> &param) override;
+                                 SoftmaxParam<X86> &param) override;
 
 private:
-    void _max(int n, const float *x, float *max_data);
-    void _sub(int n, float alpha, const float *x, float *y);
-    void _exp(int n, const float *a, float *r);
-    void _sum(int n, const float *x, float *sum_data);
-    void _scal(int n, float alpha, float *x);
+    int _inner_num;
+    int _outer_num;
+    int _axis_size;
+    int _dims;
+    Tensor<X86> _input_stride;
+    Tensor<X86> _output_stride;
+    Tensor<X86> _max_data;
+    Tensor<X86> _input_scale;
 };
 
 }

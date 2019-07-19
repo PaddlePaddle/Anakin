@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -15,17 +15,62 @@
 
 #ifndef ANAKIN_OPERATORS_H
 #define ANAKIN_OPERATORS_H
-
-#include "framework/operators/pooling.h"
+#if 1
+//#include "framework/graph/llvm/fusion/graph_pattern.h"
+#include "framework/operators/activation.h"
+#include "framework/operators/arg_max.h"
+#include "framework/operators/axpy.h"
+#include "framework/operators/batch_norm.h"
+#include "framework/operators/concat.h"
+#include "framework/operators/convolution.h"
+#include "framework/operators/crf_decoding.h"
+#include "framework/operators/crop.h"
+#include "framework/operators/ctc_align.h"
+#include "framework/operators/deconvolution.h"
+#include "framework/operators/deformconvolution.h"
+#include "framework/operators/dense.h"
+#include "framework/operators/depwise_sep_convolution.h"
+#include "framework/operators/detection_output.h"
+#include "framework/operators/dot.h"
+#include "framework/operators/dropout.h"
+#include "framework/operators/eltwise_op.h"
+#include "framework/operators/elu.h"
+#include "framework/operators/embedding.h"
+#include "framework/operators/exp.h"
+#include "framework/operators/flatten.h"
+#include "framework/operators/gru.h"
+#include "framework/operators/im2sequence.h"
 #include "framework/operators/input.h"
-//#include "framework/operators/pooling.h"
-//#include "framework/operators/pooling.h"
-//#include "framework/operators/pooling.h"
-//#include "framework/operators/pooling.h"
-//#include "framework/operators/pooling.h"
-//#include "framework/operators/pooling.h"
-//#include "framework/operators/pooling.h"
+#include "framework/operators/log.h"
+#include "framework/operators/lrn.h"
+#include "framework/operators/lstm.h"
+#include "framework/operators/mvn.h"
+#include "framework/operators/normalize.h"
+#include "framework/operators/output.h"
+#include "framework/operators/permute.h"
+#include "framework/operators/pooling.h"
+#include "framework/operators/power.h"
+#include "framework/operators/prelu.h"
+#include "framework/operators/priorbox.h"
+#include "framework/operators/relu.h"
+#include "framework/operators/reshape.h"
+#include "framework/operators/scale.h"
+#include "framework/operators/sequence_pool.h"
+#include "framework/operators/slice.h"
+#include "framework/operators/softmax.h"
+#include "framework/operators/split.h"
+#include "framework/operators/standard_rnn.h"
 
+#include "framework/operators/fusion_ops/conv_batchnorm_scale.h"
+#include "framework/operators/fusion_ops/conv_batchnorm_scale_relu.h"
+#include "framework/operators/fusion_ops/conv_batchnorm_scale_relu_pool.h"
+#include "framework/operators/fusion_ops/conv_relu.h"
+#include "framework/operators/fusion_ops/conv_relu_pool.h"
+#include "framework/operators/fusion_ops/deconv_relu.h"
+#include "framework/operators/fusion_ops/eltwise_relu.h"
+#include "framework/operators/fusion_ops/permute_power.h"
+
+#endif //0
 
 namespace anakin {
 namespace ops {
