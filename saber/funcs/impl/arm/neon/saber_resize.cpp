@@ -4,7 +4,7 @@ namespace anakin{
 
 namespace saber{
 
-// This implementation is based on https:https://github.com/Tencent/ncnn
+// This implementation is based on https://github.com/Tencent/ncnn
 
 // Copyright (C) 2018 THL A29 Limited, a Tencent company. All rights reserved.
 
