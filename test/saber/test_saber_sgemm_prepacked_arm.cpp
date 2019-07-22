@@ -3,7 +3,6 @@
 #include "test/saber/test_saber_func.h"
 
 #ifdef USE_ARM_PLACE
-#include "saber/funcs/impl/arm/neon/impl/sgemm_arm.h"
 #include "saber/funcs/impl/arm/neon/impl/sgemm_prepacked.h"
 
 using namespace anakin::saber;
