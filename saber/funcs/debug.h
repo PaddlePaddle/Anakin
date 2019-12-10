@@ -21,6 +21,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <immintrin.h>
 
 #ifndef USE_SGX
 #include "saber/core/tensor.h"

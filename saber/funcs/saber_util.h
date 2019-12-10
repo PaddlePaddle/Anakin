@@ -4,6 +4,7 @@
 #include "saber/core/common.h"
 #include "saber/core/tensor.h"
 #include "saber/core/shape.h"
+#include <cmath>
 namespace anakin {
 
 namespace saber {

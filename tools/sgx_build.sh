@@ -14,7 +14,7 @@ echo "-- Build anakin sgx into: $BUILD_ROOT"
 echo "-- Building anakin ..."
 cd $BUILD_ROOT
 
-cmake .. \
+cmake --graphviz=sgx.dot .. \
        -DCMAKE_BUILD_TYPE=Release \
        -DUSE_ARM_PLACE=NO \
        -DUSE_GPU_PLACE=NO \
