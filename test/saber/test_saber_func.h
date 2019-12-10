@@ -21,6 +21,7 @@
 #include "core/tensor.h"
 #include <fstream>
 #include <vector>
+#include <cmath>
 
 using namespace anakin::test;
 

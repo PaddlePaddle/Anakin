@@ -394,7 +394,7 @@ Status Graph<Ttype, Ptype>::Optimize(bool with_fusion) EXCLUSIVE_LOCKS_REQUIRED(
                 }
             }
 
-            ///*
+            /*
             restore_from_vgraph(_vgraph);
             graph_strategy<Ttype, Ptype> _strategy;
             if (std::is_same<Ttype,X86>::value) {
@@ -406,7 +406,7 @@ Status Graph<Ttype, Ptype>::Optimize(bool with_fusion) EXCLUSIVE_LOCKS_REQUIRED(
             }
             _strategy.apply_stride_up(this);
             *_vgraph = this->get_vgraph();
-            //*/
+            */
 
             DLOG(WARNING) <<
                           "Schedule the vgraph for memory optimization and exec lanes ,as well as sync flags.";

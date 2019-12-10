@@ -23,6 +23,7 @@ anakin_add_compile_option(-std=c++11)
 anakin_add_compile_option(-fPIC)
 
 if(USE_X86_PLACE)
+    anakin_add_compile_option(-march=native)
     if (BUILD_X86_TARGET MATCHES "knl" OR ${BUILD_X86_ARCH} MATCHES "knl")
         anakin_add_compile_option(-mavx512bw)
         anakin_add_compile_option(-mavx512f)

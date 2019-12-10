@@ -14,6 +14,7 @@
 */
 
 #include "framework/utils/parameter_fusion.h"
+#include <cmath>
 namespace anakin {
 
 static void basic_x86_gemm(const int m, const int n, const int k,
