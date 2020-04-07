@@ -1,3 +1,7 @@
+亲爱的用户，请体验更新的 [PaddlePaddle](https://github.com/PaddlePaddle/Paddle)，它包含了 Anakin 的功能。Anakin 将不再更新且为只读。
+
+Dear users, please experience the updated [PaddlePaddle](https://github.com/PaddlePaddle/Paddle), which contains the features of the original Anakin. The Anakin repository will no longer be updated and is read-only.
+
 # Anakin2.0
 
 [![Build Status](https://travis-ci.org/PaddlePaddle/Anakin.svg?branch=developing)](https://travis-ci.org/PaddlePaddle/Anakin)
