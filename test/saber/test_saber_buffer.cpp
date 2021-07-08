@@ -1,3 +1,4 @@
+#include <cmath>
 #include "test_saber_func.h"
 #include "saber/core/buffer.h"
 #include "saber/core/env.h"
