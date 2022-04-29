@@ -3,6 +3,8 @@ import os
 
 from flask import Flask, request, session, g, redirect, url_for,\
         abort,render_template,flash,make_response,Markup,send_from_directory,send_file
+from werkzeug.utils import safe_join
+
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -23,5 +25,5 @@ def show_doxygen_file(filename):
     doc show local files
     """
     print filename
-    return send_file( 'templates/html/' + filename)
+    return send_file( safe_join('templates/html/', filename))
 
